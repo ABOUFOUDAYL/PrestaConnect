@@ -1,7 +1,6 @@
-﻿import { Inter } from 'next/font/google';
+﻿Set-Content -Path "app\layout.tsx" -Encoding UTF8 -Value @'
+import { Inter } from 'next/font/google';
 import './globals.css';
-
-// Importations corrigées avec des chemins relatifs explicites
 import { Footer } from '../components/layout/footer';
 import { Toaster } from '../components/ui/toaster';
 import { ConditionalShell } from '../components/layout/conditional-shell';
@@ -16,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
-        <ConditionalShell>
+        <ConditionalShell navbar={null} footer={null}>
           {children}
         </ConditionalShell>
         <Footer />
@@ -25,3 +24,4 @@ export default function RootLayout({
     </html>
   );
 }
+'@
