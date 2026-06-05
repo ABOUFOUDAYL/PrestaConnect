@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Star, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-export const METIERS_AVEC_DIPLOME = [
+const METIERS_AVEC_DIPLOME = [
   "Électricien", "Plombier", "Maçon / Technicien en bâtiment",
   "Menuisier / Ébéniste", "Mécanicien automobile", "Soudeur",
   "Carreleur", "Peintre en bâtiment", "Technicien en froid et climatisation",
@@ -16,7 +16,7 @@ export const METIERS_AVEC_DIPLOME = [
   "Technicien en génie civil", "Architecte d'intérieur", "Géomètre",
 ];
 
-export const METIERS_SANS_DIPLOME = [
+const METIERS_SANS_DIPLOME = [
   "Coiffeur / Barbier", "Tailleur / Couturier", "Cordonnier",
   "Tisserand", "Potier / Céramiste", "Forgeron", "Vannier / Artisan en rotin",
   "Sculpteur sur bois", "Bijoutier artisanal", "Brodeur",
