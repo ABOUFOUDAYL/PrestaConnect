@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { BENIN_CRAFTS } from '@/constants/jobs';
-import { Search, MapPin, Star, AlertTriangle, Send, CheckCircle2, Briefcase } from 'lucide-react';
+import { Search, MapPin, Star, AlertTriangle, Send, CheckCircle2, Briefcase, Loader2 } from 'lucide-react';
 
-// Types pour structurer nos données
 type Artisan = {
   id: string;
   nom: string;
@@ -16,45 +16,50 @@ type Artisan = {
 };
 
 export default function RechercheClientPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  // Filtres de recherche
+
   const [rechercheMetier, setRechercheMetier] = useState('');
   const [rechercheVille, setRechercheVille] = useState('');
   const [estUrgent, setEstUrgent] = useState(false);
 
-  // Gestion de la Modal de Demande
   const [selectedArtisan, setSelectedArtisan] = useState<Artisan | null>(null);
   const [description, setDescription] = useState('');
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [messageSucces, setMessageSucces] = useState('');
 
-  // Lancer la recherche automatiquement à chaque changement de filtre
+  // ✅ Vérification auth au chargement
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/login');
+        return;
+      }
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, [router]);
+
+  // ✅ Recherche déclenchée uniquement après auth confirmée
+  useEffect(() => {
+    if (!authChecked) return;
     lancerRecherche();
-  }, [rechercheMetier, rechercheVille, estUrgent]);
+  }, [authChecked, rechercheMetier, rechercheVille, estUrgent]);
 
   async function lancerRecherche() {
     setLoading(true);
     try {
-      // 1. On ne cherche QUE les profils validés par l'admin
       let query = supabase
         .from('profiles')
         .select('id, nom, prenom, metier, ville, score_performance')
         .eq('is_verified', true);
 
-      // 2. Filtre par métier
-      if (rechercheMetier) {
-        query = query.eq('metier', rechercheMetier);
-      }
+      if (rechercheMetier) query = query.eq('metier', rechercheMetier);
+      if (rechercheVille) query = query.ilike('ville', `%${rechercheVille}%`);
 
-      // 3. Filtre de géolocalisation (Ville) si précisé ou si URGENT
-      if (rechercheVille) {
-        query = query.ilike('ville', `%${rechercheVille}%`);
-      }
-
-      // 4. L'ALGORITHME DE CLASSEMENT : Les meilleurs scores en premier !
       query = query.order('score_performance', { ascending: false });
 
       const { data, error } = await query;
@@ -73,19 +78,13 @@ export default function RechercheClientPage() {
     setEnvoiEnCours(true);
 
     try {
-      // Récupération de l'ID du client connecté
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("Vous devez être connecté (gratuitement) pour envoyer une demande.");
-        return;
-      }
+      if (!user) { router.replace('/login'); return; }
 
-      // Récupération des règles tarifaires selon le métier de l'artisan choisi
       const reglesMetier = BENIN_CRAFTS.find(c => c.id === selectedArtisan.metier);
       const quiPaie = reglesMetier?.payer || 'artisan';
       const montant = reglesMetier?.price || 200;
 
-      // Insertion dans la nouvelle table 'demandes'
       const { error } = await supabase
         .from('demandes')
         .insert({
@@ -98,14 +97,13 @@ export default function RechercheClientPage() {
         });
 
       if (error) throw error;
-      
+
       setMessageSucces("Votre demande a été envoyée avec succès à l'artisan !");
       setTimeout(() => {
         setSelectedArtisan(null);
         setMessageSucces('');
         setDescription('');
       }, 3000);
-
     } catch (err) {
       console.error("Erreur lors de l'envoi :", err);
       alert("Une erreur est survenue.");
@@ -114,9 +112,17 @@ export default function RechercheClientPage() {
     }
   }
 
+  // ✅ Écran de chargement pendant la vérification auth
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* En-tête de recherche */}
       <div className="bg-gray-900 pt-16 pb-24 px-4 text-center">
         <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
           Trouvez le meilleur prestataire au Bénin
@@ -125,12 +131,11 @@ export default function RechercheClientPage() {
           Recherchez par métier et par ville. Les prestataires affichés sont vérifiés et classés selon la qualité de leurs services.
         </p>
 
-        {/* Barre de filtres */}
         <div className="max-w-4xl mx-auto bg-white p-2 rounded-3xl shadow-xl flex flex-col md:flex-row gap-2">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <select 
-              value={rechercheMetier} 
+            <select
+              value={rechercheMetier}
               onChange={(e) => setRechercheMetier(e.target.value)}
               className="w-full h-14 pl-12 pr-4 bg-transparent border-none font-bold text-gray-900 focus:ring-0 cursor-pointer appearance-none"
             >
@@ -138,13 +143,13 @@ export default function RechercheClientPage() {
               {BENIN_CRAFTS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             </select>
           </div>
-          
+
           <div className="w-px bg-gray-100 hidden md:block"></div>
-          
+
           <div className="flex-1 relative">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={rechercheVille}
               onChange={(e) => setRechercheVille(e.target.value)}
               placeholder="Dans quelle ville ? (ex: Cotonou)"
@@ -152,20 +157,17 @@ export default function RechercheClientPage() {
             />
           </div>
 
-          <button 
+          <button
             onClick={() => setEstUrgent(!estUrgent)}
-            className={`h-14 px-6 rounded-2xl font-bold flex items-center gap-2 transition-all ${
-              estUrgent ? 'bg-rose-100 text-rose-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
+            className={`h-14 px-6 rounded-2xl font-bold flex items-center gap-2 transition-all ${estUrgent ? 'bg-rose-100 text-rose-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
             <AlertTriangle size={18} /> Urgent
           </button>
         </div>
       </div>
 
-      {/* Bannière d'appel vers la Bourse aux Projets */}
       <div className="max-w-5xl mx-auto px-4 -mt-6 mb-12">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-6 shadow-lg flex flex-col sm:flex-row items-center justify-between text-white">
+        <div className="bg-blue-700 rounded-2xl p-6 shadow-lg flex flex-col sm:flex-row items-center justify-between text-white">
           <div className="flex items-center gap-4 mb-4 sm:mb-0">
             <div className="p-3 bg-white/20 rounded-xl"><Briefcase size={24} /></div>
             <div>
@@ -173,13 +175,16 @@ export default function RechercheClientPage() {
               <p className="text-blue-100 text-sm">Publiez une annonce globale et recevez des devis.</p>
             </div>
           </div>
-          <button className="px-6 py-3 bg-white text-blue-700 font-bold rounded-xl shadow-sm hover:bg-blue-50 transition-all">
+          {/* ✅ Redirection rapide avec router.push au lieu de button passif */}
+          <button
+            onClick={() => router.push('/bourse')}
+            className="px-6 py-3 bg-white text-blue-700 font-bold rounded-xl shadow-sm hover:bg-blue-50 transition-all"
+          >
             Publier sur la Bourse
           </button>
         </div>
       </div>
 
-      {/* Résultats de la recherche */}
       <div className="max-w-5xl mx-auto px-4">
         {loading ? (
           <div className="text-center py-20 text-gray-400 font-bold animate-pulse">Recherche des meilleurs profils...</div>
@@ -191,7 +196,7 @@ export default function RechercheClientPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {artisans.map((artisan, index) => {
               const labelMetier = BENIN_CRAFTS.find(c => c.id === artisan.metier)?.label;
-              const estTopPerformant = index < 3 && artisan.score_performance > 0; // Les 3 premiers s'ils ont un score
+              const estTopPerformant = index < 3 && artisan.score_performance > 0;
 
               return (
                 <div key={artisan.id} className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
@@ -200,18 +205,15 @@ export default function RechercheClientPage() {
                       <Star size={12} fill="currentColor" /> Recommandé
                     </div>
                   )}
-                  
                   <div className="w-16 h-16 bg-gray-100 rounded-2xl mb-4 flex items-center justify-center text-gray-400 font-bold text-xl">
-                    {artisan.nom.charAt(0)}{artisan.prenom.charAt(0)}
+                    {artisan.nom?.charAt(0)}{artisan.prenom?.charAt(0)}
                   </div>
-                  
                   <h3 className="font-black text-gray-900 text-lg">{artisan.prenom} {artisan.nom}</h3>
                   <p className="text-blue-600 font-bold text-sm mb-1">{labelMetier}</p>
-                  <p className="text-gray-400 text-xs flex items-center gap-1 mb-6"><MapPin size={12}/> {artisan.ville}</p>
-
-                  <button 
+                  <p className="text-gray-400 text-xs flex items-center gap-1 mb-6"><MapPin size={12} /> {artisan.ville}</p>
+                  <button
                     onClick={() => setSelectedArtisan(artisan)}
-                    className="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-900 font-bold rounded-xl text-sm transition-all"
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition-all"
                   >
                     Sélectionner ce prestataire
                   </button>
@@ -222,11 +224,9 @@ export default function RechercheClientPage() {
         )}
       </div>
 
-      {/* Modal d'envoi de demande directe */}
       {selectedArtisan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl relative">
-            
             {messageSucces ? (
               <div className="text-center py-10">
                 <CheckCircle2 size={64} className="text-emerald-500 mx-auto mb-4" />
@@ -236,36 +236,32 @@ export default function RechercheClientPage() {
             ) : (
               <>
                 <button onClick={() => setSelectedArtisan(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 font-bold text-xl">&times;</button>
-                
                 <h3 className="text-2xl font-black text-gray-900 mb-2">Demande Directe</h3>
                 <p className="text-gray-500 text-sm mb-6">
                   Vous allez contacter <strong>{selectedArtisan.prenom} {selectedArtisan.nom}</strong>.
                 </p>
-
                 <form onSubmit={envoyerDemandeDirecte} className="space-y-4">
                   <div>
                     <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Décrivez votre besoin</label>
-                    <textarea 
+                    <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-2xl font-medium text-sm focus:outline-none focus:border-blue-500 resize-none"
                       placeholder="Ex: J'ai une fuite d'eau urgente dans ma cuisine..."
                       required
-                    ></textarea>
+                    />
                   </div>
-                  
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     disabled={envoiEnCours}
                     className="w-full h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
                   >
-                    {envoiEnCours ? 'Envoi en cours...' : <><Send size={18} /> Confirmer la demande</>}
+                    {envoiEnCours ? <><Loader2 size={18} className="animate-spin" /> Envoi en cours...</> : <><Send size={18} /> Confirmer la demande</>}
                   </button>
                 </form>
-                
                 <p className="text-center text-[11px] text-gray-400 font-medium mt-4">
-                  {BENIN_CRAFTS.find(c => c.id === selectedArtisan.metier)?.payer === 'client' 
-                    ? "Vous serez invité à régler les frais de mise en relation après cette étape." 
+                  {BENIN_CRAFTS.find(c => c.id === selectedArtisan.metier)?.payer === 'client'
+                    ? "Vous serez invité à régler les frais de mise en relation après cette étape."
                     : "L'envoi de cette demande est gratuit pour vous."}
                 </p>
               </>

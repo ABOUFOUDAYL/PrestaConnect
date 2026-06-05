@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle, Eye, X, Phone, MapPin, CheckCircle, UserCheck, Users, Briefcase, Layers } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, X, Phone, MapPin, CheckCircle, UserCheck, Users, Briefcase, Layers, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function SuperAdminCockpitPage() {
@@ -44,7 +44,7 @@ export default function SuperAdminCockpitPage() {
       if (error) throw error;
       const profilesList = data || [];
       setAllProfiles(profilesList);
-      const citiesSet = new Set(profilesList.map(p => p.city || p.ville).filter(Boolean).map(c => c.trim()));
+      const citiesSet = new Set(profilesList.map(p => p.city || p.ville).filter(Boolean).map((c: string) => c.trim()));
       setAvailableCities(['Tous', ...Array.from(citiesSet).sort()]);
       setMetrics({
         pendingCount: profilesList.filter(p => p.status === 'en_attente_validation').length,
@@ -80,6 +80,23 @@ export default function SuperAdminCockpitPage() {
       setAssignedAmbassadorZone('');
     } catch (err: any) {
       alert("Une erreur est survenue lors de la mise a jour.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // ✅ NOUVEAU : Suppression définitive d'un profil
+  const handleDeleteProfile = async (profileId: string, profileName: string) => {
+    const confirmed = confirm(`Supprimer définitivement "${profileName}" ? Cette action est irréversible.`);
+    if (!confirmed) return;
+    try {
+      setIsUpdating(true);
+      const { error } = await supabase.from('profiles').delete().eq('id', profileId);
+      if (error) throw error;
+      await fetchPlatformData();
+      setSelectedProfile(null);
+    } catch (err: any) {
+      alert("Erreur lors de la suppression : " + err.message);
     } finally {
       setIsUpdating(false);
     }
@@ -195,17 +212,33 @@ export default function SuperAdminCockpitPage() {
                   </div>
                 )}
               </div>
-              <div className="flex gap-4 pt-4 border-t border-slate-700">
-                {selectedProfile.status === 'en_attente_validation' ? (
-                  <>
-                    <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'rejete')} className="flex-1 py-3 px-4 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-600 hover:text-white transition-all">Rejeter</button>
-                    <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'valide')} className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-500 transition-all flex justify-center items-center gap-2">
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />} Approuver
+
+              {/* ✅ BOUTONS D'ACTION — Supprimer toujours visible */}
+              <div className="flex flex-col gap-3 pt-4 border-t border-slate-700">
+                <div className="flex gap-3">
+                  {selectedProfile.status === 'en_attente_validation' ? (
+                    <>
+                      <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'rejete')} className="flex-1 py-3 px-4 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-600 hover:text-white transition-all disabled:opacity-50">
+                        Rejeter
+                      </button>
+                      <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'valide')} className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-500 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />} Approuver
+                      </button>
+                    </>
+                  ) : (
+                    <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'en_attente_validation')} className="flex-1 py-3 bg-slate-700 text-slate-200 font-bold rounded-xl text-xs hover:bg-slate-600 transition-all disabled:opacity-50">
+                      Remettre en examen
                     </button>
-                  </>
-                ) : (
-                  <button onClick={() => handleUpdateStatus(selectedProfile.id, 'en_attente_validation')} className="w-full py-3 bg-slate-700 text-slate-200 font-bold rounded-xl text-xs hover:bg-slate-600 transition-all">Remettre en examen</button>
-                )}
+                  )}
+                </div>
+                {/* ✅ Bouton Supprimer séparé en bas */}
+                <button
+                  disabled={isUpdating}
+                  onClick={() => handleDeleteProfile(selectedProfile.id, selectedProfile.full_name || 'ce profil')}
+                  className="w-full py-3 px-4 bg-red-900/30 text-red-400 font-bold rounded-xl text-xs border border-red-800/40 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Supprimer définitivement ce profil
+                </button>
               </div>
             </div>
           </div>
