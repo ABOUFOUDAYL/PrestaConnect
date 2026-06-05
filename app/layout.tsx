@@ -1,5 +1,4 @@
-﻿Set-Content -Path "app\layout.tsx" -Encoding UTF8 -Value @'
-import { Inter } from 'next/font/google';
+﻿import { Inter } from 'next/font/google';
 import './globals.css';
 import { Footer } from '../components/layout/footer';
 import { Toaster } from '../components/ui/toaster';
@@ -24,4 +23,3 @@ export default function RootLayout({
     </html>
   );
 }
-'@
