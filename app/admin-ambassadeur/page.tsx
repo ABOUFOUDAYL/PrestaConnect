@@ -118,7 +118,7 @@ export default function SuperAdminCockpitPage() {
   // ✅ CORRECTION ICI : ajout de 'en_attente_validation' dans le type
   const handleUpdateStatus = async (
     profileId: string,
-    newStatus: 'valide' | 'rejete' | 'en_attente_validation'
+    newStatus: 'valide' | 'rejete' | 'en_attente_validation' | 'en_attente_validation'
   ) => {
     try {
       setIsUpdating(true);
