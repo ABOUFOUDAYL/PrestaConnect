@@ -14,23 +14,19 @@ export default function SuperAdminCockpitPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Données globales
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [filteredProfiles, setFilteredProfiles] = useState<any[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>(['Tous']);
   
-  // Filtres
   const [activeTab, setActiveTab] = useState<'attente' | 'valides' | 'ambassadeurs'>('attente');
   const [selectedCity, setSelectedCity] = useState<string>('Tous');
 
-  // KPIs
   const [metrics, setMetrics] = useState({
     totalArtisans: 0,
     pendingCount: 0,
     ambassadorsCount: 0
   });
 
-  // Examen
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
   const [assignedAmbassadorZone, setAssignedAmbassadorZone] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -76,7 +72,6 @@ export default function SuperAdminCockpitPage() {
       const profilesList = data || [];
       setAllProfiles(profilesList);
       
-      // Extraction dynamique de toutes les villes du Bénin présentes en base
       const citiesSet = new Set(
         profilesList
           .map(p => p.city || p.ville)
@@ -85,7 +80,6 @@ export default function SuperAdminCockpitPage() {
       );
       setAvailableCities(['Tous', ...Array.from(citiesSet).sort()]);
       
-      // KPIs
       const pending = profilesList.filter(p => p.status === 'en_attente_validation').length;
       const validArtisans = profilesList.filter(p => p.status === 'valide' && p.role === 'artisan').length;
       const ambassadors = profilesList.filter(p => p.role === 'ambassadeur' || p.role === 'ambassador').length;
@@ -121,7 +115,11 @@ export default function SuperAdminCockpitPage() {
     setFilteredProfiles(result);
   }, [allProfiles, activeTab, selectedCity]);
 
-  const handleUpdateStatus = async (profileId: string, newStatus: 'valide' | 'rejete') => {
+  // ✅ CORRECTION ICI : ajout de 'en_attente_validation' dans le type
+  const handleUpdateStatus = async (
+    profileId: string,
+    newStatus: 'valide' | 'rejete' | 'en_attente_validation'
+  ) => {
     try {
       setIsUpdating(true);
       const updateData: any = { status: newStatus };
@@ -178,7 +176,6 @@ export default function SuperAdminCockpitPage() {
     <div className="min-h-screen bg-[#0f172a] text-slate-100 pt-28 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         
-        {/* En-tête Principal */}
         <div className="mb-10 border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-full">
@@ -192,7 +189,6 @@ export default function SuperAdminCockpitPage() {
             </p>
           </div>
 
-          {/* Filtre Dynamique National */}
           <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl border border-slate-700">
             <MapPin className="w-4 h-4 text-slate-400 ml-2" />
             <select
@@ -209,8 +205,6 @@ export default function SuperAdminCockpitPage() {
           </div>
         </div>
 
-        {/* ... (Le reste du code des KPIs et des onglets reste identique) ... */}
-        
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div className="bg-slate-800/60 border border-slate-700/70 p-6 rounded-2xl flex items-center gap-5">
             <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl"><Layers className="w-6 h-6" /></div>
@@ -236,10 +230,10 @@ export default function SuperAdminCockpitPage() {
         </div>
 
         <div className="flex border-b border-slate-800 mb-6 gap-6">
-          {['attente', 'valides', 'ambassadeurs'].map(tab => (
+          {(['attente', 'valides', 'ambassadeurs'] as const).map(tab => (
             <button 
               key={tab}
-              onClick={() => setActiveTab(tab as any)}
+              onClick={() => setActiveTab(tab)}
               className={`pb-4 text-sm font-bold tracking-wide border-b-2 transition-all capitalize ${
                 activeTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
@@ -266,11 +260,17 @@ export default function SuperAdminCockpitPage() {
                   <p className="text-xs text-slate-400 mb-6 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-slate-500" /> {profile.city || profile.ville}</p>
                 </div>
                 {activeTab === 'ambassadeurs' ? (
-                  <button onClick={() => handleToggleAmbassadorRole(profile.id, profile.role)} className="w-full py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
+                  <button
+                    onClick={() => handleToggleAmbassadorRole(profile.id, profile.role)}
+                    className="w-full py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
+                  >
                     Révoquer les droits
                   </button>
                 ) : (
-                  <button onClick={() => setSelectedProfile(profile)} className="w-full py-2.5 bg-slate-700/60 text-slate-200 rounded-xl text-xs font-bold border border-slate-600/50 hover:border-blue-500 hover:bg-blue-600 hover:text-white transition-all flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => setSelectedProfile(profile)}
+                    className="w-full py-2.5 bg-slate-700/60 text-slate-200 rounded-xl text-xs font-bold border border-slate-600/50 hover:border-blue-500 hover:bg-blue-600 hover:text-white transition-all flex justify-center items-center gap-2"
+                  >
                     <Eye className="w-3.5 h-3.5" /> Inspecter
                   </button>
                 )}
@@ -280,13 +280,19 @@ export default function SuperAdminCockpitPage() {
         )}
       </div>
 
-      {/* MODALE */}
       {selectedProfile && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
-            <button onClick={() => setSelectedProfile(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-2 bg-slate-700 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            <button
+              onClick={() => setSelectedProfile(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-2 bg-slate-700 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <div className="p-8">
-              <h2 className="text-xl font-black text-white mb-6 border-b border-slate-700 pb-4">Analyse : {selectedProfile.full_name}</h2>
+              <h2 className="text-xl font-black text-white mb-6 border-b border-slate-700 pb-4">
+                Analyse : {selectedProfile.full_name}
+              </h2>
               <div className="space-y-6 mb-8">
                 <div className="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 text-xs">
                   <div><span className="block text-slate-500 font-bold mb-1">Téléphone</span><span className="text-slate-200">{selectedProfile.phone}</span></div>
@@ -296,15 +302,24 @@ export default function SuperAdminCockpitPage() {
                 <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
                   <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Identité (CIP / Acte)</span>
                   {selectedProfile.cip_url ? (
-                    <a href={selectedProfile.cip_url} target="_blank" rel="noopener noreferrer" className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2"><Eye className="w-4 h-4" /> Visualiser le document</a>
+                    
+                      href={selectedProfile.cip_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" /> Visualiser le document
+                    </a>
                   ) : (
-                     <p className="text-xs text-amber-500 font-bold text-center">Aucune pièce fournie</p>
+                    <p className="text-xs text-amber-500 font-bold text-center">Aucune pièce fournie</p>
                   )}
                 </div>
 
                 {selectedProfile.status === 'en_attente_validation' && (
                   <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
-                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assignation Terrain Nationale</span>
+                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                      Assignation Terrain Nationale
+                    </span>
                     <input 
                       type="text"
                       placeholder="Ex: Secteur Djougou Centre, Agblangandan, Natitingou..."
@@ -319,13 +334,28 @@ export default function SuperAdminCockpitPage() {
               <div className="flex gap-4 pt-4 border-t border-slate-700">
                 {selectedProfile.status === 'en_attente_validation' ? (
                   <>
-                    <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'rejete')} className="flex-1 py-3 px-4 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-600 hover:text-white transition-all">Rejeter</button>
-                    <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'valide')} className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-500 transition-all flex justify-center items-center gap-2">
+                    <button
+                      disabled={isUpdating}
+                      onClick={() => handleUpdateStatus(selectedProfile.id, 'rejete')}
+                      className="flex-1 py-3 px-4 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-600 hover:text-white transition-all"
+                    >
+                      Rejeter
+                    </button>
+                    <button
+                      disabled={isUpdating}
+                      onClick={() => handleUpdateStatus(selectedProfile.id, 'valide')}
+                      className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-500 transition-all flex justify-center items-center gap-2"
+                    >
                       {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCheck className="w-4 h-4" />} Approuver
                     </button>
                   </>
                 ) : (
-                  <button onClick={() => handleUpdateStatus(selectedProfile.id, 'en_attente_validation')} className="w-full py-3 bg-slate-700 text-slate-200 font-bold rounded-xl text-xs hover:bg-slate-600 transition-all">Remettre en examen</button>
+                  <button
+                    onClick={() => handleUpdateStatus(selectedProfile.id, 'en_attente_validation')}
+                    className="w-full py-3 bg-slate-700 text-slate-200 font-bold rounded-xl text-xs hover:bg-slate-600 transition-all"
+                  >
+                    Remettre en examen
+                  </button>
                 )}
               </div>
             </div>
