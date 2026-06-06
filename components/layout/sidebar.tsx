@@ -11,7 +11,10 @@ import {
   CreditCard,
   Star,
   BarChart3,
-  Settings
+  Settings,
+  ShieldCheck,
+  Users,
+  Search,
 } from 'lucide-react';
 
 const clientMenu = [
@@ -34,11 +37,28 @@ const prestataireMenu = [
   { href: '/settings', label: 'Paramètres', icon: Settings },
 ];
 
+const adminMenu = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin-ambassadeur', label: 'Cockpit Admin', icon: ShieldCheck },
+  { href: '/services', label: 'Services', icon: Briefcase },
+  { href: '/bookings', label: 'Réservations', icon: Calendar },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/payments', label: 'Paiements', icon: CreditCard },
+  { href: '/reviews', label: 'Avis', icon: Star },
+  { href: '/analytics', label: 'Analytiques', icon: BarChart3 },
+  { href: '/explore', label: 'Explorer', icon: Search },
+  { href: '/settings', label: 'Paramètres', icon: Settings },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { impersonated } = useImpersonation();
 
-  const menuItems = impersonated?.role === 'client' ? clientMenu : prestataireMenu;
+  const menuItems = impersonated?.role === 'admin'
+    ? adminMenu
+    : impersonated?.role === 'client'
+    ? clientMenu
+    : prestataireMenu;
 
   return (
     <div className="w-64 h-screen bg-white border-r border-gray-100 p-6 flex flex-col justify-between">
@@ -52,7 +72,7 @@ export function Sidebar() {
 
         {impersonated && (
           <div className="mb-6 px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700 font-semibold">
-            👁 Vue : {impersonated.name}
+            Vue : {impersonated.name}
           </div>
         )}
 
