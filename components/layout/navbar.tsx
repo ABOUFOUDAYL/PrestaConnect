@@ -97,8 +97,8 @@ export function Navbar() {
           </Button>
 
           {!isLoggedIn && (
-            <Button variant="ghost" asChild>
-              <Link href="/login">Connexion</Link>
+            <Button variant="ghost" onClick={() => router.push('/login')}>
+              Connexion
             </Button>
           )}
 
@@ -109,8 +109,8 @@ export function Navbar() {
           )}
 
           {!isLoggedIn && (
-            <Button asChild>
-              <Link href="/register/provider">Devenir Prestataire</Link>
+            <Button onClick={() => router.push('/register/provider')}>
+              Devenir Prestataire
             </Button>
           )}
         </div>
@@ -169,9 +169,12 @@ export function Navbar() {
             )}
 
             {!isLoggedIn && (
-              <Link href="/register/provider" onClick={() => setMobileOpen(false)}>
-                <Button className="mt-2 w-full">Devenir Prestataire</Button>
-              </Link>
+              <Button
+                className="mt-2 w-full"
+                onClick={() => { router.push('/register/provider'); setMobileOpen(false); }}
+              >
+                Devenir Prestataire
+              </Button>
             )}
           </nav>
         </div>
@@ -181,6 +184,7 @@ export function Navbar() {
 }
 
 function AppNavbar() {
+  const router = useRouter();
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-[var(--navbar-height)] items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
@@ -191,8 +195,8 @@ function AppNavbar() {
           Presta<span className="text-primary">Connect</span>
         </span>
       </Link>
-      <Button asChild>
-        <Link href="/">Retour au site</Link>
+      <Button onClick={() => router.push('/')}>
+        Retour au site
       </Button>
     </header>
   );
