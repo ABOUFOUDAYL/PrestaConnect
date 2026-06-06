@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       casier_judiciaire_url,
     } = body
 
-    // 1. Créer l'utilisateur avec le client admin
+    // 1. Créer l'utilisateur
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -33,13 +33,13 @@ export async function POST(req: Request) {
     const userId = authData.user?.id
     if (!userId) throw new Error('User non créé')
 
-    // 2. Insérer le profil directement
+    // 2. Insérer le profil
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: userId,
         user_id: userId,
-        role,
+        role: 'artisan',  // ← corrigé
         full_name,
         telephone,
         email,
@@ -47,10 +47,24 @@ export async function POST(req: Request) {
         metier: metier || null,
         carte_identite_url: carte_identite_url || null,
         casier_judiciaire_url: casier_judiciaire_url || null,
-        statut_verification: role === 'prestataire' ? 'en_attente_validation' : null,
+        statut_verification: 'en_attente_validation',
       }, { onConflict: 'id' })
 
     if (profileError) throw profileError
+
+    // 3. Insérer dans prestataires si c'est un artisan ← NOUVEAU
+    if (role === 'prestataire' || role === 'artisan') {
+      const { error: prestaError } = await supabaseAdmin
+        .from('prestataires')
+        .insert({
+          user_id: userId,
+          nom: full_name,
+          metier: metier || 'Non renseigné',
+          statut: 'en_attente',
+        })
+
+      if (prestaError) throw prestaError
+    }
 
     return NextResponse.json({ success: true, userId })
   } catch (err: any) {
