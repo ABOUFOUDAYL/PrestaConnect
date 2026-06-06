@@ -1,4 +1,4 @@
-﻿Set-Content "app\admin-ambassadeur\page.tsx" @"
+﻿Set-Content "app\admin-ambassadeur\page.tsx" @'
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -218,4 +218,4 @@ export default function SuperAdminCockpitPage() {
     </div>
   );
 }
-"@
+'@
