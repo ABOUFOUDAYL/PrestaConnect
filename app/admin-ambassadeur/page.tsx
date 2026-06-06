@@ -85,7 +85,6 @@ export default function SuperAdminCockpitPage() {
     }
   };
 
-  // ✅ NOUVEAU : Suppression définitive d'un profil
   const handleDeleteProfile = async (profileId: string, profileName: string) => {
     const confirmed = confirm(`Supprimer définitivement "${profileName}" ? Cette action est irréversible.`);
     if (!confirmed) return;
@@ -116,12 +115,25 @@ export default function SuperAdminCockpitPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen bg-slate-900"><Loader2 className="animate-spin text-blue-500 w-12 h-12" /></div>;
-  if (errorMessage) return <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center"><AlertCircle className="w-16 h-16 text-red-500 mb-4" /><h1 className="text-2xl font-bold text-slate-800">Acces restreint</h1><p className="text-slate-600 mt-2 font-medium">{errorMessage}</p></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-slate-900">
+      <Loader2 className="animate-spin text-blue-500 w-12 h-12" />
+    </div>
+  );
+
+  if (errorMessage) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center">
+      <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+      <h1 className="text-2xl font-bold text-slate-800">Acces restreint</h1>
+      <p className="text-slate-600 mt-2 font-medium">{errorMessage}</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 pt-28 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
+
+        {/* Header */}
         <div className="mb-10 border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-full">Administration Nationale</span>
@@ -131,11 +143,16 @@ export default function SuperAdminCockpitPage() {
           <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl border border-slate-700">
             <MapPin className="w-4 h-4 text-slate-400 ml-2" />
             <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="bg-transparent border-none text-sm font-bold text-slate-200 outline-none pr-4 cursor-pointer">
-              {availableCities.map((city, index) => <option key={index} value={city} className="bg-slate-800 text-slate-200">{city === 'Tous' ? 'Tout le Benin' : city}</option>)}
+              {availableCities.map((city, index) => (
+                <option key={index} value={city} className="bg-slate-800 text-slate-200">
+                  {city === 'Tous' ? 'Tout le Benin' : city}
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
+        {/* Métriques */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div className="bg-slate-800/60 border border-slate-700/70 p-6 rounded-2xl flex items-center gap-5">
             <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl"><Layers className="w-6 h-6" /></div>
@@ -151,6 +168,7 @@ export default function SuperAdminCockpitPage() {
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="flex border-b border-slate-800 mb-6 gap-6">
           {(['attente', 'valides', 'ambassadeurs'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-4 text-sm font-bold tracking-wide border-b-2 transition-all capitalize ${activeTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
@@ -159,6 +177,7 @@ export default function SuperAdminCockpitPage() {
           ))}
         </div>
 
+        {/* Liste */}
         {filteredProfiles.length === 0 ? (
           <div className="bg-slate-800/30 border border-slate-800 text-center py-16 rounded-2xl">
             <CheckCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -174,7 +193,9 @@ export default function SuperAdminCockpitPage() {
                   <p className="text-xs text-slate-400 mb-6 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-slate-500" /> {profile.city || profile.ville}</p>
                 </div>
                 {activeTab === 'ambassadeurs' ? (
-                  <button onClick={() => handleToggleAmbassadorRole(profile.id, profile.role)} className="w-full py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Revoquer les droits</button>
+                  <button onClick={() => handleToggleAmbassadorRole(profile.id, profile.role)} className="w-full py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
+                    Revoquer les droits
+                  </button>
                 ) : (
                   <button onClick={() => setSelectedProfile(profile)} className="w-full py-2.5 bg-slate-700/60 text-slate-200 rounded-xl text-xs font-bold border border-slate-600/50 hover:border-blue-500 hover:bg-blue-600 hover:text-white transition-all flex justify-center items-center gap-2">
                     <Eye className="w-3.5 h-3.5" /> Inspecter
@@ -186,10 +207,13 @@ export default function SuperAdminCockpitPage() {
         )}
       </div>
 
+      {/* Modale inspection */}
       {selectedProfile && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
-            <button onClick={() => setSelectedProfile(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-2 bg-slate-700 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+            <button onClick={() => setSelectedProfile(null)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 p-2 bg-slate-700 rounded-full transition-colors">
+              <X className="w-5 h-5" />
+            </button>
             <div className="p-8">
               <h2 className="text-xl font-black text-white mb-6 border-b border-slate-700 pb-4">Analyse : {selectedProfile.full_name}</h2>
               <div className="space-y-6 mb-8">
@@ -200,7 +224,9 @@ export default function SuperAdminCockpitPage() {
                 <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
                   <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Identite (CIP / Acte)</span>
                   {selectedProfile.cip_url ? (
-                    <a href={selectedProfile.cip_url} target="_blank" rel="noopener noreferrer" className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2"><Eye className="w-4 h-4" /> Visualiser le document</a>
+                    <a href={selectedProfile.cip_url} target="_blank" rel="noopener noreferrer" className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2">
+                      <Eye className="w-4 h-4" /> Visualiser le document
+                    </a>
                   ) : (
                     <p className="text-xs text-amber-500 font-bold text-center">Aucune piece fournie</p>
                   )}
@@ -208,12 +234,17 @@ export default function SuperAdminCockpitPage() {
                 {selectedProfile.status === 'en_attente_validation' && (
                   <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
                     <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assignation Terrain Nationale</span>
-                    <input type="text" placeholder="Ex: Secteur Djougou Centre, Agblangandan, Natitingou..." value={assignedAmbassadorZone} onChange={(e) => setAssignedAmbassadorZone(e.target.value)} className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-xs focus:ring-2 focus:ring-blue-500 text-slate-200 outline-none placeholder-slate-600" />
+                    <input
+                      type="text"
+                      placeholder="Ex: Secteur Djougou Centre, Agblangandan, Natitingou..."
+                      value={assignedAmbassadorZone}
+                      onChange={(e) => setAssignedAmbassadorZone(e.target.value)}
+                      className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-xs focus:ring-2 focus:ring-blue-500 text-slate-200 outline-none placeholder-slate-600"
+                    />
                   </div>
                 )}
               </div>
 
-              {/* ✅ BOUTONS D'ACTION — Supprimer toujours visible */}
               <div className="flex flex-col gap-3 pt-4 border-t border-slate-700">
                 <div className="flex gap-3">
                   {selectedProfile.status === 'en_attente_validation' ? (
@@ -231,7 +262,6 @@ export default function SuperAdminCockpitPage() {
                     </button>
                   )}
                 </div>
-                {/* ✅ Bouton Supprimer séparé en bas */}
                 <button
                   disabled={isUpdating}
                   onClick={() => handleDeleteProfile(selectedProfile.id, selectedProfile.full_name || 'ce profil')}
@@ -244,25 +274,6 @@ export default function SuperAdminCockpitPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}// app/(dashboard)/admin-ambassadeur/page.tsx
-import { VoirEnTantQueButton } from "../../../components/VoirEnTantQueButton";
-
-const USERS = [
-  { id: "2", name: "Jean Client",   email: "jean@mail.com",  role: "client",      zone: "Cotonou" },
-  { id: "3", name: "Marie Presta",  email: "marie@mail.com", role: "prestataire", zone: "Porto-Novo" },
-  { id: "4", name: "Paul Visiteur", email: "",               role: "visiteur" },
-];
-
-export default function AdminAmbassadeurPage() {
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Cockpit Admin</h1>
-        <VoirEnTantQueButton users={USERS} />  {/* ← juste cette ligne */}
-      </div>
-      {/* ... reste de ta page ... */}
     </div>
   );
 }
