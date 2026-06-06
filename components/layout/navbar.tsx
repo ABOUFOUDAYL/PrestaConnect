@@ -56,11 +56,12 @@ export function Navbar() {
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
+  // ✅ CORRIGÉ : redirige vers /recherche et non /prestataires
   function handleTrouverPrestataire() {
     if (!isLoggedIn) {
-      router.push("/login?redirect=/prestataires");
+      router.push("/login?redirect=/recherche");
     } else {
-      router.push("/prestataires");
+      router.push("/recherche");
     }
   }
 
@@ -72,7 +73,7 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 h-[var(--navbar-height)] border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <img src="/logo.svg" alt="PrestaConnect" style={{height:"40px", width:"auto"}} />
+          <img src="/logo.svg" alt="PrestaConnect" style={{ height: "40px", width: "auto" }} />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -208,7 +209,7 @@ function AppNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-[var(--navbar-height)] items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
-        <img src="/logo.svg" alt="PrestaConnect" style={{height:"32px", width:"auto"}} />
+        <img src="/logo.svg" alt="PrestaConnect" style={{ height: "32px", width: "auto" }} />
       </Link>
       <Button onClick={() => router.push('/')}>
         Retour au site
