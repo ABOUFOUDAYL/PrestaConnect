@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useImpersonation, ROLES } from "@/contexts/ImpersonationContext";
+import { useImpersonation } from "@/contexts/impersonation-context";
 
 const marketingLinks = [
   { href: "/solutions", label: "Solutions" },
@@ -34,14 +34,13 @@ export function Navbar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { activeUser } = useImpersonation();
-  const isLoggedIn = !!activeUser && activeUser.role !== ROLES.VISITEUR;
+  const { impersonated } = useImpersonation();
+  const isLoggedIn = !!impersonated;
 
   const isMarketing = marketingRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  // Si visiteur clique "Trouver un prestataire" → login puis redirect
   function handleTrouverPrestataire() {
     if (!isLoggedIn) {
       router.push("/login?redirect=/prestataires");
@@ -81,7 +80,6 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* ── DESKTOP : boutons à droite ── */}
         <div className="hidden items-center gap-2 md:flex">
           <Button
             variant="ghost"
@@ -94,34 +92,29 @@ export function Navbar() {
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
 
-          {/* Trouver un prestataire — visible par tous, redirige vers login si visiteur */}
           <Button variant="ghost" onClick={handleTrouverPrestataire}>
             Trouver un prestataire
           </Button>
 
-          {/* Connexion — visible uniquement si non connecté */}
           {!isLoggedIn && (
-            <Button variant="ghost" render={<Link href="/login" />}>
-              Connexion
+            <Button variant="ghost" asChild>
+              <Link href="/login">Connexion</Link>
             </Button>
           )}
 
-          {/* Avatar — visible si connecté */}
           {isLoggedIn && (
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground cursor-pointer">
-              {activeUser.name?.slice(0, 2).toUpperCase()}
+              {impersonated.name?.slice(0, 2).toUpperCase()}
             </div>
           )}
 
-          {/* Devenir prestataire — caché si déjà prestataire ou admin */}
-          {(!isLoggedIn || activeUser?.role === ROLES.CLIENT) && (
-            <Button render={<Link href="/register/provider" />}>
-              Devenir Prestataire
+          {!isLoggedIn && (
+            <Button asChild>
+              <Link href="/register/provider">Devenir Prestataire</Link>
             </Button>
           )}
         </div>
 
-        {/* ── MOBILE : burger ── */}
         <div className="flex items-center gap-2 md:hidden">
           <Button
             variant="ghost"
@@ -143,7 +136,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* ── MENU MOBILE ── */}
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-1">
@@ -159,7 +151,6 @@ export function Navbar() {
             ))}
             <hr className="my-2 border-border" />
 
-            {/* Trouver un prestataire mobile */}
             <button
               onClick={() => { handleTrouverPrestataire(); setMobileOpen(false); }}
               className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted text-left"
@@ -167,7 +158,6 @@ export function Navbar() {
               Trouver un prestataire
             </button>
 
-            {/* Connexion mobile — si non connecté */}
             {!isLoggedIn && (
               <Link
                 href="/login"
@@ -178,8 +168,7 @@ export function Navbar() {
               </Link>
             )}
 
-            {/* Devenir prestataire mobile — si non prestataire */}
-            {(!isLoggedIn || activeUser?.role === ROLES.CLIENT) && (
+            {!isLoggedIn && (
               <Link href="/register/provider" onClick={() => setMobileOpen(false)}>
                 <Button className="mt-2 w-full">Devenir Prestataire</Button>
               </Link>
@@ -202,7 +191,9 @@ function AppNavbar() {
           Presta<span className="text-primary">Connect</span>
         </span>
       </Link>
-      <Button render={<Link href="/" />}>Retour au site</Button>
+      <Button asChild>
+        <Link href="/">Retour au site</Link>
+      </Button>
     </header>
   );
 }
