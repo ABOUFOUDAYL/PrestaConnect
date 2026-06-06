@@ -246,4 +246,23 @@ export default function SuperAdminCockpitPage() {
       )}
     </div>
   );
+}// app/(dashboard)/admin-ambassadeur/page.tsx
+import { VoirEnTantQueButton } from "../../../components/VoirEnTantQueButton";
+
+const USERS = [
+  { id: "2", name: "Jean Client",   email: "jean@mail.com",  role: "client",      zone: "Cotonou" },
+  { id: "3", name: "Marie Presta",  email: "marie@mail.com", role: "prestataire", zone: "Porto-Novo" },
+  { id: "4", name: "Paul Visiteur", email: "",               role: "visiteur" },
+];
+
+export default function AdminAmbassadeurPage() {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Cockpit Admin</h1>
+        <VoirEnTantQueButton users={USERS} />  {/* ← juste cette ligne */}
+      </div>
+      {/* ... reste de ta page ... */}
+    </div>
+  );
 }

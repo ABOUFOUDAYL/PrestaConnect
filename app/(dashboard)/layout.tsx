@@ -13,4 +13,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <BottomNav />
     </div>
   );
+}// app/layout.tsx
+import { ImpersonationProvider } from "../contexts/ImpersonationContext";
+import { ImpersonationBanner } from "../components/layout/ImpersonationBanner";
+
+// Ton layout actuel ressemble probablement à ça,
+// tu ajoutes juste les 2 lignes manquantes :
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fr">
+      <body>
+        <ImpersonationProvider currentUser={currentUser}>
+          <ImpersonationBanner />   {/* ← ajoute cette ligne */}
+          <Navbar />
+          <div style={{ display: "flex" }}>
+            <Sidebar />
+            <main>{children}</main>
+          </div>
+        </ImpersonationProvider>
+      </body>
+    </html>
+  );
+}// app/layout.tsx
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createServerComponentClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const currentUser = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.user_metadata?.name ?? session.user.email,
+        email: session.user.email,
+        role: session.user.user_metadata?.role ?? "visiteur",
+      }
+    : null;
+
+  return (
+    <html lang="fr">
+      <body>
+        <Providers currentUser={currentUser}>
+          <ImpersonationBanner />
+          <Navbar />
+          <div style={{ display: "flex" }}>
+            <Sidebar />
+            <main style={{ flex: 1 }}>{children}</main>
+          </div>
+        </Providers>
+      </body>
+    </html>
+  );
 }
