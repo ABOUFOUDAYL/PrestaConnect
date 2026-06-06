@@ -8,15 +8,15 @@ import { supabase } from '@/lib/supabase';
 export default function SuperAdminCockpitPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [allProfiles, setAllProfiles] = useState([]);
-  const [filteredProfiles, setFilteredProfiles] = useState([]);
-  const [availableCities, setAvailableCities] = useState(['Tous']);
-  const [activeTab, setActiveTab] = useState('attente');
-  const [selectedCity, setSelectedCity] = useState('Tous');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [filteredProfiles, setFilteredProfiles] = useState<any[]>([]);
+  const [availableCities, setAvailableCities] = useState<string[]>(['Tous']);
+  const [activeTab, setActiveTab] = useState<'attente' | 'valides' | 'ambassadeurs'>('attente');
+  const [selectedCity, setSelectedCity] = useState<string>('Tous');
   const [metrics, setMetrics] = useState({ totalArtisans: 0, pendingCount: 0, ambassadorsCount: 0 });
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [assignedAmbassadorZone, setAssignedAmbassadorZone] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
+  const [assignedAmbassadorZone, setAssignedAmbassadorZone] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function SuperAdminCockpitPage() {
         if (dbError) throw new Error('Erreur Base de donnees: ' + dbError.message);
         if (!profile || profile.role !== 'admin') throw new Error("Acces refuse : Interface reservee a l'Administration Principale.");
         await fetchPlatformData();
-      } catch (err) {
+      } catch (err: any) {
         setErrorMessage(err.message);
       } finally {
         setLoading(false);
@@ -44,31 +44,31 @@ export default function SuperAdminCockpitPage() {
       if (error) throw error;
       const profilesList = data || [];
       setAllProfiles(profilesList);
-      const citiesSet = new Set(profilesList.map(p => p.city || p.ville).filter(Boolean).map(c => c.trim()));
-      setAvailableCities(['Tous', ...Array.from(citiesSet).sort()]);
+      const citiesSet = new Set(profilesList.map((p: any) => p.city || p.ville).filter(Boolean).map((c: any) => c.trim()));
+      setAvailableCities(['Tous', ...Array.from(citiesSet).sort() as string[]]);
       setMetrics({
-        pendingCount: profilesList.filter(p => p.status === 'en_attente_validation').length,
-        totalArtisans: profilesList.filter(p => p.status === 'valide' && p.role === 'artisan').length,
-        ambassadorsCount: profilesList.filter(p => p.role === 'ambassadeur' || p.role === 'ambassador').length,
+        pendingCount: profilesList.filter((p: any) => p.status === 'en_attente_validation').length,
+        totalArtisans: profilesList.filter((p: any) => p.status === 'valide' && p.role === 'artisan').length,
+        ambassadorsCount: profilesList.filter((p: any) => p.role === 'ambassadeur' || p.role === 'ambassador').length,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur de synchronisation :', err);
     }
   };
 
   useEffect(() => {
     let result = [...allProfiles];
-    if (activeTab === 'attente') result = result.filter(p => p.status === 'en_attente_validation');
-    else if (activeTab === 'valides') result = result.filter(p => p.status === 'valide' && p.role === 'artisan');
-    else if (activeTab === 'ambassadeurs') result = result.filter(p => p.role === 'ambassadeur' || p.role === 'ambassador');
-    if (selectedCity !== 'Tous') result = result.filter(p => (p.city && p.city.toLowerCase() === selectedCity.toLowerCase()) || (p.ville && p.ville.toLowerCase() === selectedCity.toLowerCase()));
+    if (activeTab === 'attente') result = result.filter((p: any) => p.status === 'en_attente_validation');
+    else if (activeTab === 'valides') result = result.filter((p: any) => p.status === 'valide' && p.role === 'artisan');
+    else if (activeTab === 'ambassadeurs') result = result.filter((p: any) => p.role === 'ambassadeur' || p.role === 'ambassador');
+    if (selectedCity !== 'Tous') result = result.filter((p: any) => (p.city && p.city.toLowerCase() === selectedCity.toLowerCase()) || (p.ville && p.ville.toLowerCase() === selectedCity.toLowerCase()));
     setFilteredProfiles(result);
   }, [allProfiles, activeTab, selectedCity]);
 
-  const handleUpdateStatus = async (profileId, newStatus) => {
+  const handleUpdateStatus = async (profileId: string, newStatus: 'valide' | 'rejete' | 'en_attente_validation') => {
     try {
       setIsUpdating(true);
-      const updateData = { status: newStatus };
+      const updateData: any = { status: newStatus };
       if (newStatus === 'valide') {
         updateData.role = 'artisan';
         if (assignedAmbassadorZone) updateData.assigned_zone = assignedAmbassadorZone;
@@ -80,21 +80,21 @@ export default function SuperAdminCockpitPage() {
       await fetchPlatformData();
       setSelectedProfile(null);
       setAssignedAmbassadorZone('');
-    } catch (err) {
+    } catch (err: any) {
       alert('Une erreur est survenue lors de la mise a jour.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleToggleAmbassadorRole = async (profileId, currentRole) => {
+  const handleToggleAmbassadorRole = async (profileId: string, currentRole: string) => {
     try {
       setIsUpdating(true);
       const newRole = currentRole === 'ambassadeur' ? 'user' : 'ambassadeur';
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profileId);
       if (error) throw error;
       await fetchPlatformData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur modification role :', err);
     } finally {
       setIsUpdating(false);
@@ -140,7 +140,7 @@ export default function SuperAdminCockpitPage() {
           </div>
         </div>
         <div className="flex border-b border-slate-800 mb-6 gap-6">
-          {['attente', 'valides', 'ambassadeurs'].map(tab => (
+          {(['attente', 'valides', 'ambassadeurs'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} className={"pb-4 text-sm font-bold tracking-wide border-b-2 transition-all capitalize " + (activeTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
               {tab === 'attente' ? "Dossiers en attente (" + metrics.pendingCount + ")" : tab === 'valides' ? "Artisans Certifies (" + metrics.totalArtisans + ")" : 'Equipes Terrain'}
             </button>
