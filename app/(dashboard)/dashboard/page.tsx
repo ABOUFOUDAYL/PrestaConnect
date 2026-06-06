@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Phone, Briefcase, Clock, Check, User, MapPin, Star, CreditCard } from 'lucide-react'
+import { Phone, Briefcase, Clock, Check, User, MapPin, Star, CreditCard, ShieldCheck, Users, Layers, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -23,10 +23,6 @@ export default function DashboardPage() {
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
         .single()
 
-      console.log('Auth user:', user.id)
-      console.log('Profile:', prof)
-      console.log('Error:', error)
-
       if (prof) {
         setProfile(prof)
         setRole(prof.role)
@@ -42,13 +38,92 @@ export default function DashboardPage() {
     </div>
   )
 
-  if (role === 'admin') router.push('/admin-ambassadeur')
+  if (role === 'admin') return <DashboardAdmin profile={profile} />
   if (role === 'prestataire') return <DashboardPrestataire profile={profile} />
   if (role === 'client') return <DashboardClient profile={profile} />
 
   return (
     <div className="min-h-screen flex items-center justify-center">
       <p className="text-gray-500">Rôle non défini. Contactez le support.</p>
+    </div>
+  )
+}
+
+// ─── DASHBOARD ADMIN ──────────────────────────────────────────────────────────
+function DashboardAdmin({ profile }: { profile: any }) {
+  const [metrics, setMetrics] = useState({ total: 0, pending: 0, artisans: 0, ambassadors: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      const { data } = await supabase.from('profiles').select('*')
+      const profilesList = data || []
+      setMetrics({
+        total: profilesList.length,
+        pending: profilesList.filter(p => p.status === 'en_attente_validation').length,
+        artisans: profilesList.filter(p => p.status === 'valide' && p.role === 'artisan').length,
+        ambassadors: profilesList.filter(p => p.role === 'ambassadeur').length,
+      })
+      setLoading(false)
+    }
+    fetchMetrics()
+  }, [])
+
+  return (
+    <div className="max-w-5xl mx-auto p-4 md:p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Tableau de bord Admin</h1>
+        <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name} 👋 — Contrôle total de la plateforme</p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit mb-3"><Users size={20} /></div>
+          <p className="text-2xl font-black text-gray-900">{metrics.total}</p>
+          <p className="text-xs text-gray-500 font-medium mt-1">Total inscrits</p>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl w-fit mb-3"><Layers size={20} /></div>
+          <p className="text-2xl font-black text-gray-900">{metrics.pending}</p>
+          <p className="text-xs text-gray-500 font-medium mt-1">En attente</p>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl w-fit mb-3"><Briefcase size={20} /></div>
+          <p className="text-2xl font-black text-gray-900">{metrics.artisans}</p>
+          <p className="text-xs text-gray-500 font-medium mt-1">Artisans validés</p>
+        </div>
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl w-fit mb-3"><Star size={20} /></div>
+          <p className="text-2xl font-black text-gray-900">{metrics.ambassadors}</p>
+          <p className="text-xs text-gray-500 font-medium mt-1">Ambassadeurs</p>
+        </div>
+      </div>
+
+      {/* Raccourcis */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/admin-ambassadeur" className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-6 flex items-center gap-4 transition-all">
+          <ShieldCheck size={28} />
+          <div>
+            <p className="font-bold text-lg">Cockpit Admin</p>
+            <p className="text-xs opacity-80">Gérer les dossiers</p>
+          </div>
+        </Link>
+        <Link href="/explore" className="bg-white border border-gray-100 hover:border-blue-300 rounded-2xl p-6 flex items-center gap-4 transition-all shadow-sm">
+          <Users size={28} className="text-blue-600" />
+          <div>
+            <p className="font-bold text-lg text-gray-900">Explorer</p>
+            <p className="text-xs text-gray-500">Voir les prestataires</p>
+          </div>
+        </Link>
+        <Link href="/analytics" className="bg-white border border-gray-100 hover:border-blue-300 rounded-2xl p-6 flex items-center gap-4 transition-all shadow-sm">
+          <BarChart3 size={28} className="text-blue-600" />
+          <div>
+            <p className="font-bold text-lg text-gray-900">Analytiques</p>
+            <p className="text-xs text-gray-500">Statistiques plateforme</p>
+          </div>
+        </Link>
+      </div>
     </div>
   )
 }
@@ -67,7 +142,6 @@ function DashboardPrestataire({ profile }: { profile: any }) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       let query = supabase.from('demandes').select('*')
       if (activeTab === 'disponibles') {
         query = query.eq('status', 'En attente')
@@ -102,7 +176,6 @@ function DashboardPrestataire({ profile }: { profile: any }) {
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
@@ -117,7 +190,6 @@ function DashboardPrestataire({ profile }: { profile: any }) {
         </Link>
       </div>
 
-      {/* Tabs */}
       <div className="flex bg-gray-100 p-1.5 rounded-2xl w-fit mb-6">
         <button onClick={() => setActiveTab('disponibles')}
           className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'disponibles' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
@@ -129,7 +201,6 @@ function DashboardPrestataire({ profile }: { profile: any }) {
         </button>
       </div>
 
-      {/* Liste */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {loading ? (
           <div className="col-span-full py-20 text-center text-gray-400 animate-pulse">Chargement...</div>
