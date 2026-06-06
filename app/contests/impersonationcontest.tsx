@@ -1,36 +1,42 @@
-"use client";  // ← ajoute cette ligne tout en haut
+'use client';
 
-import { createContext, useContext, useState, useCallback } from "react";
-// ... reste du code identique
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
-const ImpersonationContext = createContext(null);
-
-export const ROLES = {
-  ADMIN: "admin",
-  CLIENT: "client",
-  PRESTATAIRE: "prestataire",
-  VISITEUR: "visiteur",
+type ImpersonatedUser = {
+  id: string;
+  name: string;
+  role: 'client' | 'artisan' | 'prestataire';
 };
 
-export function ImpersonationProvider({ children, currentUser }) {
-  const [observedUser, setObservedUser] = useState(null);
+type ImpersonationContextType = {
+  impersonated: ImpersonatedUser | null;
+  isImpersonating: boolean;
+  startImpersonation: (user: ImpersonatedUser) => void;
+  stopImpersonation: () => void;
+};
 
-  const activeUser = observedUser ?? currentUser;
+const ImpersonationContext = createContext<ImpersonationContextType>({
+  impersonated: null,
+  isImpersonating: false,
+  startImpersonation: () => {},
+  stopImpersonation: () => {},
+});
 
-  const startImpersonation = useCallback((user) => {
-    if (currentUser?.role !== ROLES.ADMIN) return;
-    setObservedUser(user);
-  }, [currentUser]);
+export function ImpersonationProvider({ children }: { children: ReactNode }) {
+  const [impersonated, setImpersonated] = useState<ImpersonatedUser | null>(null);
 
-  const stopImpersonation = useCallback(() => setObservedUser(null), []);
+  const startImpersonation = useCallback((user: ImpersonatedUser) => {
+    setImpersonated(user);
+  }, []);
+
+  const stopImpersonation = useCallback(() => {
+    setImpersonated(null);
+  }, []);
 
   return (
     <ImpersonationContext.Provider value={{
-      currentUser,
-      observedUser,
-      activeUser,
-      isImpersonating: observedUser !== null,
+      impersonated,
+      isImpersonating: impersonated !== null,
       startImpersonation,
       stopImpersonation,
     }}>
@@ -40,7 +46,5 @@ export function ImpersonationProvider({ children, currentUser }) {
 }
 
 export function useImpersonation() {
-  const ctx = useContext(ImpersonationContext);
-  if (!ctx) throw new Error("useImpersonation doit être dans ImpersonationProvider");
-  return ctx;
+  return useContext(ImpersonationContext);
 }
