@@ -1,4 +1,5 @@
-﻿'use client';
+﻿Set-Content "app\admin-ambassadeur\page.tsx" @"
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,7 @@ export default function SuperAdminCockpitPage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) { router.replace('/login'); return; }
         const { data: profile, error: dbError } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        if (dbError) throw new Error(`Erreur Base de donnees: ${dbError.message}`);
+        if (dbError) throw new Error(`Erreur Base de donnees: `+dbError.message);
         if (!profile || profile.role !== 'admin') throw new Error("Acces refuse : Interface reservee a l'Administration Principale.");
         await fetchPlatformData();
       } catch (err: any) {
@@ -75,20 +76,13 @@ export default function SuperAdminCockpitPage() {
       }
       const { error } = await supabase.from('profiles').update(updateData).eq('id', profileId);
       if (error) throw error;
-
-      // ← NOUVEAU : mettre à jour la table prestataires aussi
       const prestaStatut = newStatus === 'valide' ? 'approuve' : newStatus === 'rejete' ? 'rejete' : 'en_attente';
       await supabase.from('prestataires').update({ statut: prestaStatut }).eq('user_id', profileId);
-
       await fetchPlatformData();
       setSelectedProfile(null);
       setAssignedAmbassadorZone('');
     } catch (err: any) {
       alert("Une erreur est survenue lors de la mise a jour.");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
     } finally {
       setIsUpdating(false);
     }
@@ -114,26 +108,15 @@ export default function SuperAdminCockpitPage() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 pt-28 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-
-        {/* En-tete */}
         <div className="mb-10 border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-full">Administration Nationale</span>
             <h1 className="text-3xl font-extrabold tracking-tight text-white mt-2">PrestaConnect Cockpit</h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Super-Administrateur : <span className="text-slate-200 font-semibold">SAYO ISSA Sabirou</span>
-            </p>
-            {/* Boutons navigation */}
+            <p className="text-sm text-slate-400 mt-1">Super-Administrateur : <span className="text-slate-200 font-semibold">SAYO ISSA Sabirou</span></p>
             <div className="flex gap-3 mt-4">
-              <a href="/" className="px-4 py-2 bg-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-600 transition-all">
-                Voir le site
-              </a>
-              <a href="/dashboard" className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
-                Mon Dashboard
-              </a>
-              <a href="/prestataires" className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition-all">
-                Prestataires
-              </a>
+              <a href="/" className="px-4 py-2 bg-slate-700 text-slate-200 text-xs font-bold rounded-xl hover:bg-slate-600 transition-all">Voir le site</a>
+              <a href="/dashboard" className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">Mon Dashboard</a>
+              <a href="/prestataires" className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition-all">Prestataires</a>
             </div>
           </div>
           <div className="flex items-center gap-3 bg-slate-800 p-2 rounded-xl border border-slate-700">
@@ -143,8 +126,6 @@ export default function SuperAdminCockpitPage() {
             </select>
           </div>
         </div>
-
-        {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
           <div className="bg-slate-800/60 border border-slate-700/70 p-6 rounded-2xl flex items-center gap-5">
             <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl"><Layers className="w-6 h-6" /></div>
@@ -159,17 +140,13 @@ export default function SuperAdminCockpitPage() {
             <div><span className="block text-xs font-bold text-slate-400 uppercase tracking-wide">Ambassadeurs</span><span className="text-2xl font-black text-white">{metrics.ambassadorsCount}</span></div>
           </div>
         </div>
-
-        {/* Onglets */}
         <div className="flex border-b border-slate-800 mb-6 gap-6">
           {(['attente', 'valides', 'ambassadeurs'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-4 text-sm font-bold tracking-wide border-b-2 transition-all capitalize ${activeTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
-              {tab === 'attente' ? `Dossiers en attente (${metrics.pendingCount})` : tab === 'valides' ? `Artisans Certifies (${metrics.totalArtisans})` : 'Equipes Terrain'}
+            <button key={tab} onClick={() => setActiveTab(tab)} className={"pb-4 text-sm font-bold tracking-wide border-b-2 transition-all capitalize "+(activeTab === tab ? 'border-blue-500 text-white' : 'border-transparent text-slate-400 hover:text-slate-200')}>
+              {tab === 'attente' ? "Dossiers en attente ("+metrics.pendingCount+")" : tab === 'valides' ? "Artisans Certifies ("+metrics.totalArtisans+")" : 'Equipes Terrain'}
             </button>
           ))}
         </div>
-
-        {/* Liste */}
         {filteredProfiles.length === 0 ? (
           <div className="bg-slate-800/30 border border-slate-800 text-center py-16 rounded-2xl">
             <CheckCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -196,8 +173,6 @@ export default function SuperAdminCockpitPage() {
           </div>
         )}
       </div>
-
-      {/* Modale */}
       {selectedProfile && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative">
@@ -243,3 +218,4 @@ export default function SuperAdminCockpitPage() {
     </div>
   );
 }
+"@
