@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from 'rea
 type ImpersonatedUser = {
   id: string;
   name: string;
-  role: 'client' | 'artisan' | 'prestataire';
+  role: 'client' | 'artisan' | 'prestataire' | 'admin';
 };
 
 type ImpersonationContextType = {

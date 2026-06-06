@@ -13,7 +13,6 @@ import {
   BarChart3,
   Settings,
   ShieldCheck,
-  Users,
   Search,
 } from 'lucide-react';
 
