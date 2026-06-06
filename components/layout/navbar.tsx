@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useImpersonation } from "@/contexts/impersonation-context";
+import { supabase } from "@/lib/supabase";
 
 const marketingLinks = [
   { href: "/solutions", label: "Solutions" },
@@ -35,7 +36,21 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { impersonated } = useImpersonation();
-  const isLoggedIn = !!impersonated;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session?.user);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const isMarketing = marketingRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -103,9 +118,9 @@ export function Navbar() {
           )}
 
           {isLoggedIn && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground cursor-pointer">
-              {impersonated.name?.slice(0, 2).toUpperCase()}
-            </div>
+            <Button variant="ghost" onClick={() => router.push('/dashboard')}>
+              Mon espace
+            </Button>
           )}
 
           {!isLoggedIn && (
@@ -165,6 +180,16 @@ export function Navbar() {
                 className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
               >
                 Connexion
+              </Link>
+            )}
+
+            {isLoggedIn && (
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
+              >
+                Mon espace
               </Link>
             )}
 
