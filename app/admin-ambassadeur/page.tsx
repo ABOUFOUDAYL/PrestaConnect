@@ -75,11 +75,20 @@ export default function SuperAdminCockpitPage() {
       }
       const { error } = await supabase.from('profiles').update(updateData).eq('id', profileId);
       if (error) throw error;
+
+      // ← NOUVEAU : mettre à jour la table prestataires aussi
+      const prestaStatut = newStatus === 'valide' ? 'approuve' : newStatus === 'rejete' ? 'rejete' : 'en_attente';
+      await supabase.from('prestataires').update({ statut: prestaStatut }).eq('user_id', profileId);
+
       await fetchPlatformData();
       setSelectedProfile(null);
       setAssignedAmbassadorZone('');
     } catch (err: any) {
       alert("Une erreur est survenue lors de la mise a jour.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
     } finally {
       setIsUpdating(false);
     }
