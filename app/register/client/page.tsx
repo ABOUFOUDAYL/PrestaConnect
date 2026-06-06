@@ -44,19 +44,17 @@ export default function RegisterClientPage() {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Utilisateur non créé');
 
-      // 2. Insertion manuelle du profil (fallback si trigger échoue)
+      // 2. Insertion manuelle du profil avec les colonnes exactes
       const { error: profileError } = await supabase
         .from('profiles')
-        .upsert(
-          {
-            id: userId,
-            user_id: userId,
-            role: 'client',
-            nom: form.nom,
-            telephone: form.telephone,
-          },
-          { onConflict: 'id' }
-        );
+        .upsert({
+          id: userId,
+          user_id: userId,
+          role: 'client',
+          full_name: form.nom,
+          telephone: form.telephone,
+          email: form.email,
+        }, { onConflict: 'id' });
 
       if (profileError) {
         console.error('Erreur création profil:', profileError.message);
@@ -95,10 +93,7 @@ export default function RegisterClientPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nom complet</label>
               <input
-                name="nom"
-                type="text"
-                required
-                value={form.nom}
+                name="nom" type="text" required value={form.nom}
                 onChange={handleChange}
                 placeholder="Ex : Kouassi Jean"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
@@ -108,10 +103,7 @@ export default function RegisterClientPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
               <input
-                name="email"
-                type="email"
-                required
-                value={form.email}
+                name="email" type="email" required value={form.email}
                 onChange={handleChange}
                 placeholder="votre@email.com"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
@@ -121,10 +113,7 @@ export default function RegisterClientPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Téléphone</label>
               <input
-                name="telephone"
-                type="tel"
-                required
-                value={form.telephone}
+                name="telephone" type="tel" required value={form.telephone}
                 onChange={handleChange}
                 placeholder="+229 97 00 00 00"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
@@ -134,10 +123,7 @@ export default function RegisterClientPage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
               <input
-                name="password"
-                type="password"
-                required
-                minLength={6}
+                name="password" type="password" required minLength={6}
                 value={form.password}
                 onChange={handleChange}
                 placeholder="Minimum 6 caractères"
@@ -146,8 +132,7 @@ export default function RegisterClientPage() {
             </div>
 
             <button
-              type="submit"
-              disabled={loading}
+              type="submit" disabled={loading}
               className="w-full mt-2 bg-slate-900 text-white rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-700 transition disabled:opacity-50"
             >
               {loading ? (

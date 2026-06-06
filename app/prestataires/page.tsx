@@ -106,32 +106,29 @@ export default function PrestatairesPage() {
           data: {
             full_name: fullName,
             role: 'prestataire',
-          }
-        }
+          },
+        },
       });
 
       if (authError) throw authError;
       const userId = authData.user?.id;
       if (!userId) throw new Error('Compte non créé');
 
-      // 4. Insérer le profil lié à l'utilisateur
+      // 4. Insérer le profil avec les colonnes exactes de la table
       const { error: insertError } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
           user_id: userId,
           full_name: fullName,
-          phone: formattedPhone,
+          telephone: formattedPhone,
+          email: fakeEmail,
           ville: ville,
           metier: selectedMetier,
-          metier_type: metierInfos?.type,
           role: 'prestataire',
-          status: 'en_attente_validation',
-          is_verified: false,
-          solde_credits: 0,
-          score_performance: 0,
-          cip_url: cipUrl,
-          doc_url: docUrl,
+          statut_verification: 'en_attente_validation',
+          carte_identite_url: cipUrl,
+          casier_judiciaire_url: docUrl,
         }, { onConflict: 'id' });
 
       if (insertError) throw insertError;
@@ -162,7 +159,6 @@ export default function PrestatairesPage() {
         </div>
 
         <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 sm:p-8">
-
           {success ? (
             <div className="text-center py-10">
               <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-green-100 mb-5">
@@ -175,7 +171,6 @@ export default function PrestatairesPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-
               {error && (
                 <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600 font-medium">
                   {error}
@@ -253,9 +248,7 @@ export default function PrestatairesPage() {
                         : "Votre inscription est gratuite. C'est le client qui paie 500 FCFA pour voir vos coordonnées."}
                     </div>
                   </div>
-
                   <hr className="border-slate-200" />
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
@@ -292,7 +285,6 @@ export default function PrestatairesPage() {
                   <><span>Soumettre mon dossier</span><ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
-
             </form>
           )}
         </div>
