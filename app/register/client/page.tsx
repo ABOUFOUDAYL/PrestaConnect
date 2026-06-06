@@ -26,7 +26,7 @@ export default function RegisterClientPage() {
     setError('');
 
     try {
-      // 1. Créer le compte Auth avec metadata role: client
+      // 1. Créer le compte Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -35,8 +35,8 @@ export default function RegisterClientPage() {
             full_name: form.nom,
             telephone: form.telephone,
             role: 'client',
-          }
-        }
+          },
+        },
       });
 
       if (authError) throw authError;
@@ -44,7 +44,26 @@ export default function RegisterClientPage() {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Utilisateur non créé');
 
-      // 2. Redirection vers le dashboard client
+      // 2. Insertion manuelle du profil (fallback si trigger échoue)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            id: userId,
+            user_id: userId,
+            role: 'client',
+            nom: form.nom,
+            telephone: form.telephone,
+          },
+          { onConflict: 'id' }
+        );
+
+      if (profileError) {
+        console.error('Erreur création profil:', profileError.message);
+        throw new Error('Profil non créé : ' + profileError.message);
+      }
+
+      // 3. Redirection
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
