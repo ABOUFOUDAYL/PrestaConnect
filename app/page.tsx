@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Wallet, CheckCircle2, UserCheck, ShieldCheck, ArrowRight, Search } from "lucide-react";
+import { Wallet, CheckCircle2, UserCheck, ShieldCheck, ArrowRight, Search, Star, Zap, Users } from "lucide-react";
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&q=80",
@@ -18,10 +18,10 @@ const MARQUEE_WORDS = [
 
 export default function HomePage() {
   const [currentImg, setCurrentImg] = useState(0);
+  const [activeTab, setActiveTab] = useState<"client" | "prestataire">("client");
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const refs = useRef<Record<string, HTMLElement | null>>({});
 
-  // Slideshow hero
   useEffect(() => {
     const t = setInterval(() => {
       setCurrentImg((i) => (i + 1) % HERO_IMAGES.length);
@@ -29,7 +29,6 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, []);
 
-  // Scroll reveal
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -63,14 +62,11 @@ export default function HomePage() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; }
         .syne { font-family: 'Syne', sans-serif; }
-
         .marquee-track {
-          display: flex;
-          gap: 48px;
+          display: flex; gap: 48px;
           animation: marquee 20s linear infinite;
           white-space: nowrap;
         }
@@ -78,13 +74,11 @@ export default function HomePage() {
           from { transform: translateX(0); }
           to { transform: translateX(-50%); }
         }
-
         .img-slide {
           position: absolute; inset: 0;
           object-fit: cover; width: 100%; height: 100%;
           transition: opacity 1s ease;
         }
-
         .btn-primary {
           display: inline-flex; align-items: center; gap: 8px;
           background: #2563eb; color: #fff;
@@ -94,7 +88,6 @@ export default function HomePage() {
           transition: background 0.2s, transform 0.15s;
         }
         .btn-primary:hover { background: #1d4ed8; transform: scale(1.03); }
-
         .btn-dark {
           display: inline-flex; align-items: center; gap: 8px;
           background: #fff; color: #0f172a;
@@ -104,7 +97,6 @@ export default function HomePage() {
           transition: background 0.2s, transform 0.15s;
         }
         .btn-dark:hover { background: #f1f5f9; transform: scale(1.03); }
-
         .btn-outline {
           display: inline-flex; align-items: center; gap: 8px;
           background: transparent; color: #2563eb;
@@ -114,51 +106,51 @@ export default function HomePage() {
           transition: all 0.2s;
         }
         .btn-outline:hover { background: #2563eb; color: #fff; }
-
-        .card-hover {
-          transition: transform 0.25s, box-shadow 0.25s;
+        .btn-green {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: #16a34a; color: #fff;
+          font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+          padding: 14px 28px; border-radius: 999px;
+          border: none; cursor: pointer; text-decoration: none;
+          transition: background 0.2s, transform 0.15s;
         }
-        .card-hover:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        .btn-green:hover { background: #15803d; transform: scale(1.03); }
+        .card-hover { transition: transform 0.25s, box-shadow 0.25s; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .tab-btn {
+          padding: 12px 32px; border-radius: 999px; font-weight: 700;
+          font-size: 15px; cursor: pointer; border: 2px solid transparent;
+          transition: all 0.2s; font-family: 'Syne', sans-serif;
         }
+        .tab-active-client { background: #2563eb; color: #fff; }
+        .tab-active-prestataire { background: #16a34a; color: #fff; }
+        .tab-inactive { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.15); }
+        .tab-inactive:hover { background: rgba(255,255,255,0.15); color: #fff; }
       `}</style>
 
       <main style={{ fontFamily: "'Inter', sans-serif", overflowX: "hidden" }}>
 
-        {/* ═══════════════════════════════════════
-            HERO — fond sombre + slideshow images
-        ═══════════════════════════════════════ */}
+        {/* HERO */}
         <section style={{
           position: "relative", minHeight: "100vh",
           display: "flex", alignItems: "center", justifyContent: "center",
           background: "#0a0f1e", overflow: "hidden",
           paddingTop: "var(--navbar-height, 64px)",
         }}>
-          {/* Images en fond qui alternent */}
           {HERO_IMAGES.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt=""
-              className="img-slide"
-              style={{ opacity: i === currentImg ? 0.35 : 0 }}
-            />
+            <img key={i} src={src} alt="" className="img-slide"
+              style={{ opacity: i === currentImg ? 0.35 : 0 }} />
           ))}
-
-          {/* Overlay dégradé */}
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(to bottom, rgba(10,15,30,0.5) 0%, rgba(10,15,30,0.85) 100%)",
           }} />
 
-          {/* Contenu */}
           <div style={{
             position: "relative", zIndex: 2,
-            maxWidth: 780, margin: "0 auto",
+            maxWidth: 860, margin: "0 auto",
             padding: "80px 24px", textAlign: "center",
           }}>
-            {/* Badge */}
             <div style={{
               display: "inline-block",
               background: "rgba(37,99,235,0.2)",
@@ -170,34 +162,83 @@ export default function HomePage() {
               🇧🇯 La première plateforme artisanale du Bénin
             </div>
 
-            <h1 className="syne" style={{
-              fontSize: "clamp(2.8rem, 6vw, 5rem)",
-              fontWeight: 800, color: "#fff",
-              lineHeight: 1.1, marginBottom: 24,
-            }}>
-              Trouvez un artisan<br />
-              <span style={{ color: "#2563eb" }}>de confiance,</span><br />
-              simplement et rapidement
-            </h1>
-
-            <p style={{
-              fontSize: "clamp(1rem, 2vw, 1.2rem)",
-              color: "#94a3b8", maxWidth: 560,
-              margin: "0 auto 40px", lineHeight: 1.7,
-            }}>
-              PrestaConnect connecte directement les particuliers avec les meilleurs professionnels locaux — électriciens, plombiers, maçons et bien plus.
-            </p>
-
-            <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/explore" className="btn-primary">
-                <Search size={18} /> Trouver un prestataire
-              </Link>
-              <Link href="/register/provider" className="btn-dark">
-                Devenir Prestataire <ArrowRight size={18} />
-              </Link>
+            {/* Tabs client / prestataire */}
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 40 }}>
+              <button
+                className={`tab-btn ${activeTab === "client" ? "tab-active-client" : "tab-inactive"}`}
+                onClick={() => setActiveTab("client")}
+              >
+                👤 Je cherche un artisan
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "prestataire" ? "tab-active-prestataire" : "tab-inactive"}`}
+                onClick={() => setActiveTab("prestataire")}
+              >
+                🔨 Je suis artisan
+              </button>
             </div>
 
-            {/* Stats flottantes */}
+            {/* Contenu client */}
+            {activeTab === "client" && (
+              <div>
+                <h1 className="syne" style={{
+                  fontSize: "clamp(2.8rem, 6vw, 5rem)",
+                  fontWeight: 800, color: "#fff",
+                  lineHeight: 1.1, marginBottom: 24,
+                }}>
+                  Trouvez un artisan<br />
+                  <span style={{ color: "#2563eb" }}>de confiance,</span><br />
+                  simplement et rapidement
+                </h1>
+                <p style={{
+                  fontSize: "clamp(1rem, 2vw, 1.2rem)",
+                  color: "#94a3b8", maxWidth: 560,
+                  margin: "0 auto 40px", lineHeight: 1.7,
+                }}>
+                  PrestaConnect connecte directement les particuliers avec les meilleurs professionnels locaux — électriciens, plombiers, maçons et bien plus.
+                </p>
+                <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link href="/explore" className="btn-primary">
+                    <Search size={18} /> Trouver un prestataire
+                  </Link>
+                  <Link href="/login" className="btn-dark">
+                    Se connecter <ArrowRight size={18} />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Contenu prestataire */}
+            {activeTab === "prestataire" && (
+              <div>
+                <h1 className="syne" style={{
+                  fontSize: "clamp(2.8rem, 6vw, 5rem)",
+                  fontWeight: 800, color: "#fff",
+                  lineHeight: 1.1, marginBottom: 24,
+                }}>
+                  Développez votre<br />
+                  <span style={{ color: "#22c55e" }}>activité au Bénin</span><br />
+                  sans commission
+                </h1>
+                <p style={{
+                  fontSize: "clamp(1rem, 2vw, 1.2rem)",
+                  color: "#94a3b8", maxWidth: 560,
+                  margin: "0 auto 40px", lineHeight: 1.7,
+                }}>
+                  Rejoignez PrestaConnect, recevez des missions près de chez vous et développez votre clientèle. Zéro abonnement, zéro commission — vous payez uniquement quand vous trouvez un client.
+                </p>
+                <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+                  <Link href="/register/provider" className="btn-green">
+                    🔨 S'inscrire comme artisan <ArrowRight size={18} />
+                  </Link>
+                  <Link href="/tarifs" className="btn-dark">
+                    Voir les tarifs
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Stats */}
             <div style={{
               display: "flex", gap: 32, justifyContent: "center",
               marginTop: 56, flexWrap: "wrap",
@@ -208,23 +249,21 @@ export default function HomePage() {
                 { value: "0%", label: "Commission" },
               ].map((s) => (
                 <div key={s.label} style={{ textAlign: "center" }}>
-                  <div className="syne" style={{
-                    fontSize: "2rem", fontWeight: 800, color: "#2563eb",
-                  }}>{s.value}</div>
+                  <div className="syne" style={{ fontSize: "2rem", fontWeight: 800, color: activeTab === "prestataire" ? "#22c55e" : "#2563eb" }}>
+                    {s.value}
+                  </div>
                   <div style={{ fontSize: 13, color: "#64748b", marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Flèche scroll */}
           <div style={{
             position: "absolute", bottom: 32, left: "50%",
             transform: "translateX(-50%)",
             animation: "bounce 2s infinite",
             color: "#fff", opacity: 0.5, fontSize: 24,
           }}>↓</div>
-
           <style>{`
             @keyframes bounce {
               0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -233,19 +272,14 @@ export default function HomePage() {
           `}</style>
         </section>
 
-        {/* ═══════════════════════════════════════
-            MARQUEE — défilement des métiers
-        ═══════════════════════════════════════ */}
-        <div style={{
-          background: "#2563eb", padding: "18px 0", overflow: "hidden",
-        }}>
+        {/* MARQUEE */}
+        <div style={{ background: "#2563eb", padding: "18px 0", overflow: "hidden" }}>
           <div style={{ display: "flex", gap: 48 }}>
             <div className="marquee-track">
               {[...MARQUEE_WORDS, ...MARQUEE_WORDS].map((w, i) => (
                 <span key={i} className="syne" style={{
-                  fontSize: 15, fontWeight: 700,
-                  color: "#fff", letterSpacing: "0.05em",
-                  display: "flex", alignItems: "center", gap: 16,
+                  fontSize: 15, fontWeight: 700, color: "#fff",
+                  letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 16,
                 }}>
                   {w} <span style={{ color: "rgba(255,255,255,0.4)" }}>·</span>
                 </span>
@@ -254,12 +288,97 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════
-            SECTION 1 — Comment ça marche (blanc)
-        ═══════════════════════════════════════ */}
+        {/* SECTION DOUBLE CTA — clients ET prestataires */}
         <section style={{ background: "#fff", padding: "100px 24px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <div
+              id="deux-cotes"
+              ref={addRef("deux-cotes")}
+              style={{ ...revealClass("deux-cotes"), textAlign: "center", marginBottom: 64 }}
+            >
+              <span style={{
+                background: "#eff6ff", color: "#2563eb",
+                borderRadius: 999, padding: "5px 16px",
+                fontSize: 12, fontWeight: 700, letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}>Une plateforme, deux côtés</span>
+              <h2 className="syne" style={{
+                fontSize: "clamp(2rem, 4vw, 3rem)",
+                fontWeight: 800, color: "#0f172a",
+                marginTop: 16, lineHeight: 1.2,
+              }}>
+                Que vous soyez client<br />
+                <span style={{ color: "#2563eb" }}>ou artisan,</span> PrestaConnect est fait pour vous.
+              </h2>
+            </div>
 
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 32 }}>
+              {/* Carte Client */}
+              <div
+                id="carte-client"
+                ref={addRef("carte-client")}
+                className="card-hover"
+                style={{
+                  ...revealClass("carte-client", "0ms"),
+                  background: "#eff6ff", borderRadius: 28,
+                  padding: 40, border: "1px solid #bfdbfe",
+                }}
+              >
+                <div style={{ fontSize: 48, marginBottom: 20 }}>👤</div>
+                <h3 className="syne" style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
+                  Vous cherchez un artisan ?
+                </h3>
+                <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, marginBottom: 24 }}>
+                  Trouvez en quelques clics un professionnel vérifié près de chez vous. Décrivez votre besoin, recevez une réponse rapide.
+                </p>
+                <ul style={{ listStyle: "none", padding: 0, marginBottom: 32, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {["Prestataires vérifiés et certifiés", "Réponse en moins de 1h", "Zéro avance de frais", "Paiement après validation"].map(item => (
+                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#1e40af", fontWeight: 500 }}>
+                      <CheckCircle2 size={16} color="#2563eb" /> {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/explore" className="btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+                  <Search size={16} /> Trouver un artisan
+                </Link>
+              </div>
+
+              {/* Carte Prestataire */}
+              <div
+                id="carte-presta"
+                ref={addRef("carte-presta")}
+                className="card-hover"
+                style={{
+                  ...revealClass("carte-presta", "150ms"),
+                  background: "#f0fdf4", borderRadius: 28,
+                  padding: 40, border: "1px solid #bbf7d0",
+                }}
+              >
+                <div style={{ fontSize: 48, marginBottom: 20 }}>🔨</div>
+                <h3 className="syne" style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
+                  Vous êtes artisan ?
+                </h3>
+                <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7, marginBottom: 24 }}>
+                  Recevez des missions qualifiées près de chez vous. Développez votre clientèle sans payer d'abonnement mensuel.
+                </p>
+                <ul style={{ listStyle: "none", padding: 0, marginBottom: 32, display: "flex", flexDirection: "column", gap: 10 }}>
+                  {["Zéro abonnement mensuel", "Clients dans votre zone", "Paiement via Mobile Money", "Profil certifié visible"].map(item => (
+                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#166534", fontWeight: 500 }}>
+                      <CheckCircle2 size={16} color="#16a34a" /> {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register/provider" className="btn-green" style={{ width: "100%", justifyContent: "center" }}>
+                  S'inscrire comme artisan <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* COMMENT ÇA MARCHE */}
+        <section style={{ background: "#f8fafc", padding: "100px 24px" }}>
+          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
             <div
               id="s1"
               ref={addRef("s1")}
@@ -314,19 +433,12 @@ export default function HomePage() {
                   style={{
                     ...revealClass(`step-${step.num}`, step.delay),
                     borderRadius: 24, overflow: "hidden",
-                    border: "1px solid #f1f5f9",
-                    background: "#fafafa",
+                    border: "1px solid #f1f5f9", background: "#fff",
                   }}
                 >
                   <div style={{ position: "relative", height: 200, overflow: "hidden" }}>
-                    <img
-                      src={step.img}
-                      alt={step.title}
-                      style={{
-                        width: "100%", height: "100%",
-                        objectFit: "cover",
-                        transition: "transform 0.5s ease",
-                      }}
+                    <img src={step.img} alt={step.title}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease" }}
                       onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
                       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                     />
@@ -340,10 +452,7 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div style={{ padding: "24px" }}>
-                    <h3 className="syne" style={{
-                      fontSize: "1.2rem", fontWeight: 700,
-                      color: "#0f172a", marginBottom: 8,
-                    }}>{step.title}</h3>
+                    <h3 className="syne" style={{ fontSize: "1.2rem", fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>{step.title}</h3>
                     <p style={{ fontSize: 14, color: "#64748b", lineHeight: 1.7 }}>{step.desc}</p>
                   </div>
                 </div>
@@ -352,12 +461,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════
-            SECTION 2 — Tarifs (fond sombre)
-        ═══════════════════════════════════════ */}
+        {/* TARIFS */}
         <section style={{ background: "#0a0f1e", padding: "100px 24px" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
-
             <div
               id="tarifs-title"
               ref={addRef("tarifs-title")}
@@ -378,25 +484,14 @@ export default function HomePage() {
                 <span style={{ color: "#2563eb" }}>sans abonnement</span>
               </h2>
               <p style={{ color: "#64748b", maxWidth: 560, margin: "16px auto 0", lineHeight: 1.7 }}>
-                Chez PrestaConnect, vous ne payez aucun frais mensuel fixe. Vous ne dépensez que lorsque vous trouvez des opportunités réelles.
+                Vous ne payez aucun frais mensuel fixe. Vous ne dépensez que lorsque vous trouvez des opportunités réelles.
               </p>
             </div>
 
-            {/* Cartes tarifs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20, marginBottom: 40 }}>
               {[
-                {
-                  icon: "⚡", label: "Cas urgent",
-                  price: "300", tag: "FCFA / lead",
-                  desc: "Intervention rapide, besoin immédiat. Débloquez le contact en un clic.",
-                  delay: "0ms",
-                },
-                {
-                  icon: "🏗️", label: "Grand chantier",
-                  price: "1500", tag: "FCFA / lead",
-                  desc: "Travaux importants à forte valeur. Un seul chantier rentabilise des dizaines de recharges.",
-                  delay: "150ms",
-                },
+                { icon: "⚡", label: "Cas urgent", price: "300", tag: "FCFA / lead", desc: "Intervention rapide, besoin immédiat. Débloquez le contact en un clic.", delay: "0ms" },
+                { icon: "🏗️", label: "Grand chantier", price: "1500", tag: "FCFA / lead", desc: "Travaux importants à forte valeur. Un seul chantier rentabilise des dizaines de recharges.", delay: "150ms" },
               ].map((t) => (
                 <div
                   key={t.label}
@@ -419,7 +514,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Avantages grille */}
             <div
               id="avantages"
               ref={addRef("avantages")}
@@ -442,11 +536,7 @@ export default function HomePage() {
                   borderRadius: 16, padding: "20px",
                   display: "flex", gap: 14, alignItems: "flex-start",
                 }}>
-                  <div style={{
-                    color: a.color, flexShrink: 0,
-                    background: `${a.color}18`, borderRadius: 10,
-                    padding: 8, display: "flex",
-                  }}>{a.icon}</div>
+                  <div style={{ color: a.color, flexShrink: 0, background: `${a.color}18`, borderRadius: 10, padding: 8, display: "flex" }}>{a.icon}</div>
                   <div>
                     <div className="syne" style={{ fontWeight: 700, color: "#fff", fontSize: 14, marginBottom: 4 }}>{a.title}</div>
                     <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>{a.desc}</div>
@@ -457,9 +547,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════
-            SECTION 3 — Galerie métiers (blanc)
-        ═══════════════════════════════════════ */}
+        {/* GALERIE MÉTIERS */}
         <section style={{ background: "#f8fafc", padding: "100px 24px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
             <div
@@ -475,12 +563,7 @@ export default function HomePage() {
                 <span style={{ color: "#2563eb" }}>partout au Bénin.</span>
               </h2>
             </div>
-
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-              gap: 16,
-            }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 16 }}>
               {[
                 { label: "Électricien", emoji: "⚡", color: "#fef3c7" },
                 { label: "Plombier", emoji: "🔧", color: "#dbeafe" },
@@ -499,8 +582,7 @@ export default function HomePage() {
                   style={{
                     ...revealClass(`metier-${i}`, `${i * 60}ms`),
                     background: m.color, borderRadius: 20,
-                    padding: "28px 16px", textAlign: "center",
-                    cursor: "pointer",
+                    padding: "28px 16px", textAlign: "center", cursor: "pointer",
                   }}
                 >
                   <div style={{ fontSize: 36, marginBottom: 10 }}>{m.emoji}</div>
@@ -511,14 +593,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════
-            CTA FINAL — texte défilant (noir)
-        ═══════════════════════════════════════ */}
-        <section style={{
-          background: "#0a0f1e", padding: "80px 24px",
-          overflow: "hidden", position: "relative",
-        }}>
-          {/* Gros texte défilant en fond */}
+        {/* CTA FINAL */}
+        <section style={{ background: "#0a0f1e", padding: "80px 24px", overflow: "hidden", position: "relative" }}>
           <div style={{
             overflow: "hidden", marginBottom: 60,
             borderTop: "1px solid rgba(255,255,255,0.05)",
@@ -530,60 +606,46 @@ export default function HomePage() {
               fontWeight: 800, color: "rgba(255,255,255,0.06)",
               letterSpacing: "-0.02em",
             }}>
-              {["Trouvez un artisan", "·", "Trouvez un artisan", "·", "Trouvez un artisan", "·", "Trouvez un artisan", "·"].map((w, i) => (
+              {["PrestaConnect", "·", "Artisans du Bénin", "·", "PrestaConnect", "·", "Artisans du Bénin", "·"].map((w, i) => (
                 <span key={i} style={{ marginRight: 48 }}>{w}</span>
               ))}
             </div>
           </div>
 
           <div style={{ textAlign: "center", position: "relative", zIndex: 1 }}>
-            <div
-              id="cta"
-              ref={addRef("cta")}
-              style={revealClass("cta")}
-            >
+            <div id="cta" ref={addRef("cta")} style={revealClass("cta")}>
               <h2 className="syne" style={{
                 fontSize: "clamp(2rem, 5vw, 4rem)",
                 fontWeight: 800, color: "#fff",
                 lineHeight: 1.15, marginBottom: 24,
               }}>
-                Prêt à trouver votre<br />
-                <span style={{ color: "#2563eb" }}>artisan de confiance ?</span>
+                Rejoignez la communauté<br />
+                <span style={{ color: "#2563eb" }}>PrestaConnect</span>
               </h2>
               <p style={{ color: "#64748b", fontSize: 16, marginBottom: 40, lineHeight: 1.7 }}>
-                Rejoignez des milliers de Béninois qui font déjà confiance à PrestaConnect.
+                Des milliers de Béninois — clients et artisans — font déjà confiance à PrestaConnect.
               </p>
               <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
                 <Link href="/explore" className="btn-primary" style={{ fontSize: 16, padding: "16px 36px" }}>
                   <Search size={20} /> Trouver un prestataire
                 </Link>
-                <Link href="/register/provider" className="btn-outline" style={{ fontSize: 16, padding: "14px 36px" }}>
-                  Devenir Prestataire <ArrowRight size={18} />
+                <Link href="/register/provider" className="btn-green" style={{ fontSize: 16, padding: "16px 36px" }}>
+                  🔨 Devenir Prestataire
                 </Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════
-            FOOTER
-        ═══════════════════════════════════════ */}
-        <footer style={{
-          background: "#020617", color: "#fff",
-          padding: "48px 24px", textAlign: "center",
-        }}>
-          <div className="syne" style={{
-            fontSize: "1.3rem", fontWeight: 800, marginBottom: 8,
-          }}>
+        {/* FOOTER */}
+        <footer style={{ background: "#020617", color: "#fff", padding: "48px 24px", textAlign: "center" }}>
+          <div className="syne" style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 8 }}>
             Presta<span style={{ color: "#2563eb" }}>Connect</span>
           </div>
           <p style={{ color: "#475569", fontSize: 13, marginBottom: 24 }}>
             La première plateforme artisanale du Bénin
           </p>
-          <div style={{
-            display: "flex", gap: 32, justifyContent: "center",
-            flexWrap: "wrap", marginBottom: 32,
-          }}>
+          <div style={{ display: "flex", gap: 32, justifyContent: "center", flexWrap: "wrap", marginBottom: 32 }}>
             {[
               { val: "100% Béninois", label: "Pensé pour le marché local" },
               { val: "10+ Domaines", label: "De métiers artisanaux" },
@@ -600,7 +662,7 @@ export default function HomePage() {
             paddingTop: 24, fontSize: 12, color: "#334155",
             display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap",
           }}>
-            <span>© 2025 PrestaConnect</span>
+            <span>© 2026 PrestaConnect</span>
             <Link href="/contact" style={{ color: "#334155", textDecoration: "none" }}>Contact</Link>
             <Link href="/tarifs" style={{ color: "#334155", textDecoration: "none" }}>Tarifs</Link>
             <Link href="/solutions" style={{ color: "#334155", textDecoration: "none" }}>Solutions</Link>
