@@ -72,12 +72,7 @@ export function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 h-[var(--navbar-height)] border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">P</span>
-          </div>
-          <span className="text-lg font-bold tracking-tight">
-            Presta<span className="text-primary">Connect</span>
-          </span>
+          <img src="/logo.svg" alt="PrestaConnect" style={{height:"40px", width:"auto"}} />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -101,7 +96,7 @@ export function Navbar() {
             size="icon"
             className="relative"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Changer le thème"
+            aria-label="Changer le theme"
           >
             <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -135,7 +130,7 @@ export function Navbar() {
             variant="ghost"
             size="icon"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Changer le thème"
+            aria-label="Changer le theme"
           >
             <Sun className="h-4 w-4 dark:hidden" />
             <Moon className="hidden h-4 w-4 dark:block" />
@@ -213,12 +208,7 @@ function AppNavbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-[var(--navbar-height)] items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <span className="text-sm font-bold text-primary-foreground">PC</span>
-        </div>
-        <span className="hidden text-lg font-bold sm:block">
-          Presta<span className="text-primary">Connect</span>
-        </span>
+        <img src="/logo.svg" alt="PrestaConnect" style={{height:"32px", width:"auto"}} />
       </Link>
       <Button onClick={() => router.push('/')}>
         Retour au site
