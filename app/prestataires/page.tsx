@@ -95,43 +95,29 @@ export default function PrestatairesPage() {
         docUrl = docData.publicUrl;
       }
 
-      // 3. Créer un compte Auth avec email généré depuis le téléphone
+      // 3. Email généré depuis le téléphone
       const fakeEmail = `${formattedPhone.replace('+', '')}@prestaconnect.app`;
       const fakePassword = `PC_${Date.now()}`;
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: fakeEmail,
-        password: fakePassword,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'prestataire',
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      const userId = authData.user?.id;
-      if (!userId) throw new Error('Compte non créé');
-
-      // 4. Insérer le profil avec les colonnes exactes de la table
-      const { error: insertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          user_id: userId,
+      // 4. Créer le compte via API admin
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: fakeEmail,
+          password: fakePassword,
+          role: 'prestataire',
           full_name: fullName,
           telephone: formattedPhone,
-          email: fakeEmail,
-          ville: ville,
+          ville,
           metier: selectedMetier,
-          role: 'prestataire',
-          statut_verification: 'en_attente_validation',
           carte_identite_url: cipUrl,
           casier_judiciaire_url: docUrl,
-        }, { onConflict: 'id' });
+        }),
+      });
 
-      if (insertError) throw insertError;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
       setSuccess(true);
     } catch (err: any) {
