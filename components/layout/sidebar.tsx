@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 import { useImpersonation } from '@/contexts/impersonation-context';
 import {
   LayoutDashboard,
@@ -51,13 +52,17 @@ const adminMenu = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { authUser } = useAuth();
   const { impersonated } = useImpersonation();
 
-  const menuItems = impersonated?.role === 'admin'
-    ? adminMenu
-    : impersonated?.role === 'client'
-    ? clientMenu
-    : prestataireMenu;
+  const activeRole = impersonated?.role ?? authUser?.role;
+
+  const menuItems =
+    activeRole === 'admin'
+      ? adminMenu
+      : activeRole === 'client'
+      ? clientMenu
+      : prestataireMenu;
 
   return (
     <div className="w-64 h-screen bg-white border-r border-gray-100 p-6 flex flex-col justify-between">
@@ -72,6 +77,12 @@ export function Sidebar() {
         {impersonated && (
           <div className="mb-6 px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700 font-semibold">
             Vue : {impersonated.name}
+          </div>
+        )}
+
+        {!impersonated && activeRole === 'admin' && (
+          <div className="mb-6 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 font-semibold flex items-center gap-2">
+            <ShieldCheck size={14} /> Administration
           </div>
         )}
 
