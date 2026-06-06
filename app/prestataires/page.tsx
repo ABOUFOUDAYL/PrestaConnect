@@ -22,6 +22,7 @@ const METIERS_BENIN = [
   { id: 'Mécanique Moto', name: 'Mécanicien Moto & Deux-roues', type: 'diplome' },
   { id: 'Tôlerie & Peinture Auto', name: 'Tôlier / Peintre Auto', type: 'diplome' },
   { id: 'Maintenance Informatique', name: 'Technicien Informatique / Réseaux', type: 'diplome' },
+  { id: 'Réparation Téléphones', name: 'Réparateur de smartphones', type: 'casier' },
   { id: 'Vulcanisation', name: 'Vulcanisateur (Vulcain)', type: 'casier' },
   { id: 'Couture & Stylisme', name: 'Couturier / Styliste / Modéliste', type: 'casier' },
   { id: 'Tissage', name: 'Tisseur traditionnel (Kanvô)', type: 'casier' },
@@ -35,9 +36,8 @@ const METIERS_BENIN = [
   { id: 'Tapisserie', name: "Tapissier d'ameublement", type: 'casier' },
   { id: 'Photographie', name: 'Photographe / Caméraman', type: 'casier' },
   { id: 'Sérigraphie', name: 'Sérigraphe / Imprimeur Artisanal', type: 'casier' },
-  { id: 'Sculpture & Poterie', name: 'Sculpteur / Potier', type: 'casier' },
-  { id: 'Réparation Téléphones', name: 'Réparateur de smartphones', type: 'casier' },
   { id: 'Nettoyage & Blanchisserie', name: 'Blanchisseur / Pressing Artisanal', type: 'casier' },
+  { id: 'Sculpture & Poterie', name: 'Sculpteur / Potier', type: 'casier' },
 ];
 
 export default function PrestatairesPage() {
@@ -66,7 +66,6 @@ export default function PrestatairesPage() {
       return;
     }
 
-    // ✅ Formatage du numéro béninois
     let formattedPhone = phone.trim();
     if (!formattedPhone.startsWith('+') && !formattedPhone.startsWith('00')) {
       if (formattedPhone.startsWith('0')) formattedPhone = formattedPhone.substring(1);
@@ -74,7 +73,7 @@ export default function PrestatairesPage() {
     }
 
     try {
-      // ✅ Upload de la carte CIP
+      // 1. Upload CIP
       let cipUrl = '';
       const cipPath = `cip/${Date.now()}_${idCard.name}`;
       const { error: cipError } = await supabase.storage
@@ -85,7 +84,7 @@ export default function PrestatairesPage() {
         cipUrl = cipData.publicUrl;
       }
 
-      // ✅ Upload du document justificatif
+      // 2. Upload document justificatif
       let docUrl = '';
       const docPath = `justificatifs/${Date.now()}_${docJustificatif.name}`;
       const { error: docError } = await supabase.storage
@@ -96,10 +95,31 @@ export default function PrestatairesPage() {
         docUrl = docData.publicUrl;
       }
 
-      // ✅ Insertion avec les bons noms de colonnes
+      // 3. Créer un compte Auth avec email généré depuis le téléphone
+      const fakeEmail = `${formattedPhone.replace('+', '')}@prestaconnect.app`;
+      const fakePassword = `PC_${Date.now()}`;
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: fakeEmail,
+        password: fakePassword,
+        options: {
+          data: {
+            full_name: fullName,
+            role: 'prestataire',
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      const userId = authData.user?.id;
+      if (!userId) throw new Error('Compte non créé');
+
+      // 4. Insérer le profil lié à l'utilisateur
       const { error: insertError } = await supabase
         .from('profiles')
-        .insert([{
+        .upsert({
+          id: userId,
+          user_id: userId,
           full_name: fullName,
           phone: formattedPhone,
           ville: ville,
@@ -112,7 +132,7 @@ export default function PrestatairesPage() {
           score_performance: 0,
           cip_url: cipUrl,
           doc_url: docUrl,
-        }]);
+        }, { onConflict: 'id' });
 
       if (insertError) throw insertError;
 
@@ -162,11 +182,10 @@ export default function PrestatairesPage() {
                 </div>
               )}
 
-              {/* Nom & Téléphone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-2">
-                    <User className="w-4 h-4 text-blue-500" /> Nom & Prénom
+                    <User className="w-4 h-4 text-blue-500" /> Nom & Prénom professionnel
                   </label>
                   <input
                     type="text" required value={fullName}
@@ -177,7 +196,7 @@ export default function PrestatairesPage() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-blue-500" /> WhatsApp
+                    <Phone className="w-4 h-4 text-blue-500" /> Numéro de téléphone (WhatsApp)
                   </label>
                   <input
                     type="tel" required value={phone}
@@ -188,23 +207,21 @@ export default function PrestatairesPage() {
                 </div>
               </div>
 
-              {/* Ville */}
               <div>
                 <label className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-500" /> Ville & Quartier
+                  <MapPin className="w-4 h-4 text-blue-500" /> Ville & Quartier de résidence
                 </label>
                 <input
                   type="text" required value={ville}
                   onChange={(e) => setVille(e.target.value)}
-                  placeholder="Ex: Abomey-Calavi, Tankpè, Cotonou"
+                  placeholder="Ex: Abomey-Calavi, Tankpè"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
               </div>
 
-              {/* Métier */}
               <div>
                 <label className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-blue-500" /> Corps de Métier
+                  <Briefcase className="w-4 h-4 text-blue-500" /> Votre Corps de Métier
                 </label>
                 <select
                   required value={selectedMetier}
@@ -225,7 +242,6 @@ export default function PrestatairesPage() {
                 </select>
               </div>
 
-              {/* Info métier + documents */}
               {metierInfos && (
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
                   <div className="flex items-start gap-3">
@@ -233,7 +249,7 @@ export default function PrestatairesPage() {
                     <div className="text-xs text-slate-600">
                       <span className="font-bold text-slate-900">Règle financière : </span>
                       {metierInfos.type === 'diplome'
-                        ? 'Vous débloquuez les contacts clients. Tarif : 300 FCFA (urgent) ou 1500 FCFA (grand chantier).'
+                        ? 'Vous débloquez les contacts clients. Tarif : 300 FCFA (urgent) ou 1500 FCFA (grand chantier).'
                         : "Votre inscription est gratuite. C'est le client qui paie 500 FCFA pour voir vos coordonnées."}
                     </div>
                   </div>
