@@ -1,62 +1,86 @@
-"use client";  // ← ajoute cette ligne tout en haut
-// ... reste du code identique
-import { useImpersonation, ROLES } from "../contexts/ImpersonationContext";
+'use client';
 
-const NAV = {
-  [ROLES.ADMIN]: [
-    { label: "Cockpit admin", path: "/admin" },
-    { label: "Utilisateurs", path: "/admin/users" },
-    { label: "Prestataires", path: "/admin/prestataires" },
-    { label: "Statistiques", path: "/admin/stats" },
-  ],
-  [ROLES.CLIENT]: [
-    { label: "Accueil", path: "/" },
-    { label: "Trouver un prestataire", path: "/prestataires" },
-    { label: "Mes demandes", path: "/demandes" },
-    { label: "Mon profil", path: "/profil" },
-  ],
-  [ROLES.PRESTATAIRE]: [
-    { label: "Tableau de bord", path: "/dashboard" },
-    { label: "Mes missions", path: "/missions" },
-    { label: "Mon profil pro", path: "/profil-pro" },
-    { label: "Avis reçus", path: "/avis" },
-  ],
-  [ROLES.VISITEUR]: [
-    { label: "Accueil", path: "/" },
-    { label: "Trouver un prestataire", path: "/prestataires" },
-    { label: "Devenir prestataire", path: "/devenir-prestataire" },
-  ],
-};
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useImpersonation } from '@/contexts/impersonation-context';
+import {
+  LayoutDashboard,
+  Briefcase,
+  Calendar,
+  MessageSquare,
+  CreditCard,
+  Star,
+  BarChart3,
+  Settings
+} from 'lucide-react';
 
-export function Sidebar({ currentPath = "/" }) {
-  const { activeUser } = useImpersonation();
-  const role = activeUser?.role ?? ROLES.VISITEUR;
-  const items = NAV[role] ?? NAV[ROLES.VISITEUR];
+const clientMenu = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/bookings', label: 'Réservations', icon: Calendar },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/payments', label: 'Paiements', icon: CreditCard },
+  { href: '/reviews', label: 'Avis', icon: Star },
+  { href: '/settings', label: 'Paramètres', icon: Settings },
+];
+
+const prestataireMenu = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/services', label: 'Mes services', icon: Briefcase },
+  { href: '/bookings', label: 'Réservations', icon: Calendar },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/payments', label: 'Paiements', icon: CreditCard },
+  { href: '/reviews', label: 'Avis', icon: Star },
+  { href: '/analytics', label: 'Analytiques', icon: BarChart3 },
+  { href: '/settings', label: 'Paramètres', icon: Settings },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const { impersonated } = useImpersonation();
+
+  const menuItems = impersonated?.role === 'client' ? clientMenu : prestataireMenu;
 
   return (
-    <aside style={{
-      width: 220, minHeight: "100vh", background: "#f8fafc",
-      borderRight: "1px solid #e2e8f0", padding: "24px 0",
-    }}>
-      <div style={{
-        padding: "0 16px 20px", fontSize: 11, fontWeight: 700,
-        color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em",
-      }}>
-        Navigation
+    <div className="w-64 h-screen bg-white border-r border-gray-100 p-6 flex flex-col justify-between">
+      <div>
+        <div className="mb-10 flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-black text-sm">
+            PC
+          </div>
+          <h2 className="text-xl font-bold text-blue-600">PrestaConnect</h2>
+        </div>
+
+        {impersonated && (
+          <div className="mb-6 px-3 py-2 bg-orange-50 border border-orange-200 rounded-xl text-xs text-orange-700 font-semibold">
+            👁 Vue : {impersonated.name}
+          </div>
+        )}
+
+        <nav className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
-      <nav>
-        {items.map(item => (
-          <a key={item.path} href={item.path} style={{
-            display: "block", padding: "9px 16px",
-            fontSize: 14, fontWeight: currentPath === item.path ? 600 : 400,
-            color: currentPath === item.path ? "#0f172a" : "#475569",
-            background: currentPath === item.path ? "#e2e8f0" : "none",
-            textDecoration: "none", borderRadius: "0 8px 8px 0", marginRight: 8,
-          }}>
-            {item.label}
-          </a>
-        ))}
-      </nav>
-    </aside>
+
+      <div className="text-[11px] text-gray-400 font-medium">
+        © 2026 PrestaConnect
+      </div>
+    </div>
   );
 }
