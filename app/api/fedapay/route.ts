@@ -51,13 +51,24 @@ export async function POST(req: Request) {
     })
 
     const fedapayData = await fedapayRes.json()
-    console.log('[fedapay] Full response:', JSON.stringify(fedapayData, null, 2))
 
     if (!fedapayRes.ok) throw new Error(fedapayData.message || 'Erreur FedaPay')
 
-    // 3. Extraire transaction (structure live peut différer du sandbox)
-    const tx = fedapayData.v1?.transaction ?? fedapayData.transaction ?? fedapayData
-    console.log('[fedapay] tx object:', JSON.stringify(tx))
+    // ✅ Structure live : clé "v1/transaction" avec slash
+    const tx = fedapayData['v1/transaction']
+    if (!tx) throw new Error('Structure FedaPay inattendue')
+
+    // 3. Générer le token de paiement
+    const tokenRes = await fetch(`https://api.fedapay.com/v1/transactions/${tx.id}/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.FEDAPAY_SECRET_KEY}`,
+      },
+    })
+
+    const tokenData = await tokenRes.json()
+    const token = tokenData.token
 
     // 4. Mettre à jour avec l'ID FedaPay
     await supabaseAdmin
@@ -67,12 +78,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       transaction_id: transaction.id,
-      fedapay_token: tx.token,
-      payment_url: `https://app.fedapay.com/checkout/${tx.token}`,
+      fedapay_token: token,
+      payment_url: `https://app.fedapay.com/checkout/${token}`,
     })
 
   } catch (error: any) {
-    console.log('[fedapay] Erreur finale:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
