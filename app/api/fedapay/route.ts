@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       transaction_id: transaction.id,
       fedapay_token: token,
-      payment_url: `https://app.fedapay.com/checkout/${token}`,
+      payment_url: `https://live.fedapay.com/checkout/${token}`,
     })
 
   } catch (error: any) {
