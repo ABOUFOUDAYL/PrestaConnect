@@ -49,8 +49,12 @@ export default function RegisterClientPage() {
       });
       if (signInError) throw signInError;
 
-      // 3. Redirection
+      // 3. Attendre que la session soit bien établie
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 4. Redirection
       router.push('/dashboard');
+
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
     } finally {
