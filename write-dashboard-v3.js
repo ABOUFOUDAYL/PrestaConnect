@@ -1,4 +1,6 @@
-"use client";
+const fs = require('fs');
+
+const code = `"use client";
 import { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { User, MapPin, Briefcase, Megaphone, CreditCard, ChevronRight, Star, MessageCircle } from 'lucide-react';
@@ -41,9 +43,9 @@ export default function DashboardPage() {
 
   function getWhatsAppLink(p) {
     const tel = p.telephone || p.phone || '';
-    let waNum = tel.replace(/[\s()\-]/g, '');
+    let waNum = tel.replace(/[\\s()\\-]/g, '');
     if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
-    waNum = waNum.replace(/^\+/, '');
+    waNum = waNum.replace(/^\\+/, '');
     return tel ? 'https://wa.me/' + waNum + '?text=Bonjour je viens de PrestaConnect' : '#';
   }
 
@@ -163,3 +165,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/(dashboard)/dashboard/page.tsx', code, 'utf8');
+console.log('done!');
