@@ -72,14 +72,18 @@ export default function ReviewsPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8">
+
       <div className="mb-8 pb-6 border-b border-gray-100">
         <h1 className="text-2xl font-bold text-gray-900">
-          {role === 'prestataire' ? 'Mes avis recu0301s' : 'Mes avis donnu00e9s'}
+          {role === 'prestataire' ? 'Mes avis reçus' : 'Mes avis donnés'}
         </h1>
         <p className="text-gray-500 mt-1 text-sm">
-          {role === 'prestataire' ? 'Les notes laisu00e9es par vos clients' : 'Les notes que vous avez laisu00e9es'}
+          {role === 'prestataire'
+            ? 'Les notes laissées par vos clients'
+            : 'Les notes que vous avez laissées'}
         </p>
       </div>
+
       {moyenneNote && (
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6 flex items-center gap-8">
           <div>
@@ -92,18 +96,25 @@ export default function ReviewsPage() {
           </div>
         </div>
       )}
+
       {loading ? (
-        <div className="py-20 text-center text-gray-400 animate-pulse text-sm">Chargement...</div>
+        <div className="py-20 text-center text-gray-400 animate-pulse text-sm">
+          Chargement...
+        </div>
       ) : avis.length > 0 ? (
         <div className="flex flex-col gap-3">
           {avis.map((a) => (
             <div key={a.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors">
               <div className="flex justify-between items-center mb-3">
                 {renderStars(a.note)}
-                <span className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('fr-FR')}</span>
+                <span className="text-xs text-gray-400">
+                  {new Date(a.created_at).toLocaleDateString('fr-FR')}
+                </span>
               </div>
               {a.annonces?.titre && (
-                <span className="inline-block text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full mb-3">{a.annonces.titre}</span>
+                <span className="inline-block text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full mb-3">
+                  {a.annonces.titre}
+                </span>
               )}
               <p className="text-gray-600 text-sm leading-relaxed">
                 {a.commentaire || <span className="text-gray-400 italic">Aucun commentaire.</span>}
@@ -117,6 +128,7 @@ export default function ReviewsPage() {
           <p className="text-gray-400 text-sm">Aucun avis pour le moment.</p>
         </div>
       )}
+
     </div>
   )
 }
