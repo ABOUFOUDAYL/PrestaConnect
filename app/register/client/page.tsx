@@ -1,12 +1,10 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowRight, UserCircle } from 'lucide-react';
 
 export default function RegisterClientPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -47,10 +45,8 @@ export default function RegisterClientPage() {
       });
       if (signInError) throw signInError;
 
-      await new Promise(resolve => setTimeout(resolve, 800));
-      router.refresh();
-      await new Promise(resolve => setTimeout(resolve, 200));
-      router.push('/dashboard');
+      // Redirection complète pour que les cookies soient bien lus par le middleware
+      window.location.href = '/dashboard';
 
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
