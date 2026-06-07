@@ -1,4 +1,4 @@
-// --- DASHBOARD CLIENT ---------------------------------------------------------
+ï»¿// --- DASHBOARD CLIENT ---------------------------------------------------------
 function DashboardClient({ profile }: { profile: any }) {
   const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires')
   const [prestataires, setPrestataires] = useState<any[]>([])
@@ -63,7 +63,7 @@ function DashboardClient({ profile }: { profile: any }) {
   const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter)
 
   const metierEmoji: Record<string, string> = {
-    'Electricien': '?', 'Plombier': '??', 'Maçon': '??', 'Peintre': '??',
+    'Electricien': '?', 'Plombier': '??', 'Maï¿½on': '??', 'Peintre': '??',
     'Menuisier': '??', 'Carreleur': '??', 'Soudeur': '??', 'Chauffeur': '??',
     'Jardinage': '??', 'Nettoyage': '??', 'tous': '??',
   }
@@ -295,3 +295,4 @@ function DashboardClient({ profile }: { profile: any }) {
     </div>
   )
 }
+
