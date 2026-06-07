@@ -11,13 +11,9 @@ export async function POST(req: Request) {
     const { montant, artisan_id, user_id } = await req.json()
 
     if (!montant || !artisan_id || !user_id) {
-      return NextResponse.json(
-        { error: 'Paramètres manquants' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
-    // 1. Créer la transaction en BDD
     const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
@@ -33,7 +29,6 @@ export async function POST(req: Request) {
 
     if (txError) throw txError
 
-    // 2. Créer la transaction FedaPay LIVE
     const fedapayRes = await fetch('https://api.fedapay.com/v1/transactions', {
       method: 'POST',
       headers: {
@@ -56,7 +51,6 @@ export async function POST(req: Request) {
     const tx = fedapayData['v1/transaction']
     if (!tx) throw new Error('Structure FedaPay inattendue')
 
-    // 3. Générer le token
     const tokenRes = await fetch(`https://api.fedapay.com/v1/transactions/${tx.id}/token`, {
       method: 'POST',
       headers: {
@@ -66,19 +60,11 @@ export async function POST(req: Request) {
     })
 
     const tokenData = await tokenRes.json()
-    console.log('[fedapay] tokenRes status:', tokenRes.status)
-    console.log('[fedapay] tokenData complet:', JSON.stringify(tokenData))
-
-    // Le token peut être à différents endroits selon FedaPay live
     const token = tokenData.token
-      ?? tokenData['v1/transaction']?.token
-      ?? tokenData.data?.token
+    const payment_url = tokenData.url  // ✅ URL directe fournie par FedaPay
 
-    console.log('[fedapay] token extrait:', token)
+    if (!token || !payment_url) throw new Error('Token ou URL FedaPay introuvable')
 
-    if (!token) throw new Error('Token FedaPay introuvable: ' + JSON.stringify(tokenData))
-
-    // 4. Mettre à jour avec l'ID FedaPay
     await supabaseAdmin
       .from('transactions')
       .update({ fedapay_id: String(tx.id) })
@@ -87,11 +73,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       transaction_id: transaction.id,
       fedapay_token: token,
-      payment_url: `https://live.fedapay.com/checkout/${token}`,
+      payment_url,
     })
 
   } catch (error: any) {
-    console.log('[fedapay] Erreur finale:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
