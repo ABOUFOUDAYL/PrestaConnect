@@ -1,4 +1,10 @@
-"use client";
+const fs = require("fs");
+const path = require("path");
+
+const dir = path.join(__dirname, "app", "dashboard", "paiements");
+const filePath = path.join(dir, "page.tsx");
+
+const content = `"use client";
 
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
@@ -97,19 +103,19 @@ export default function PaiementsPage() {
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Solde disponible</p>
           <p className="text-3xl font-bold text-blue-600 mt-1">
-            {loading ? "…" : `${solde.toLocaleString()} FCFA`}
+            {loading ? "…" : \`\${solde.toLocaleString()} FCFA\`}
           </p>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total reçu</p>
           <p className="text-3xl font-bold text-green-600 mt-1">
-            {loading ? "…" : `${(solde + retraits).toLocaleString()} FCFA`}
+            {loading ? "…" : \`\${(solde + retraits).toLocaleString()} FCFA\`}
           </p>
         </div>
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">Total retiré</p>
           <p className="text-3xl font-bold text-gray-700 mt-1">
-            {loading ? "…" : `${retraits.toLocaleString()} FCFA`}
+            {loading ? "…" : \`\${retraits.toLocaleString()} FCFA\`}
           </p>
         </div>
       </div>
@@ -117,7 +123,7 @@ export default function PaiementsPage() {
       <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
         <h2 className="text-lg font-semibold">Demander un retrait</h2>
         {message && (
-          <div className={`text-sm px-4 py-2 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+          <div className={\`text-sm px-4 py-2 rounded-lg \${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}\`}>
             {message.text}
           </div>
         )}
@@ -166,15 +172,15 @@ export default function PaiementsPage() {
                   </td>
                   <td className="px-5 py-3 text-gray-700">{t.description}</td>
                   <td className="px-5 py-3">
-                    <span className={`text-xs font-medium ${t.type === "credit" ? "text-green-600" : "text-red-500"}`}>
+                    <span className={\`text-xs font-medium \${t.type === "credit" ? "text-green-600" : "text-red-500"}\`}>
                       {t.type === "credit" ? "↑ Crédit" : "↓ Débit"}
                     </span>
                   </td>
-                  <td className={`px-5 py-3 text-right font-semibold ${t.type === "credit" ? "text-green-600" : "text-red-500"}`}>
+                  <td className={\`px-5 py-3 text-right font-semibold \${t.type === "credit" ? "text-green-600" : "text-red-500"}\`}>
                     {t.type === "credit" ? "+" : "-"}{t.amount.toLocaleString()} FCFA
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor[t.status]}`}>
+                    <span className={\`text-xs px-2 py-1 rounded-full font-medium \${statusColor[t.status]}\`}>
                       {statusLabel[t.status]}
                     </span>
                   </td>
@@ -187,3 +193,14 @@ export default function PaiementsPage() {
     </div>
   );
 }
+`;
+
+// Créer le dossier si inexistant
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
+  console.log("✅ Dossier créé :", dir);
+}
+
+// Écrire le fichier
+fs.writeFileSync(filePath, content, "utf8");
+console.log("✅ Fichier généré :", filePath);
