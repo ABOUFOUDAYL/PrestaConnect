@@ -3,60 +3,50 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { BENIN_CRAFTS } from '@/constants/jobs';
-import { User, LogOut, AlertCircle, Shield, FileText } from 'lucide-react';
+import { User, LogOut, AlertCircle, Shield, CheckCircle, Phone, MapPin, Briefcase, Mail } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [profile, setProfile] = useState<any>(null);
 
-  // Champs du profil prestataire
   const [nom, setNom] = useState('');
   const [prenom, setPrenom] = useState('');
   const [telephone, setTelephone] = useState('');
   const [metier, setMetier] = useState('');
   const [ville, setVille] = useState('');
+  const [email, setEmail] = useState('');
+  const [statut, setStatut] = useState('');
 
-  // États des documents de vérification (gérés côté administrateur/BDD)
-  const [hasCni, setHasCni] = useState(false);
-  const [hasDiplome, setHasDiplome] = useState(false);
-  const [hasCasier, setHasCasier] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
-
-  useEffect(() => {
-    fetchUserData();
-  }, []);
+  useEffect(() => { fetchUserData(); }, []);
 
   async function fetchUserData() {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      if (!user) { router.push('/login'); return; }
 
-      const { data, error } = await supabase
+      setEmail(user.email || '');
+
+      const { data } = await supabase
         .from('profiles')
-        .select('nom, prenom, telephone, metier, ville, has_cni, has_diplome, has_casier, is_verified')
-        .eq('id', user.id)
-        .single();
+        .select('*')
+        .or(`id.eq.${user.id},user_id.eq.${user.id}`)
+        .maybeSingle();
 
       if (data) {
-        setNom(data.nom || '');
-        setPrenom(data.prenom || '');
-        setTelephone(data.telephone || '');
+        setProfile(data);
+        setNom(data.nom || data.full_name?.split(' ')[0] || '');
+        setPrenom(data.prenom || data.full_name?.split(' ')[1] || '');
+        setTelephone(data.telephone || data.phone || '');
         setMetier(data.metier || '');
-        setVille(data.ville || '');
-        setHasCni(data.has_cni || false);
-        setHasDiplome(data.has_diplome || false);
-        setHasCasier(data.has_casier || false);
-        setIsVerified(data.is_verified || false);
+        setVille(data.ville || data.city || '');
+        setStatut(data.statut_verification || data.status || '');
       }
     } catch (err) {
-      console.error("Erreur de récupération des données profil:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -66,222 +56,149 @@ export default function SettingsPage() {
     e.preventDefault();
     setUpdating(true);
     setMessage({ type: '', text: '' });
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       const { error } = await supabase
         .from('profiles')
-        .update({ nom, prenom, telephone, metier, ville })
-        .eq('id', user.id);
-
+        .update({ nom, prenom, telephone, metier, ville, full_name: `${nom} ${prenom}` })
+        .or(`id.eq.${user.id},user_id.eq.${user.id}`);
       if (error) throw error;
-      setMessage({ 
-        type: 'success', 
-        text: 'Profil enregistré avec succès. Vos pièces seront étudiées par l\'administrateur.' 
-      });
+      setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
     } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: 'Une erreur est survenue lors de la mise à jour.' });
+      setMessage({ type: 'error', text: 'Erreur lors de la mise à jour.' });
     } finally {
       setUpdating(false);
     }
   }
 
   async function handleLogout() {
-    try {
-      await supabase.auth.signOut();
-      router.push('/login');
-    } catch (err) {
-      console.error("Erreur lors de la déconnexion :", err);
-    }
+    await supabase.auth.signOut();
+    router.push('/login');
   }
 
-  // Détermination de la catégorie de métier pour adapter les pièces requises
-  const selectedCraft = BENIN_CRAFTS.find(c => c.id === metier);
-  const besoinDiplome = selectedCraft?.type === 'diploma';
-  const besoinCasier = selectedCraft?.type === 'criminal_record';
+  const isValide = statut === 'valide';
 
-  if (loading) {
-    return (
-      <div className="py-20 text-center text-gray-400 animate-pulse font-medium">
-        Chargement de vos paramètres sécurisés...
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+    </div>
+  );
 
   return (
-    <div className="max-w-3xl mx-auto p-4 md:p-8">
-      
-      {/* En-tête : Statut de validation par l'administration */}
-      <div className={`mb-8 p-6 rounded-[2.5rem] border flex items-start gap-4 ${
-        isVerified ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
+    <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
+
+      {/* Bannière statut */}
+      <div className={`p-5 rounded-2xl border flex items-center gap-4 ${
+        isValide ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'
       }`}>
-        <div className={`p-3 rounded-2xl ${isVerified ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`}>
-          <Shield size={24} />
+        <div className={`p-3 rounded-xl ${isValide ? 'bg-emerald-600' : 'bg-amber-500'} text-white`}>
+          {isValide ? <CheckCircle size={22} /> : <Shield size={22} />}
         </div>
         <div>
-          <h3 className="font-black text-base">
-            {isVerified ? "Compte Prestataire Validé" : "Compte Bloqué - En attente de validation admin"}
+          <h3 className={`font-black text-sm ${isValide ? 'text-emerald-800' : 'text-amber-800'}`}>
+            {isValide ? '✅ Compte validé — Vous pouvez prendre des chantiers' : '⏳ En attente de validation par l\'administrateur'}
           </h3>
-          <p className="text-xs mt-1 leading-relaxed opacity-90">
-            {isVerified 
-              ? "Votre dossier complet a été approuvé. Vous êtes désormais visible par les clients de votre zone au Bénin." 
-              : "L'administration doit obligatoirement authentifier vos pièces justificatives avant de vous autoriser à prendre des chantiers."}
+          <p className={`text-xs mt-0.5 ${isValide ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {isValide
+              ? 'Votre dossier a été approuvé. Vous êtes visible par les clients.'
+              : 'Votre dossier est en cours d\'examen. Vous serez notifié dès validation.'}
           </p>
         </div>
       </div>
 
-      {/* Formulaire principal */}
-      <form onSubmit={handleUpdateProfile} className="bg-white border border-gray-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm space-y-6">
-        
-        <div className="flex items-center gap-4 pb-4 border-b border-gray-50">
-          <div className="p-3.5 bg-blue-50 text-blue-600 rounded-xl">
-            <User size={20} />
+      {/* Carte profil */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-xl">
+            {(nom || 'A')[0].toUpperCase()}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900">Formulaire d'Inscription Professionnelle</h3>
-            <p className="text-xs text-gray-400">Renseignez des informations authentiques pour l'étude de votre dossier.</p>
+            <h2 className="font-black text-gray-900 text-lg">{nom} {prenom}</h2>
+            <p className="text-xs text-gray-400 flex items-center gap-1"><Mail size={11} /> {email}</p>
+            {metier && <p className="text-xs text-blue-600 font-bold mt-0.5 flex items-center gap-1"><Briefcase size={11} /> {metier}</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Téléphone</p>
+            <p className="text-sm font-bold text-gray-700 flex items-center gap-1"><Phone size={13} /> {telephone || '—'}</p>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mb-1">Ville</p>
+            <p className="text-sm font-bold text-gray-700 flex items-center gap-1"><MapPin size={13} /> {ville || '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Formulaire modification */}
+      <form onSubmit={handleUpdateProfile} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
+          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl"><User size={18} /></div>
+          <div>
+            <h3 className="font-bold text-gray-900 text-sm">Modifier mon profil</h3>
+            <p className="text-xs text-gray-400">Vos informations professionnelles</p>
           </div>
         </div>
 
         {message.text && (
-          <div className={`p-4 rounded-xl text-sm font-semibold flex items-center gap-2 ${
+          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
             message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
           }`}>
-            <AlertCircle size={18} /> {message.text}
+            <AlertCircle size={15} /> {message.text}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Nom</label>
-            <input 
-              type="text" 
-              value={nom} 
-              onChange={(e) => setNom(e.target.value)} 
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500 transition-all" 
-              required 
-            />
+            <label className="block text-xs font-black text-gray-600 uppercase tracking-wide mb-1.5">Nom</label>
+            <input type="text" value={nom} onChange={e => setNom(e.target.value)}
+              className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all" />
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Prénom</label>
-            <input 
-              type="text" 
-              value={prenom} 
-              onChange={(e) => setPrenom(e.target.value)} 
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500 transition-all" 
-              required 
-            />
+            <label className="block text-xs font-black text-gray-600 uppercase tracking-wide mb-1.5">Prénom</label>
+            <input type="text" value={prenom} onChange={e => setPrenom(e.target.value)}
+              className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all" />
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Sélectionnez votre Métier</label>
-            <select 
-              value={metier} 
-              onChange={(e) => setMetier(e.target.value)} 
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500 transition-all" 
-              required
-            >
-              <option value="">-- Sélectionner un métier --</option>
-              {BENIN_CRAFTS.map(c => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-black text-gray-600 uppercase tracking-wide mb-1.5">Métier</label>
+            <input type="text" value={metier} onChange={e => setMetier(e.target.value)}
+              className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all"
+              placeholder="Ex: Électricien, Plombier..." />
           </div>
           <div>
-            <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Ville de résidence (Bénin)</label>
-            <input 
-              type="text" 
-              value={ville} 
-              onChange={(e) => setVille(e.target.value)} 
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500 transition-all" 
-              placeholder="Ex: Cotonou, Abomey-Calavi, Parakou..." 
-              required 
-            />
+            <label className="block text-xs font-black text-gray-600 uppercase tracking-wide mb-1.5">Ville</label>
+            <input type="text" value={ville} onChange={e => setVille(e.target.value)}
+              className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all"
+              placeholder="Ex: Cotonou, Parakou..." />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">Numéro WhatsApp (Format national avec +229)</label>
-            <input 
-              type="text" 
-              value={telephone} 
-              onChange={(e) => setTelephone(e.target.value)} 
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm focus:outline-none focus:border-blue-500 transition-all" 
-              placeholder="Ex: +229XXXXXXXX"
-              required 
-            />
+            <label className="block text-xs font-black text-gray-600 uppercase tracking-wide mb-1.5">Téléphone WhatsApp</label>
+            <input type="text" value={telephone} onChange={e => setTelephone(e.target.value)}
+              className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all"
+              placeholder="Ex: +229XXXXXXXX" />
           </div>
         </div>
 
-        {/* --- SECTION DES PIÈCES JOINTE OBLIGATOIRES STRICTES --- */}
-        <div className="pt-6 border-t border-gray-100 space-y-4">
-          <h4 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-            <FileText size={18} className="text-purple-600" /> 
-            Pièces requises pour validation manuelle
-          </h4>
-          
-          {/* Document 1 : CNI / Passeport / RAVIP */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border">
-            <div>
-              <p className="text-xs font-bold text-gray-900">Carte d'Identité Nationale / CIP / RAVIP</p>
-              <p className="text-[11px] text-rose-500 font-bold uppercase tracking-wide">Obligatoire pour tous les profils</p>
-            </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-              hasCni ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-            }`}>
-              {hasCni ? 'Transmis' : 'Manquant'}
-            </span>
-          </div>
-
-          {/* Document 2 : Diplôme (Métiers Techniques) */}
-          {besoinDiplome && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-l-4 border-l-purple-500">
-              <div>
-                <p className="text-xs font-bold text-gray-900">Diplôme ou Attestation Professionnelle (CQP, CQM...)</p>
-                <p className="text-[11px] text-rose-500 font-bold uppercase tracking-wide">Obligatoire pour votre métier technique</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                hasDiplome ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-              }`}>
-                {hasDiplome ? 'Transmis' : 'Manquant'}
-              </span>
-            </div>
-          )}
-
-          {/* Document 3 : Casier Judiciaire (Métiers de Services à domicile) */}
-          {besoinCasier && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-l-4 border-l-amber-500">
-              <div>
-                <p className="text-xs font-bold text-gray-900">Extrait de Casier Judiciaire (Moins de 3 mois)</p>
-                <p className="text-[11px] text-rose-500 font-bold uppercase tracking-wide">Obligatoire pour la sécurité à domicile (Nounou, Gardien...)</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                hasCasier ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-              }`}>
-                {hasCasier ? 'Transmis' : 'Manquant'}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={updating} 
-          className="w-full h-14 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-sm tracking-wide shadow-md transition-all disabled:opacity-50"
-        >
-          {updating ? 'Enregistrement en cours...' : 'Soumettre mon dossier à l\'administration'}
+        <button type="submit" disabled={updating}
+          className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm tracking-wide transition-all disabled:opacity-50">
+          {updating ? 'Enregistrement...' : 'Enregistrer les modifications'}
         </button>
       </form>
 
       {/* Déconnexion */}
-      <div className="text-center mt-8">
-        <button 
-          onClick={handleLogout} 
-          className="text-xs font-bold text-gray-400 hover:text-rose-600 inline-flex items-center gap-2 transition-colors"
-        >
-          <LogOut size={14} /> Se déconnecter de mon espace
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+        <div>
+          <p className="font-bold text-gray-900 text-sm">Se déconnecter</p>
+          <p className="text-xs text-gray-400">Fermer votre session PrestaConnect</p>
+        </div>
+        <button onClick={handleLogout}
+          className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl text-xs font-black transition-all">
+          <LogOut size={14} /> Déconnexion
         </button>
       </div>
+
     </div>
   );
 }
