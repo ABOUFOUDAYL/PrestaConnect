@@ -6,17 +6,17 @@ const features = [
   {
     icon: Zap,
     title: 'Connexion instantanée',
-    description: 'Dès qu\'un chantier est accepté, WhatsApp s\'ouvre automatiquement.',
+    description: "Dès qu'un chantier est accepté, WhatsApp s'ouvre automatiquement.",
   },
   {
     icon: Smartphone,
     title: 'Sur votre téléphone',
-    description: 'Discutez où que vous soyez, directement depuis votre messagerie.',
+    description: "Discutez où que vous soyez, directement depuis votre messagerie.",
   },
   {
     icon: Shield,
     title: 'Contacts centralisés',
-    description: 'Retrouvez tous vos clients dans Dashboard → Mes chantiers.',
+    description: "Retrouvez tous vos clients dans Dashboard → Mes chantiers.",
   },
 ]
 
@@ -27,17 +27,14 @@ export default function MessagesPage() {
 
         {/* Header card */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12 mb-6 text-center relative overflow-hidden">
-          {/* Background decoration */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 to-transparent rounded-full -translate-y-32 translate-x-32 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-indigo-50 to-transparent rounded-full translate-y-24 -translate-x-24 pointer-events-none" />
 
           <div className="relative">
-            {/* Icon */}
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl shadow-lg shadow-blue-200 mb-6">
               <MessageSquare size={36} className="text-white" />
             </div>
 
-            {/* WhatsApp badge */}
             <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 ml-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               Via WhatsApp
