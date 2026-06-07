@@ -1,4 +1,6 @@
-"use client";
+const fs = require('fs');
+
+const code = `"use client";
 import { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Plus, X, Clock, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
@@ -163,3 +165,7 @@ export default function AnnoncesPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/(dashboard)/dashboard/annonces/page.tsx', code, 'utf8');
+console.log('done!');
