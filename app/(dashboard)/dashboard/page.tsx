@@ -59,7 +59,6 @@ function DashboardClient({ profile }: { profile: any }) {
     fetchAnnonces()
   }
 
-  // Grouper prestataires par metier_type
   const metiers = ['tous', ...Array.from(new Set(prestataires.map(p => p.metier_type || p.metier || 'Autre').filter(Boolean)))]
   const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter)
 
@@ -104,7 +103,6 @@ function DashboardClient({ profile }: { profile: any }) {
         {/* ── PRESTATAIRES ── */}
         {activeTab === 'prestataires' && (
           <>
-            {/* Filtre par metier */}
             <div className="flex gap-2 flex-wrap mb-6">
               {metiers.map(m => (
                 <button
@@ -157,6 +155,7 @@ function DashboardClient({ profile }: { profile: any }) {
                         </p>
                       )}
 
+                      {/* ✅ CORRECTION ICI — <a ajouté */}
                       
                         href={waLink}
                         target="_blank"
@@ -234,7 +233,7 @@ function DashboardClient({ profile }: { profile: any }) {
                     disabled={submitting}
                     className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                   >
-                    {submitting ? 'Publication...' : 'Publier l annonce'}
+                    {submitting ? 'Publication...' : "Publier l'annonce"}
                   </button>
                 </div>
               </div>
