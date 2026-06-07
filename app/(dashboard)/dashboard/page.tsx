@@ -1,4 +1,4 @@
-﻿// ─── DASHBOARD CLIENT ─────────────────────────────────────────────────────────
+// --- DASHBOARD CLIENT ---------------------------------------------------------
 function DashboardClient({ profile }: { profile: any }) {
   const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires')
   const [prestataires, setPrestataires] = useState<any[]>([])
@@ -63,9 +63,9 @@ function DashboardClient({ profile }: { profile: any }) {
   const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter)
 
   const metierEmoji: Record<string, string> = {
-    'Electricien': '⚡', 'Plombier': '🔧', 'Maçon': '🧱', 'Peintre': '🎨',
-    'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
-    'Jardinage': '🌱', 'Nettoyage': '🧹', 'tous': '🔍',
+    'Electricien': '?', 'Plombier': '??', 'Ma�on': '??', 'Peintre': '??',
+    'Menuisier': '??', 'Carreleur': '??', 'Soudeur': '??', 'Chauffeur': '??',
+    'Jardinage': '??', 'Nettoyage': '??', 'tous': '??',
   }
 
   return (
@@ -75,7 +75,7 @@ function DashboardClient({ profile }: { profile: any }) {
         {/* Header */}
         <div className="mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Espace client</p>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} 👋</h1>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} ??</h1>
           <p className="text-gray-400 mt-1">
             {villeClient ? `Prestataires disponibles a ${villeClient}` : 'Trouvez le bon prestataire'}
           </p>
@@ -84,9 +84,9 @@ function DashboardClient({ profile }: { profile: any }) {
         {/* Tabs */}
         <div className="flex bg-white border border-gray-100 p-1.5 rounded-2xl w-fit mb-8 shadow-sm gap-1">
           {[
-            { key: 'prestataires', label: 'Prestataires', emoji: '👷' },
-            { key: 'annonces', label: 'Mes annonces', emoji: '📢' },
-            { key: 'paiement', label: 'Paiement', emoji: '💳' },
+            { key: 'prestataires', label: 'Prestataires', emoji: '??' },
+            { key: 'annonces', label: 'Mes annonces', emoji: '??' },
+            { key: 'paiement', label: 'Paiement', emoji: '??' },
           ].map(({ key, label, emoji }) => (
             <button
               key={key}
@@ -100,7 +100,7 @@ function DashboardClient({ profile }: { profile: any }) {
           ))}
         </div>
 
-        {/* ── PRESTATAIRES ── */}
+        {/* -- PRESTATAIRES -- */}
         {activeTab === 'prestataires' && (
           <>
             <div className="flex gap-2 flex-wrap mb-6">
@@ -114,7 +114,7 @@ function DashboardClient({ profile }: { profile: any }) {
                       : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
                   }`}
                 >
-                  {metierEmoji[m] || '🛠'} {m === 'tous' ? 'Tous les metiers' : m}
+                  {metierEmoji[m] || '??'} {m === 'tous' ? 'Tous les metiers' : m}
                 </button>
               ))}
             </div>
@@ -144,19 +144,18 @@ function DashboardClient({ profile }: { profile: any }) {
                         </div>
                         {p.note && (
                           <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-1 rounded-lg text-xs font-bold">
-                            ⭐ {Number(p.note).toFixed(1)}
+                            ? {Number(p.note).toFixed(1)}
                           </div>
                         )}
                       </div>
 
                       {p.ville && (
                         <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">
-                          📍 {p.ville}
+                          ?? {p.ville}
                         </p>
                       )}
 
-                      
-                        href={waLink}
+                      <a`n                        href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
@@ -173,7 +172,7 @@ function DashboardClient({ profile }: { profile: any }) {
               </div>
             ) : (
               <div className="py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
-                <p className="text-4xl mb-3">🔍</p>
+                <p className="text-4xl mb-3">??</p>
                 <p className="text-gray-400 font-bold">Aucun prestataire disponible dans votre zone.</p>
                 <p className="text-gray-300 text-sm mt-1">Publiez une annonce pour etre contacte.</p>
               </div>
@@ -181,7 +180,7 @@ function DashboardClient({ profile }: { profile: any }) {
           </>
         )}
 
-        {/* ── ANNONCES ── */}
+        {/* -- ANNONCES -- */}
         {activeTab === 'annonces' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -259,7 +258,7 @@ function DashboardClient({ profile }: { profile: any }) {
               </div>
             ) : (
               <div className="py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
-                <p className="text-4xl mb-3">📢</p>
+                <p className="text-4xl mb-3">??</p>
                 <p className="text-gray-400 font-bold">Aucune annonce publiee.</p>
                 <p className="text-gray-300 text-sm mt-1">Publiez votre besoin pour etre contacte par des artisans.</p>
               </div>
@@ -267,12 +266,12 @@ function DashboardClient({ profile }: { profile: any }) {
           </div>
         )}
 
-        {/* ── PAIEMENT ── */}
+        {/* -- PAIEMENT -- */}
         {activeTab === 'paiement' && (
           <div className="max-w-lg">
             <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm text-center">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl">
-                💳
+                ??
               </div>
               <h2 className="text-xl font-black text-gray-900 mb-2">Paiement de service</h2>
               <p className="text-gray-400 text-sm mb-6">
