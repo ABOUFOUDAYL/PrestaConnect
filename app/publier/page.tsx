@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,10 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowRight, FileText } from 'lucide-react';
 
 const METIERS = [
-  'Maçon', 'Électricien', 'Plombier', 'Peintre', 'Menuisier',
-  'Carreleur', 'Couvreur', 'Soudeur', 'Mécanicien', 'Coiffeur',
+  'MaÃ§on', 'Ã‰lectricien', 'Plombier', 'Peintre', 'Menuisier',
+  'Carreleur', 'Couvreur', 'Soudeur', 'MÃ©canicien', 'Coiffeur',
   'Couturier', 'Cuisinier', 'Jardinier', 'Climaticien', 'Informaticien',
-  'Photographe', 'Chauffeur', 'Agent de sécurité', 'Autre'
+  'Photographe', 'Chauffeur', 'Agent de sÃ©curitÃ©', 'Autre'
 ];
 
 const VILLES = [
@@ -57,7 +57,7 @@ export default function PublierAnnoncePage() {
     setError('');
 
     try {
-      // Récupérer le vrai id du client depuis la table clients
+      // RÃ©cupÃ©rer le vrai id du client depuis la table clients
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('id')
@@ -98,7 +98,7 @@ export default function PublierAnnoncePage() {
               <FileText className="w-8 h-8 text-slate-500" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Poster une annonce</h1>
-            <p className="text-slate-500 text-sm mt-1">Décrivez votre besoin, les artisans vous contactent</p>
+            <p className="text-slate-500 text-sm mt-1">DÃ©crivez votre besoin, les artisans vous contactent</p>
           </div>
 
           {error && (
@@ -117,7 +117,7 @@ export default function PublierAnnoncePage() {
                 required
                 value={form.titre}
                 onChange={handleChange}
-                placeholder="Ex : Besoin d'un électricien pour installation"
+                placeholder="Ex : Besoin d'un Ã©lectricien pour installation"
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
               />
             </div>
@@ -130,14 +130,14 @@ export default function PublierAnnoncePage() {
                 value={form.description}
                 onChange={handleChange}
                 rows={4}
-                placeholder="Décrivez votre besoin en détail..."
+                placeholder="DÃ©crivez votre besoin en dÃ©tail..."
                 className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition resize-none"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Métier requis</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">MÃ©tier requis</label>
                 <select
                   name="metier_requis"
                   required
@@ -145,7 +145,7 @@ export default function PublierAnnoncePage() {
                   onChange={handleChange}
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition bg-white"
                 >
-                  <option value="">Choisir un métier</option>
+                  <option value="">Choisir un mÃ©tier</option>
                   {METIERS.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
@@ -162,7 +162,7 @@ export default function PublierAnnoncePage() {
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition bg-white"
                 >
                   <option value="ponctuel">Ponctuel</option>
-                  <option value="recurrent">Récurrent</option>
+                  <option value="recurrent">RÃ©current</option>
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
@@ -199,7 +199,7 @@ export default function PublierAnnoncePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Budget estimé en FCFA <span className="text-slate-400">(optionnel)</span></label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Budget estimÃ© en FCFA <span className="text-slate-400">(optionnel)</span></label>
               <input
                 name="budget_estime"
                 type="number"
