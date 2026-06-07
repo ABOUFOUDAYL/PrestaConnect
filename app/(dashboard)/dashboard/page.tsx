@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Phone, Briefcase, Clock, Check, User, MapPin, Star, CreditCard, ShieldCheck, Users, Layers, BarChart3 } from 'lucide-react'
+import { Phone, Briefcase, Clock, Check, User, MapPin, Star, CreditCard, ShieldCheck, Users, Layers, BarChart3, Zap, TrendingUp, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -16,25 +16,23 @@ export default function DashboardPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-
       const { data: prof } = await supabase
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
         .single()
-
-      if (prof) {
-        setProfile(prof)
-        setRole(prof.role)
-      }
+      if (prof) { setProfile(prof); setRole(prof.role) }
       setLoading(false)
     }
     init()
   }, [])
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent" />
+        <p className="text-sm text-gray-400 font-medium">Chargement...</p>
+      </div>
     </div>
   )
 
@@ -44,7 +42,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-gray-500">Rôle non défini. Contactez le support.</p>
+      <p className="text-gray-500">Role non defini. Contactez le support.</p>
     </div>
   )
 }
@@ -52,75 +50,91 @@ export default function DashboardPage() {
 // ─── DASHBOARD ADMIN ──────────────────────────────────────────────────────────
 function DashboardAdmin({ profile }: { profile: any }) {
   const [metrics, setMetrics] = useState({ total: 0, pending: 0, artisans: 0, ambassadors: 0 })
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchMetrics = async () => {
       const { data } = await supabase.from('profiles').select('*')
-      const profilesList = data || []
+      const p = data || []
       setMetrics({
-        total: profilesList.length,
-        pending: profilesList.filter(p => p.status === 'en_attente_validation').length,
-        artisans: profilesList.filter(p => p.status === 'valide' && p.role === 'artisan').length,
-        ambassadors: profilesList.filter(p => p.role === 'ambassadeur').length,
+        total: p.length,
+        pending: p.filter(x => x.status === 'en_attente_validation').length,
+        artisans: p.filter(x => x.status === 'valide' && x.role === 'artisan').length,
+        ambassadors: p.filter(x => x.role === 'ambassadeur').length,
       })
-      setLoading(false)
     }
     fetchMetrics()
   }, [])
 
+  const cards = [
+    { icon: Users, label: 'Total inscrits', value: metrics.total, color: 'blue' },
+    { icon: Layers, label: 'En attente', value: metrics.pending, color: 'amber' },
+    { icon: Briefcase, label: 'Artisans valides', value: metrics.artisans, color: 'emerald' },
+    { icon: Star, label: 'Ambassadeurs', value: metrics.ambassadors, color: 'purple' },
+  ]
+
+  const colorMap: Record<string, string> = {
+    blue: 'bg-blue-50 text-blue-600',
+    amber: 'bg-amber-50 text-amber-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    purple: 'bg-purple-50 text-purple-600',
+  }
+
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Tableau de bord Admin</h1>
-        <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name} 👋 — Contrôle total de la plateforme</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 md:p-10">
+        {/* Header */}
+        <div className="mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Administration</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Vue d'ensemble</h1>
+          <p className="text-gray-400 mt-1">Bonjour, {profile?.full_name} — Controle total de la plateforme</p>
+        </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit mb-3"><Users size={20} /></div>
-          <p className="text-2xl font-black text-gray-900">{metrics.total}</p>
-          <p className="text-xs text-gray-500 font-medium mt-1">Total inscrits</p>
+        {/* Metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {cards.map(({ icon: Icon, label, value, color }) => (
+            <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${colorMap[color]}`}>
+                <Icon size={18} />
+              </div>
+              <p className="text-3xl font-black text-gray-900">{value}</p>
+              <p className="text-xs text-gray-400 font-medium mt-1">{label}</p>
+            </div>
+          ))}
         </div>
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl w-fit mb-3"><Layers size={20} /></div>
-          <p className="text-2xl font-black text-gray-900">{metrics.pending}</p>
-          <p className="text-xs text-gray-500 font-medium mt-1">En attente</p>
-        </div>
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl w-fit mb-3"><Briefcase size={20} /></div>
-          <p className="text-2xl font-black text-gray-900">{metrics.artisans}</p>
-          <p className="text-xs text-gray-500 font-medium mt-1">Artisans validés</p>
-        </div>
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl w-fit mb-3"><Star size={20} /></div>
-          <p className="text-2xl font-black text-gray-900">{metrics.ambassadors}</p>
-          <p className="text-xs text-gray-500 font-medium mt-1">Ambassadeurs</p>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/admin-ambassadeur" className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-6 flex items-center gap-4 transition-all">
-          <ShieldCheck size={28} />
-          <div>
-            <p className="font-bold text-lg">Cockpit Admin</p>
-            <p className="text-xs opacity-80">Gérer les dossiers</p>
-          </div>
-        </Link>
-        <Link href="/explore" className="bg-white border border-gray-100 hover:border-blue-300 rounded-2xl p-6 flex items-center gap-4 transition-all shadow-sm">
-          <Users size={28} className="text-blue-600" />
-          <div>
-            <p className="font-bold text-lg text-gray-900">Explorer</p>
-            <p className="text-xs text-gray-500">Voir les prestataires</p>
-          </div>
-        </Link>
-        <Link href="/analytics" className="bg-white border border-gray-100 hover:border-blue-300 rounded-2xl p-6 flex items-center gap-4 transition-all shadow-sm">
-          <BarChart3 size={28} className="text-blue-600" />
-          <div>
-            <p className="font-bold text-lg text-gray-900">Analytiques</p>
-            <p className="text-xs text-gray-500">Statistiques plateforme</p>
-          </div>
-        </Link>
+        {/* Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link href="/admin-ambassadeur" className="group bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-6 flex items-center justify-between transition-all">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 p-3 rounded-xl"><ShieldCheck size={22} /></div>
+              <div>
+                <p className="font-bold">Cockpit Admin</p>
+                <p className="text-xs opacity-70">Gerer les dossiers</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="opacity-60 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          <Link href="/explore" className="group bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-6 flex items-center justify-between transition-all shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-50 text-blue-600 p-3 rounded-xl"><Users size={22} /></div>
+              <div>
+                <p className="font-bold text-gray-900">Explorer</p>
+                <p className="text-xs text-gray-400">Voir les prestataires</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          <Link href="/analytics" className="group bg-white border border-gray-100 hover:border-blue-200 rounded-2xl p-6 flex items-center justify-between transition-all shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-50 text-blue-600 p-3 rounded-xl"><BarChart3 size={22} /></div>
+              <div>
+                <p className="font-bold text-gray-900">Analytiques</p>
+                <p className="text-xs text-gray-400">Statistiques plateforme</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
     </div>
   )
@@ -131,7 +145,8 @@ function DashboardPrestataire({ profile }: { profile: any }) {
   const [activeTab, setActiveTab] = useState<'disponibles' | 'en_cours'>('disponibles')
   const [demandes, setDemandes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [solde, setSolde] = useState(profile?.solde || 0)
+  const solde = profile?.solde || 0
+  const firstName = profile?.full_name?.split(' ')[0] || profile?.prenom || 'vous'
 
   useEffect(() => { fetchDemandes() }, [activeTab])
 
@@ -148,92 +163,119 @@ function DashboardPrestataire({ profile }: { profile: any }) {
       }
       const { data } = await query.order('created_at', { ascending: false })
       setDemandes(data || [])
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  const handleAccepterChantier = async (demandeId: string, telephoneClient: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      await supabase.from('demandes').update({ status: 'En cours', artisan_id: user.id }).eq('id', demandeId)
-      fetchDemandes()
-      const msg = encodeURIComponent("Bonjour, je suis l'artisan PrestaConnect.")
-      window.open(`https://wa.me/${telephoneClient.replace(/\+/g, '')}?text=${msg}`, '_blank')
-    } catch { alert("Erreur lors de l'acceptation") }
+  async function handleAccepter(demandeId: string, tel: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('demandes').update({ status: 'En cours', artisan_id: user.id }).eq('id', demandeId)
+    fetchDemandes()
+    const msg = encodeURIComponent("Bonjour, je suis l'artisan PrestaConnect.")
+    window.open(`https://wa.me/${tel.replace(/\+/g, '')}?text=${msg}`, '_blank')
   }
 
-  const handleTerminerChantier = async (demandeId: string) => {
-    try {
-      await supabase.from('demandes').update({ status: 'Terminé' }).eq('id', demandeId)
-      fetchDemandes()
-      alert('Chantier terminé !')
-    } catch { alert('Erreur lors de la mise à jour') }
+  async function handleTerminer(demandeId: string) {
+    await supabase.from('demandes').update({ status: 'Termine' }).eq('id', demandeId)
+    fetchDemandes()
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name || profile?.prenom || profile?.nom} 👋</p>
-        </div>
-        <Link href="/recharge" className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl transition-all">
-          <CreditCard size={20} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 md:p-10">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between mb-10 gap-6">
           <div>
-            <p className="text-xs opacity-80">Solde wallet</p>
-            <p className="font-bold">{solde.toLocaleString()} FCFA</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Espace artisan</p>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} 👋</h1>
+            <p className="text-gray-400 mt-1">Voici vos opportunites du jour</p>
           </div>
-        </Link>
-      </div>
-
-      <div className="flex bg-gray-100 p-1.5 rounded-2xl w-fit mb-6">
-        <button onClick={() => setActiveTab('disponibles')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'disponibles' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-          Disponibles
-        </button>
-        <button onClick={() => setActiveTab('en_cours')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'en_cours' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-          Mes chantiers
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {loading ? (
-          <div className="col-span-full py-20 text-center text-gray-400 animate-pulse">Chargement...</div>
-        ) : demandes.length > 0 ? demandes.map((demande) => (
-          <div key={demande.id} className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="flex justify-between items-start mb-5">
-              <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl"><Briefcase size={22} /></div>
-              <span className={`text-[11px] uppercase tracking-widest font-black px-4 py-1.5 rounded-full ${activeTab === 'disponibles' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-                {activeTab === 'disponibles' ? 'Nouveau' : 'En cours'}
-              </span>
+          <Link href="/recharge" className="group flex items-center gap-4 bg-white border border-gray-100 hover:border-blue-200 rounded-2xl px-5 py-4 shadow-sm transition-all w-fit">
+            <div className="bg-blue-50 text-blue-600 p-3 rounded-xl">
+              <CreditCard size={20} />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">{demande.service_nom}</h3>
-            <div className="flex items-center text-gray-500 text-sm gap-1.5 mb-5">
-              <Clock size={15} /><span>{demande.ville}, {demande.quartier}</span>
+            <div>
+              <p className="text-xs text-gray-400 font-medium">Solde wallet</p>
+              <p className="text-xl font-black text-gray-900">{solde.toLocaleString()} FCFA</p>
             </div>
-            <p className="text-gray-600 text-[15px] leading-relaxed mb-8 line-clamp-3 bg-gray-50 p-4 rounded-2xl">
-              {demande.description || 'Aucune description.'}
-            </p>
-            {activeTab === 'disponibles' ? (
-              <button onClick={() => handleAccepterChantier(demande.id, demande.telephone)}
-                className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-3 shadow-lg shadow-emerald-100 transition-all active:scale-95">
-                <Phone size={20} /> Prendre le chantier
-              </button>
-            ) : (
-              <button onClick={() => handleTerminerChantier(demande.id)}
-                className="w-full h-14 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all active:scale-95">
-                <Check size={20} /> Marquer comme terminé
-              </button>
-            )}
-          </div>
-        )) : (
-          <div className="col-span-full py-24 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
-            <p className="text-gray-400 font-bold text-lg">Aucun chantier pour le moment.</p>
-          </div>
-        )}
+            <ChevronRight size={16} className="text-gray-300 group-hover:translate-x-1 transition-transform ml-2" />
+          </Link>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex bg-white border border-gray-100 p-1.5 rounded-2xl w-fit mb-8 shadow-sm">
+          {[
+            { key: 'disponibles', label: 'Disponibles', icon: Zap },
+            { key: 'en_cours', label: 'Mes chantiers', icon: TrendingUp },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key as any)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                activeTab === key
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <Icon size={15} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {loading ? (
+            <div className="col-span-full py-20 text-center text-gray-300 font-medium animate-pulse">Chargement...</div>
+          ) : demandes.length > 0 ? demandes.map((d) => (
+            <div key={d.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="flex justify-between items-start mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <Briefcase size={18} />
+                  </div>
+                  <span className={`text-xs uppercase tracking-wider font-black px-3 py-1 rounded-full ${
+                    activeTab === 'disponibles' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {activeTab === 'disponibles' ? 'Nouveau' : 'En cours'}
+                  </span>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-black text-gray-900 mb-2">{d.service_nom}</h3>
+              <div className="flex items-center text-gray-400 text-sm gap-1.5 mb-4">
+                <MapPin size={13} /><span>{d.ville}{d.quartier ? `, ${d.quartier}` : ''}</span>
+              </div>
+              <p className="text-gray-500 text-sm leading-relaxed mb-6 bg-gray-50 rounded-xl p-3 line-clamp-3">
+                {d.description || 'Aucune description.'}
+              </p>
+
+              {activeTab === 'disponibles' ? (
+                <button
+                  onClick={() => handleAccepter(d.id, d.telephone)}
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <Phone size={17} /> Prendre le chantier
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleTerminer(d.id)}
+                  className="w-full py-3 bg-gray-900 hover:bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <Check size={17} /> Marquer comme termine
+                </button>
+              )}
+            </div>
+          )) : (
+            <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
+              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Briefcase size={24} className="text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-bold">Aucun chantier pour le moment.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -243,62 +285,72 @@ function DashboardPrestataire({ profile }: { profile: any }) {
 function DashboardClient({ profile }: { profile: any }) {
   const [demandes, setDemandes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const firstName = profile?.full_name?.split(' ')[0] || profile?.prenom || 'vous'
 
   useEffect(() => {
-    const fetchMesDemandes = async () => {
+    const fetch = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase
-        .from('demandes')
-        .select('*')
+        .from('demandes').select('*')
         .eq('client_id', user.id)
         .order('created_at', { ascending: false })
       setDemandes(data || [])
       setLoading(false)
     }
-    fetchMesDemandes()
+    fetch()
   }, [])
 
-  const statusColor: Record<string, string> = {
-    'En attente': 'bg-yellow-100 text-yellow-700',
+  const statusStyle: Record<string, string> = {
+    'En attente': 'bg-amber-100 text-amber-700',
     'En cours': 'bg-blue-100 text-blue-700',
-    'Terminé': 'bg-green-100 text-green-700',
+    'Termine': 'bg-emerald-100 text-emerald-700',
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Mes demandes</h1>
-        <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name || profile?.prenom || profile?.nom} 👋</p>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-6 md:p-10">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {loading ? (
-          <div className="col-span-full py-20 text-center text-gray-400 animate-pulse">Chargement...</div>
-        ) : demandes.length > 0 ? demandes.map((demande) => (
-          <div key={demande.id} className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm hover:shadow-md transition-all">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3.5 bg-purple-50 text-purple-600 rounded-2xl"><User size={22} /></div>
-              <span className={`text-[11px] uppercase tracking-widest font-black px-4 py-1.5 rounded-full ${statusColor[demande.status] || 'bg-gray-100 text-gray-600'}`}>
-                {demande.status}
-              </span>
+        {/* Header */}
+        <div className="mb-10">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Espace client</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} 👋</h1>
+          <p className="text-gray-400 mt-1">Suivez vos demandes en temps reel</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {loading ? (
+            <div className="col-span-full py-20 text-center text-gray-300 animate-pulse font-medium">Chargement...</div>
+          ) : demandes.length > 0 ? demandes.map((d) => (
+            <div key={d.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="flex justify-between items-start mb-5">
+                <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                  <User size={18} />
+                </div>
+                <span className={`text-xs uppercase tracking-wider font-black px-3 py-1 rounded-full ${statusStyle[d.status] || 'bg-gray-100 text-gray-500'}`}>
+                  {d.status}
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-gray-900 mb-2">{d.service_nom}</h3>
+              <div className="flex items-center text-gray-400 text-sm gap-1.5 mb-4">
+                <MapPin size={13} /><span>{d.ville}{d.quartier ? `, ${d.quartier}` : ''}</span>
+              </div>
+              <p className="text-gray-500 text-sm leading-relaxed bg-gray-50 rounded-xl p-3 line-clamp-3">
+                {d.description || 'Aucune description.'}
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">{demande.service_nom}</h3>
-            <div className="flex items-center text-gray-500 text-sm gap-1.5 mb-4">
-              <MapPin size={15} /><span>{demande.ville}, {demande.quartier}</span>
+          )) : (
+            <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
+              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <User size={24} className="text-gray-300" />
+              </div>
+              <p className="text-gray-400 font-bold mb-4">Aucune demande pour le moment.</p>
+              <Link href="/demande" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all">
+                Faire une demande <ChevronRight size={16} />
+              </Link>
             </div>
-            <p className="text-gray-600 text-[15px] leading-relaxed bg-gray-50 p-4 rounded-2xl line-clamp-3">
-              {demande.description || 'Aucune description.'}
-            </p>
-          </div>
-        )) : (
-          <div className="col-span-full py-24 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
-            <p className="text-gray-400 font-bold text-lg">Aucune demande pour le moment.</p>
-            <Link href="/demande" className="inline-block mt-4 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
-              Faire une demande
-            </Link>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
