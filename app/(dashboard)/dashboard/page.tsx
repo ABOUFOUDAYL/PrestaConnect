@@ -147,6 +147,7 @@ function DashboardClient({ profile }: { profile: any }) {
                         <p className="text-xs text-gray-400 mb-4">📍 {p.ville}</p>
                       )}
                       
+                      <a
                         href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
