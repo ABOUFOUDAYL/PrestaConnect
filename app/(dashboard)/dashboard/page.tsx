@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [role, setRole] = useState<'client' | 'prestataire' | 'admin' | null>(null)
+  const [role, setRole] = useState<'client' | 'prestataire' | 'artisan' | 'admin' | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -17,7 +17,7 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: prof, error } = await supabase
+      const { data: prof } = await supabase
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
@@ -39,7 +39,7 @@ export default function DashboardPage() {
   )
 
   if (role === 'admin') return <DashboardAdmin profile={profile} />
-  if (role === 'prestataire') return <DashboardPrestataire profile={profile} />
+  if (role === 'prestataire' || role === 'artisan') return <DashboardPrestataire profile={profile} />
   if (role === 'client') return <DashboardClient profile={profile} />
 
   return (
@@ -76,7 +76,6 @@ function DashboardAdmin({ profile }: { profile: any }) {
         <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name} 👋 — Contrôle total de la plateforme</p>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl w-fit mb-3"><Users size={20} /></div>
@@ -100,7 +99,6 @@ function DashboardAdmin({ profile }: { profile: any }) {
         </div>
       </div>
 
-      {/* Raccourcis */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/admin-ambassadeur" className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-6 flex items-center gap-4 transition-all">
           <ShieldCheck size={28} />
@@ -179,7 +177,7 @@ function DashboardPrestataire({ profile }: { profile: any }) {
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-500 mt-1">Bonjour, {profile?.prenom || profile?.nom} 👋</p>
+          <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name || profile?.prenom || profile?.nom} 👋</p>
         </div>
         <Link href="/recharge" className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl transition-all">
           <CreditCard size={20} />
@@ -271,7 +269,7 @@ function DashboardClient({ profile }: { profile: any }) {
     <div className="max-w-5xl mx-auto p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Mes demandes</h1>
-        <p className="text-gray-500 mt-1">Bonjour, {profile?.prenom || profile?.nom} 👋</p>
+        <p className="text-gray-500 mt-1">Bonjour, {profile?.full_name || profile?.prenom || profile?.nom} 👋</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
