@@ -21,7 +21,8 @@ export default function PaiementsPage() {
   const [loading, setLoading] = useState(true);
   const [solde, setSolde] = useState(0);
   const [montantCustom, setMontantCustom] = useState("");
-  const [rechargeLoading, setRechargeLoading] = useState(false);
+  const [rechargeLoading, setRechargeLoading] = useState<number | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -30,7 +31,7 @@ export default function PaiementsPage() {
   async function fetchData() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
     const { data, error } = await supabase
       .from("transactions")
@@ -54,11 +55,13 @@ export default function PaiementsPage() {
 
   async function lancerRecharge(montant: number) {
     if (montant < 500) return;
-    setRechargeLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    setErreur(null);
+    setRechargeLoading(montant);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setErreur("Vous devez être connecté."); setRechargeLoading(null); return; }
+
       const res = await fetch("/api/fedapay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,16 +71,19 @@ export default function PaiementsPage() {
           user_id: user.id,
         }),
       });
+
       const json = await res.json();
+
       if (json.payment_url) {
         window.location.href = json.payment_url;
       } else {
-        alert("Erreur : " + (json.error || "Impossible d'initier le paiement"));
+        setErreur(json.error || "Impossible d'initier le paiement.");
+        setRechargeLoading(null);
       }
-    } catch (e) {
-      alert("Erreur lors de l'initialisation du paiement.");
+    } catch (e: any) {
+      setErreur("Erreur réseau. Veuillez réessayer.");
+      setRechargeLoading(null);
     }
-    setRechargeLoading(false);
   }
 
   const montantCustomNum = parseInt(montantCustom);
@@ -110,6 +116,13 @@ export default function PaiementsPage() {
         <div className="text-5xl opacity-20">💳</div>
       </div>
 
+      {/* Erreur globale */}
+      {erreur && (
+        <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-xl border border-red-200">
+          ⚠️ {erreur}
+        </div>
+      )}
+
       {/* Recharge rapide */}
       <div>
         <h2 className="text-lg font-semibold mb-3">Recharge rapide</h2>
@@ -118,12 +131,18 @@ export default function PaiementsPage() {
             <button
               key={montant}
               onClick={() => lancerRecharge(montant)}
-              disabled={rechargeLoading}
+              disabled={rechargeLoading !== null}
               className="rounded-xl border-2 border-blue-100 hover:border-blue-500 bg-white p-4 text-center transition disabled:opacity-50"
             >
-              <p className="text-lg font-bold text-blue-600">{montant.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">FCFA</p>
-              <p className="text-xs text-gray-400 mt-1">{montant / 500} déblocage{montant / 500 > 1 ? "s" : ""}</p>
+              {rechargeLoading === montant ? (
+                <p className="text-sm text-blue-600 font-medium">Redirection…</p>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-blue-600">{montant.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">FCFA</p>
+                  <p className="text-xs text-gray-400 mt-1">{montant / 500} déblocage{montant / 500 > 1 ? "s" : ""}</p>
+                </>
+              )}
             </button>
           ))}
         </div>
@@ -143,10 +162,10 @@ export default function PaiementsPage() {
           />
           <button
             onClick={() => lancerRecharge(montantCustomNum)}
-            disabled={!montantCustomNum || montantCustomNum < 500 || rechargeLoading}
+            disabled={!montantCustomNum || montantCustomNum < 500 || rechargeLoading !== null}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-xl transition disabled:opacity-50"
           >
-            {rechargeLoading ? "Redirection…" : "Recharger"}
+            {rechargeLoading === montantCustomNum ? "Redirection…" : "Recharger"}
           </button>
         </div>
       </div>
