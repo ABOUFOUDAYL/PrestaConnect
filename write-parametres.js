@@ -1,4 +1,6 @@
-"use client";
+const fs = require('fs');
+
+const code = `"use client";
 import { useState, useEffect, useMemo } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { User, Mail, Phone, MapPin, Save, Camera } from 'lucide-react';
@@ -146,3 +148,7 @@ export default function ParametresPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/(dashboard)/dashboard/parametres/page.tsx', code, 'utf8');
+console.log('done!');
