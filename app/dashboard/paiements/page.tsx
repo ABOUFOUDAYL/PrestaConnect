@@ -1,188 +1,124 @@
-"use client";
+﻿'use client';
 
-import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
-interface Transaction {
-  id: string;
-  created_at: string;
-  amount: number;
-  status: "completed" | "pending" | "failed";
-  description: string;
-  type: "credit" | "debit";
-}
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { BENIN_CRAFTS } from '@/constants/jobs';
+import { Smartphone, CheckCircle2, RefreshCw, Star, Zap, Building2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PaiementsPage() {
-  const supabase = createClientComponentClient();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [solde, setSolde] = useState<number>(0);
+  const [metier, setMetier] = useState('');
   const [loading, setLoading] = useState(true);
-  const [solde, setSolde] = useState(0);
-  const [retraits, setRetraits] = useState(0);
-  const [montantRetrait, setMontantRetrait] = useState("");
-  const [retraitLoading, setRetraitLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchUserData(); }, []);
 
-  async function fetchData() {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setTransactions(data);
-      const total = data
-        .filter((t) => t.type === "credit" && t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
-      const totalRetraits = data
-        .filter((t) => t.type === "debit" && t.status === "completed")
-        .reduce((sum, t) => sum + t.amount, 0);
-      setSolde(total - totalRetraits);
-      setRetraits(totalRetraits);
+  async function fetchUserData() {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('solde_credits, metier')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setSolde(data.solde_credits || 0);
+        setMetier(data.metier || '');
+      }
+    } catch (err) {
+      console.error('Erreur:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  async function demanderRetrait() {
-    const montant = parseFloat(montantRetrait);
-    if (!montant || montant <= 0 || montant > solde) {
-      setMessage({ type: "error", text: "Montant invalide ou insuffisant." });
-      return;
-    }
-    setRetraitLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user?.id,
-      amount: montant,
-      type: "debit",
-      status: "pending",
-      description: "Demande de retrait",
-    });
-    if (error) {
-      setMessage({ type: "error", text: "Erreur lors de la demande." });
-    } else {
-      setMessage({ type: "success", text: "Demande envoyée avec succès !" });
-      setMontantRetrait("");
-      fetchData();
-    }
-    setRetraitLoading(false);
-    setTimeout(() => setMessage(null), 4000);
-  }
+  const myCraft = BENIN_CRAFTS.find(c => c.id === metier);
+  const clientPaie = myCraft?.payer === 'client';
 
-  const statusLabel: Record<string, string> = {
-    completed: "Complété",
-    pending: "En attente",
-    failed: "Échoué",
-  };
-
-  const statusColor: Record<string, string> = {
-    completed: "bg-green-100 text-green-700",
-    pending: "bg-yellow-100 text-yellow-700",
-    failed: "bg-red-100 text-red-700",
-  };
+  if (loading) return <div className="py-20 text-center text-gray-400 animate-pulse text-sm">Chargement...</div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold">Paiements</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Solde disponible</p>
-          <p className="text-3xl font-bold text-blue-600 mt-1">
-            {loading ? "…" : `${solde.toLocaleString()} FCFA`}
-          </p>
+    <div className="max-w-4xl mx-auto p-4 md:p-8">
+      <div className="mb-8 pb-6 border-b border-gray-100 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {clientPaie ? 'Votre profil est gratuit' : 'Frais de mise en relation'}
+          </h1>
+          <p className="text-gray-500 mt-1 text-sm">Suivez les regles de tarification de votre activite.</p>
         </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total reçu</p>
-          <p className="text-3xl font-bold text-green-600 mt-1">
-            {loading ? "…" : `${(solde + retraits).toLocaleString()} FCFA`}
-          </p>
-        </div>
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total retiré</p>
-          <p className="text-3xl font-bold text-gray-700 mt-1">
-            {loading ? "…" : `${retraits.toLocaleString()} FCFA`}
-          </p>
-        </div>
+        <button onClick={fetchUserData} className="p-2.5 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-lg transition-all">
+          <RefreshCw size={18} />
+        </button>
       </div>
 
-      <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
-        <h2 className="text-lg font-semibold">Demander un retrait</h2>
-        {message && (
-          <div className={`text-sm px-4 py-2 rounded-lg ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-            {message.text}
+      {clientPaie ? (
+        <div className="space-y-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="flex gap-4 items-start">
+              <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-lg flex-shrink-0"><Star size={18} /></div>
+              <div>
+                <h2 className="text-sm font-bold text-emerald-900 mb-1">Application 100% gratuite pour vous</h2>
+                <p className="text-emerald-700 text-sm">En tant que <span className="font-semibold">{myCraft?.label}</span>, vous ne payez rien. Le client verse <span className="font-semibold">500 FCFA</span> pour acceder a votre contact.</p>
+              </div>
+            </div>
+            <div className="bg-white border border-emerald-200 px-5 py-3 rounded-xl text-center flex-shrink-0">
+              <span className="block text-xs text-emerald-600 font-semibold uppercase tracking-wide mb-1">Votre tarif</span>
+              <span className="text-2xl font-bold text-emerald-700">0 FCFA</span>
+            </div>
           </div>
-        )}
-        <div className="flex gap-3">
-          <input
-            type="number"
-            placeholder="Montant en FCFA"
-            value={montantRetrait}
-            onChange={(e) => setMontantRetrait(e.target.value)}
-            className="flex-1 border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={demanderRetrait}
-            disabled={retraitLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-xl transition disabled:opacity-50"
-          >
-            {retraitLoading ? "Envoi…" : "Retirer"}
-          </button>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div>
+              <h2 className="text-sm font-bold text-blue-900 mb-1">Votre solde disponible</h2>
+              <p className="text-blue-700 text-sm max-w-md">Chaque mise en relation est deduite de votre solde. Rechargez pour ne rater aucune opportunite.</p>
+            </div>
+            <div className="bg-white border border-blue-200 px-5 py-3 rounded-xl text-center flex-shrink-0">
+              <span className="block text-xs text-blue-600 font-semibold uppercase tracking-wide mb-1">Solde actuel</span>
+              <span className="text-2xl font-bold text-blue-700">{solde.toLocaleString()} FCFA</span>
+            </div>
+          </div>
 
-      <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b">
-          <h2 className="text-lg font-semibold">Historique des transactions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg w-fit mb-4"><Zap size={18} /></div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Cas urgent</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">300 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
+              <p className="text-gray-500 text-sm">Intervention rapide, besoin immediat.</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg w-fit mb-4"><Building2 size={18} /></div>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grand chantier</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">1 500 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
+              <p className="text-gray-500 text-sm">Travaux importants a forte valeur.</p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg"><Smartphone size={18} /></div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Recharger mon solde</h3>
+                <p className="text-gray-400 text-xs mt-0.5">Via Celtiis Cash, MTN MoMo ou Moov Flooz.</p>
+              </div>
+            </div>
+            <Link href="/recharge" className="w-full sm:w-auto px-5 py-2.5 bg-gray-900 hover:bg-black text-white rounded-lg font-semibold text-sm text-center transition-all">
+              Recharger maintenant
+            </Link>
+          </div>
         </div>
-        {loading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Chargement…</div>
-        ) : transactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Aucune transaction pour le moment.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="px-5 py-3 text-left">Date</th>
-                <th className="px-5 py-3 text-left">Description</th>
-                <th className="px-5 py-3 text-left">Type</th>
-                <th className="px-5 py-3 text-right">Montant</th>
-                <th className="px-5 py-3 text-left">Statut</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {transactions.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
-                    {new Date(t.created_at).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-5 py-3 text-gray-700">{t.description}</td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs font-medium ${t.type === "credit" ? "text-green-600" : "text-red-500"}`}>
-                      {t.type === "credit" ? "↑ Crédit" : "↓ Débit"}
-                    </span>
-                  </td>
-                  <td className={`px-5 py-3 text-right font-semibold ${t.type === "credit" ? "text-green-600" : "text-red-500"}`}>
-                    {t.type === "credit" ? "+" : "-"}{t.amount.toLocaleString()} FCFA
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor[t.status]}`}>
-                      {statusLabel[t.status]}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      )}
+
+      <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5">
+        <div className="flex gap-3 items-start">
+          <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+          <p className="text-gray-600 text-xs leading-relaxed">
+            <span className="font-semibold text-gray-900">Paiement direct :</span> Le salaire est discute de gre a gre et verse directement par le client.
+          </p>
+        </div>
       </div>
     </div>
   );
