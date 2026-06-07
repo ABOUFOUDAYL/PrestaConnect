@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -20,10 +20,10 @@ export default function ChantiersPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      {/* En-tête de la page */}
+      {/* En-tÃªte de la page */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Mes Chantiers & Demandes</h1>
-        <p className="text-gray-500 mt-2">Gérez vos interventions et consultez les nouvelles demandes.</p>
+        <p className="text-gray-500 mt-2">GÃ©rez vos interventions et consultez les nouvelles demandes.</p>
       </div>
 
       {/* Liste des chantiers */}
@@ -39,14 +39,14 @@ export default function ChantiersPage() {
                 <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full uppercase">
                   {d.metier_type || 'Service'}
                 </span>
-                <span className="text-sm font-semibold text-gray-400">📍 {d.ville}</span>
+                <span className="text-sm font-semibold text-gray-400">ðŸ“ {d.ville}</span>
               </div>
               
               <h3 className="text-lg font-bold text-gray-900 mb-2">{d.service_nom}</h3>
               <p className="text-gray-600 text-sm mb-6 line-clamp-3">{d.description}</p>
               
               <button className="w-full py-2.5 bg-black text-white text-sm font-bold rounded-lg hover:bg-gray-800 transition-colors">
-                Voir les détails
+                Voir les dÃ©tails
               </button>
             </div>
           ))}
