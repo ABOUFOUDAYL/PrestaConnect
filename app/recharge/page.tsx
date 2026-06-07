@@ -11,14 +11,12 @@ export default function RechargePage() {
   const [montant, setMontant] = useState<number | ''>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<any>(null)
   const [solde, setSolde] = useState(0)
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      setUser(user)
 
       const { data: wallet } = await supabase
         .from('wallet')
@@ -35,6 +33,14 @@ export default function RechargePage() {
       setError('Montant minimum : 500 FCFA')
       return
     }
+
+    // ✅ Récupérer l'user au moment du clic
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (!currentUser) {
+      router.push('/login')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -44,15 +50,14 @@ export default function RechargePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           montant,
-          artisan_id: user.id,
-          user_id: user.id,
+          artisan_id: currentUser.id,
+          user_id: currentUser.id,
         }),
       })
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
 
-      // Rediriger vers la page de paiement FedaPay
       window.location.href = data.payment_url
 
     } catch (err: any) {
@@ -66,7 +71,6 @@ export default function RechargePage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
         
-        {/* Solde actuel */}
         <div className="bg-blue-50 rounded-xl p-4 mb-6 text-center">
           <p className="text-sm text-blue-600 font-medium">Solde actuel</p>
           <p className="text-3xl font-bold text-blue-700">{solde.toLocaleString()} FCFA</p>
@@ -74,7 +78,6 @@ export default function RechargePage() {
 
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Recharger mon wallet</h1>
 
-        {/* Montants rapides */}
         <p className="text-sm text-gray-500 mb-3">Choisir un montant</p>
         <div className="grid grid-cols-3 gap-3 mb-6">
           {MONTANTS.map((m) => (
@@ -92,7 +95,6 @@ export default function RechargePage() {
           ))}
         </div>
 
-        {/* Montant personnalisé */}
         <p className="text-sm text-gray-500 mb-2">Ou saisir un montant</p>
         <input
           type="number"
