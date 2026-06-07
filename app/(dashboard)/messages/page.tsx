@@ -25,7 +25,6 @@ export default function MessagesPage() {
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center p-4 md:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="w-full max-w-2xl">
 
-        {/* Header card */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-12 mb-6 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-50 to-transparent rounded-full -translate-y-32 translate-x-32 pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-indigo-50 to-transparent rounded-full translate-y-24 -translate-x-24 pointer-events-none" />
@@ -53,7 +52,6 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Features grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {features.map((feature) => (
             <div
@@ -69,7 +67,6 @@ export default function MessagesPage() {
           ))}
         </div>
 
-        {/* CTA */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 flex items-center justify-between shadow-lg shadow-blue-200">
           <div>
             <p className="text-white font-semibold text-sm">Prêt à démarrer ?</p>
