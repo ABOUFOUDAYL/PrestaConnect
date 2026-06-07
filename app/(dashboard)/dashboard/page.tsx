@@ -1,4 +1,11 @@
-﻿// --- DASHBOARD CLIENT ---------------------------------------------------------
+﻿'use client'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+
+const supabase = createClientComponentClient()
+
+// --- DASHBOARD CLIENT ---
 function DashboardClient({ profile }: { profile: any }) {
   const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires')
   const [prestataires, setPrestataires] = useState<any[]>([])
@@ -63,44 +70,38 @@ function DashboardClient({ profile }: { profile: any }) {
   const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter)
 
   const metierEmoji: Record<string, string> = {
-    'Electricien': '?', 'Plombier': '??', 'Ma�on': '??', 'Peintre': '??',
-    'Menuisier': '??', 'Carreleur': '??', 'Soudeur': '??', 'Chauffeur': '??',
-    'Jardinage': '??', 'Nettoyage': '??', 'tous': '??',
+    'Electricien': '⚡', 'Plombier': '🔧', 'Maçon': '🧱', 'Peintre': '🎨',
+    'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
+    'Jardinage': '🌱', 'Nettoyage': '🧹', 'tous': '🔍',
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-6 md:p-10">
-
-        {/* Header */}
         <div className="mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Espace client</p>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} ??</h1>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} 👋</h1>
           <p className="text-gray-400 mt-1">
-            {villeClient ? `Prestataires disponibles a ${villeClient}` : 'Trouvez le bon prestataire'}
+            {villeClient ? Prestataires disponibles a  : 'Trouvez le bon prestataire'}
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="flex bg-white border border-gray-100 p-1.5 rounded-2xl w-fit mb-8 shadow-sm gap-1">
           {[
-            { key: 'prestataires', label: 'Prestataires', emoji: '??' },
-            { key: 'annonces', label: 'Mes annonces', emoji: '??' },
-            { key: 'paiement', label: 'Paiement', emoji: '??' },
+            { key: 'prestataires', label: 'Prestataires', emoji: '👷' },
+            { key: 'annonces', label: 'Mes annonces', emoji: '📢' },
+            { key: 'paiement', label: 'Paiement', emoji: '💳' },
           ].map(({ key, label, emoji }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                activeTab === key ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
-              }`}
+              className={lex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all }
             >
               <span>{emoji}</span> {label}
             </button>
           ))}
         </div>
 
-        {/* -- PRESTATAIRES -- */}
         {activeTab === 'prestataires' && (
           <>
             <div className="flex gap-2 flex-wrap mb-6">
@@ -108,17 +109,12 @@ function DashboardClient({ profile }: { profile: any }) {
                 <button
                   key={m}
                   onClick={() => setMetierFilter(m)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-                    metierFilter === m
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300'
-                  }`}
+                  className={lex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-all }
                 >
-                  {metierEmoji[m] || '??'} {m === 'tous' ? 'Tous les metiers' : m}
+                  {metierEmoji[m] || '🛠'} {m === 'tous' ? 'Tous les metiers' : m}
                 </button>
               ))}
             </div>
-
             {loading ? (
               <div className="py-20 text-center text-gray-300 animate-pulse font-medium">Chargement...</div>
             ) : filtered.length > 0 ? (
@@ -128,8 +124,7 @@ function DashboardClient({ profile }: { profile: any }) {
                   let waNum = tel.replace(/[\s\-\(\)]/g, '')
                   if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1)
                   waNum = waNum.replace(/^\+/, '')
-                  const waLink = tel ? `https://wa.me/${waNum}?text=${encodeURIComponent(`Bonjour, j'ai trouve votre profil sur PrestaConnect. Etes-vous disponible ?`)}` : '#'
-
+                  const waLink = tel ? https://wa.me/ + waNum + ?text= + encodeURIComponent(Bonjour, j'ai trouve votre profil sur PrestaConnect. Etes-vous disponible ?) : '#'
                   return (
                     <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
                       <div className="flex items-start justify-between mb-4">
@@ -144,18 +139,15 @@ function DashboardClient({ profile }: { profile: any }) {
                         </div>
                         {p.note && (
                           <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-1 rounded-lg text-xs font-bold">
-                            ? {Number(p.note).toFixed(1)}
+                            ⭐ {Number(p.note).toFixed(1)}
                           </div>
                         )}
                       </div>
-
                       {p.ville && (
-                        <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">
-                          ?? {p.ville}
-                        </p>
+                        <p className="text-xs text-gray-400 mb-4 flex items-center gap-1">📍 {p.ville}</p>
                       )}
-
-                      <a`n                        href={waLink}
+                      
+                        href={waLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
@@ -172,7 +164,7 @@ function DashboardClient({ profile }: { profile: any }) {
               </div>
             ) : (
               <div className="py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
-                <p className="text-4xl mb-3">??</p>
+                <p className="text-4xl mb-3">🔍</p>
                 <p className="text-gray-400 font-bold">Aucun prestataire disponible dans votre zone.</p>
                 <p className="text-gray-300 text-sm mt-1">Publiez une annonce pour etre contacte.</p>
               </div>
@@ -180,7 +172,6 @@ function DashboardClient({ profile }: { profile: any }) {
           </>
         )}
 
-        {/* -- ANNONCES -- */}
         {activeTab === 'annonces' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -192,7 +183,6 @@ function DashboardClient({ profile }: { profile: any }) {
                 + Nouvelle annonce
               </button>
             </div>
-
             {showForm && (
               <div className="bg-white rounded-2xl border border-blue-100 p-6 mb-6 shadow-sm">
                 <h3 className="font-bold text-gray-800 mb-4">Publier une annonce</h3>
@@ -236,7 +226,6 @@ function DashboardClient({ profile }: { profile: any }) {
                 </div>
               </div>
             )}
-
             {loading ? (
               <div className="py-20 text-center text-gray-300 animate-pulse">Chargement...</div>
             ) : annonces.length > 0 ? (
@@ -258,7 +247,7 @@ function DashboardClient({ profile }: { profile: any }) {
               </div>
             ) : (
               <div className="py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
-                <p className="text-4xl mb-3">??</p>
+                <p className="text-4xl mb-3">📢</p>
                 <p className="text-gray-400 font-bold">Aucune annonce publiee.</p>
                 <p className="text-gray-300 text-sm mt-1">Publiez votre besoin pour etre contacte par des artisans.</p>
               </div>
@@ -266,12 +255,11 @@ function DashboardClient({ profile }: { profile: any }) {
           </div>
         )}
 
-        {/* -- PAIEMENT -- */}
         {activeTab === 'paiement' && (
           <div className="max-w-lg">
             <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm text-center">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-5 text-3xl">
-                ??
+                💳
               </div>
               <h2 className="text-xl font-black text-gray-900 mb-2">Paiement de service</h2>
               <p className="text-gray-400 text-sm mb-6">
@@ -290,9 +278,17 @@ function DashboardClient({ profile }: { profile: any }) {
             </div>
           </div>
         )}
-
       </div>
     </div>
   )
 }
 
+export default async function DashboardPage() {
+  const { createServerComponentClient } = await import('@supabase/auth-helpers-nextjs')
+  const { cookies } = await import('next/headers')
+  const supabaseServer = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabaseServer.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await supabaseServer.from('profiles').select('*').eq('id', user.id).single()
+  return <DashboardClient profile={profile} />
+}
