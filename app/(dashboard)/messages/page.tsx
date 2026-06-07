@@ -103,7 +103,7 @@ export default function MessagesPage() {
             <p className="text-white font-semibold text-sm">Pret a demarrer ?</p>
             <p className="text-blue-200 text-xs">Consultez vos chantiers en cours</p>
           </div>
-          <a href="/dashboard/chantiers" className="flex items-center gap-2 bg-white text-blue-600 font-semibold text-sm px-4 py-2.5 rounded-xl">
+          <a href="/chantiers" className="flex items-center gap-2 bg-white text-blue-600 font-semibold text-sm px-4 py-2.5 rounded-xl">
             Mes chantiers <ArrowRight size={16} />
           </a>
         </div>
