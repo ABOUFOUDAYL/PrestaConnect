@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: Request) {
   try {
     const { montant, artisan_id, user_id } = await req.json()
 
     if (!montant || !artisan_id || !user_id) {
-      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Paramètres manquants' },
+        { status: 400 }
+      )
     }
 
     // 1. Créer la transaction en BDD avec statut "en_attente"
-    const { data: transaction, error: txError } = await supabase
+    const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
         user_id,
@@ -47,7 +55,7 @@ export async function POST(req: Request) {
     if (!fedapayRes.ok) throw new Error(fedapayData.message || 'Erreur FedaPay')
 
     // 3. Mettre à jour la transaction avec l'ID FedaPay
-    await supabase
+    await supabaseAdmin
       .from('transactions')
       .update({ fedapay_id: String(fedapayData.v1.transaction.id) })
       .eq('id', transaction.id)
