@@ -37,7 +37,7 @@ export default function PaymentsPage() {
   }
 
   const myCraft = BENIN_CRAFTS.find(c => c.id === metier);
-  const estMetierGratuitPourArtisan = myCraft?.payer === 'client';
+  const clientPaie = myCraft?.payer === 'client';
 
   if (loading) {
     return <div className="py-20 text-center text-gray-400 animate-pulse text-sm">Chargement...</div>;
@@ -49,42 +49,62 @@ export default function PaymentsPage() {
       <div className="mb-8 pb-6 border-b border-gray-100 flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            {estMetierGratuitPourArtisan ? "Espace tarif client" : "Frais de mise en relation"}
+            {clientPaie ? "Votre profil est gratuit" : "Frais de mise en relation"}
           </h1>
-          <p className="text-gray-500 mt-1 text-sm">Suivez les règles de tarification de votre activité sur PrestaConnect.</p>
+          <p className="text-gray-500 mt-1 text-sm">
+            Suivez les règles de tarification de votre activité sur PrestaConnect.
+          </p>
         </div>
         <button onClick={fetchUserData} className="p-2.5 text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 rounded-lg transition-all">
           <RefreshCw size={18} />
         </button>
       </div>
 
-      {estMetierGratuitPourArtisan ? (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-6">
-          <div className="flex gap-4 items-start">
-            <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-lg flex-shrink-0">
-              <Star size={20} />
+      {clientPaie ? (
+        // METIERS DE SERVICE : client paie 500 FCFA
+        <div className="space-y-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+            <div className="flex gap-4 items-start">
+              <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-lg flex-shrink-0">
+                <Star size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-emerald-900 mb-1">Application 100% gratuite pour vous</h2>
+                <p className="text-emerald-700 text-sm leading-relaxed">
+                  En tant que <span className="font-semibold">{myCraft?.label}</span>, vous ne payez rien.
+                  C'est le client qui verse <span className="font-semibold">500 FCFA</span> pour debloquer votre numero WhatsApp et vous contacter.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-bold text-emerald-900 mb-1">Application 100% gratuite pour vous</h2>
-              <p className="text-emerald-700 text-sm leading-relaxed">
-                En tant que <span className="font-semibold">{myCraft?.label}</span>, vous ne payez rien.
-                Le client verse <span className="font-semibold">500 FCFA</span> pour débloquer votre numéro WhatsApp.
-              </p>
+            <div className="bg-white border border-emerald-200 px-5 py-3 rounded-xl text-center flex-shrink-0 w-full sm:w-auto">
+              <span className="block text-xs text-emerald-600 font-semibold uppercase tracking-wide mb-1">Votre tarif</span>
+              <span className="text-2xl font-bold text-emerald-700">0 FCFA</span>
             </div>
           </div>
-          <div className="bg-white border border-emerald-200 px-5 py-3 rounded-xl text-center flex-shrink-0 w-full sm:w-auto">
-            <span className="block text-xs text-emerald-600 font-semibold uppercase tracking-wide mb-1">Votre tarif</span>
-            <span className="text-2xl font-bold text-emerald-700">0 FCFA</span>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Ce que paie le client</p>
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
+                <Smartphone size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">500 FCFA par mise en relation</p>
+                <p className="text-xs text-gray-400 mt-0.5">Le client paie via Celtiis Cash, MTN MoMo ou Moov Flooz pour acceder a votre contact.</p>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
+        // METIERS TECHNIQUES : artisan paie 300 ou 1500 FCFA
         <div className="space-y-4">
 
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
-              <h2 className="text-base font-bold text-blue-900 mb-1">Votre solde disponible</h2>
+              <h2 className="text-sm font-bold text-blue-900 mb-1">Votre solde disponible</h2>
               <p className="text-blue-700 text-sm leading-relaxed max-w-md">
-                300 FCFA par déblocage urgent, 500 FCFA pour un prestataire sans diplôme, 1 500 FCFA pour un grand chantier.
+                Chaque mise en relation est deduite de votre solde selon le type de chantier.
+                Rechargez pour ne rater aucune opportunite.
               </p>
             </div>
             <div className="bg-white border border-blue-200 px-5 py-3 rounded-xl text-center flex-shrink-0 w-full sm:w-auto">
@@ -93,23 +113,14 @@ export default function PaymentsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
               <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg w-fit mb-4">
                 <Zap size={18} />
               </div>
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Cas urgent</p>
-              <p className="text-2xl font-bold text-gray-900 mb-1">300 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
-              <p className="text-gray-500 text-sm">Intervention rapide, besoin immédiat. Débloquez le contact client en un clic.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
-              <div className="p-2.5 bg-purple-50 text-purple-600 rounded-lg w-fit mb-4">
-                <Star size={18} />
-              </div>
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Sans diplôme</p>
-              <p className="text-2xl font-bold text-gray-900 mb-1">500 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
-              <p className="text-gray-500 text-sm">Prestataire sans diplôme. Débloquez les coordonnées du client facilement.</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">300 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
+              <p className="text-gray-500 text-sm">Intervention rapide, besoin immediat. Debloquez le contact client en un clic.</p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
@@ -117,8 +128,8 @@ export default function PaymentsPage() {
                 <Building2 size={18} />
               </div>
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grand chantier</p>
-              <p className="text-2xl font-bold text-gray-900 mb-1">1 500 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
-              <p className="text-gray-500 text-sm">Travaux importants à forte valeur. Un seul chantier rentabilise des dizaines de recharges.</p>
+              <p className="text-2xl font-bold text-gray-900 mb-2">1 500 <span className="text-sm font-medium text-gray-400">FCFA</span></p>
+              <p className="text-gray-500 text-sm">Travaux importants a forte valeur. Un seul chantier rentabilise des dizaines de recharges.</p>
             </div>
           </div>
 
@@ -144,13 +155,13 @@ export default function PaymentsPage() {
         <div className="flex gap-3 items-start">
           <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 flex-shrink-0" />
           <p className="text-gray-600 text-xs leading-relaxed">
-            <span className="font-semibold text-gray-900">Paiement direct :</span> Le salaire est discuté de gré à gré et versé directement par le client en espèces ou Mobile Money.
+            <span className="font-semibold text-gray-900">Paiement direct :</span> Le salaire est discute de gre a gre et verse directement par le client en especes ou Mobile Money.
           </p>
         </div>
         <div className="flex gap-3 items-start">
           <ShieldCheck size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
           <p className="text-gray-600 text-xs leading-relaxed">
-            <span className="font-semibold text-gray-900">Transparence béninoise :</span> PrestaConnect équilibre les frais pour que chacun y trouve son compte selon son métier.
+            <span className="font-semibold text-gray-900">Transparence beninoise :</span> PrestaConnect equilibre les frais pour que chacun y trouve son compte selon son metier.
           </p>
         </div>
       </div>
