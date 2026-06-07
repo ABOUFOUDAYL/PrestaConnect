@@ -15,10 +15,7 @@ export default function EnAttentePage() {
     const checkStatus = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          // Pas encore de session — on attend sans rediriger
-          return;
-        }
+        if (!session) return;
 
         const { data: profile } = await supabase
           .from('profiles')
@@ -35,7 +32,7 @@ export default function EnAttentePage() {
         } else if (profile.statut_verification === 'rejete') {
           setStatut('rejete');
           clearInterval(interval);
-          router.replace('/inscription?erreur=rejete');
+          router.replace('/login?erreur=rejete');
         } else {
           setStatut('attente');
         }
@@ -45,7 +42,6 @@ export default function EnAttentePage() {
       }
     };
 
-    // Attend 1 seconde avant le premier check (session pas encore chargée)
     const timeout = setTimeout(() => {
       checkStatus();
       interval = setInterval(checkStatus, 10000);
@@ -57,29 +53,29 @@ export default function EnAttentePage() {
     };
   }, [router]);
 
-  if (statut === 'chargement') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
-        <p className="text-gray-500 text-sm">Chargement...</p>
-      </div>
-    );
-  }
+  if (statut === 'chargement') return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
+      <p className="text-gray-500 text-sm">Chargement...</p>
+    </div>
+  );
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 text-center p-8">
-      <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-yellow-600 animate-spin" />
+      <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
       </div>
-      <h1 className="text-3xl font-bold text-yellow-600">Compte en attente de validation</h1>
-      <p className="text-gray-600 max-w-md">
+      <h1 className="text-3xl font-bold text-amber-600">Compte en attente de validation</h1>
+      <p className="text-gray-600 max-w-md leading-relaxed">
         Votre inscription a bien été reçue. Un administrateur va examiner
         votre profil et vous contacter sous peu.
       </p>
-      <p className="text-xs text-gray-400">
-        Cette page se met à jour automatiquement toutes les 10 secondes.
-      </p>
-      <a href="/" className="mt-4 px-6 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 max-w-sm">
+        <p className="text-xs text-amber-700 font-medium">
+          ⏱ Cette page vérifie automatiquement votre statut toutes les 10 secondes et vous redirigera dès validation.
+        </p>
+      </div>
+      <a href="/" className="mt-2 px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">
         Retour au site
       </a>
     </div>

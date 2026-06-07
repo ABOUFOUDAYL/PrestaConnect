@@ -47,8 +47,8 @@ export default function SuperAdminCockpitPage() {
       const citiesSet = new Set(profilesList.map((p: any) => p.city || p.ville).filter(Boolean).map((c: any) => c.trim()));
       setAvailableCities(['Tous', ...Array.from(citiesSet).sort() as string[]]);
       setMetrics({
-        pendingCount: profilesList.filter((p: any) => p.status === 'en_attente_validation').length,
-        totalArtisans: profilesList.filter((p: any) => p.status === 'valide' && p.role === 'artisan').length,
+        pendingCount: profilesList.filter((p: any) => p.statut_verification === 'en_attente_validation' || p.statut_verification === 'incomplet').length,
+        totalArtisans: profilesList.filter((p: any) => p.statut_verification === 'valide' && p.role === 'artisan').length,
         ambassadorsCount: profilesList.filter((p: any) => p.role === 'ambassadeur' || p.role === 'ambassador').length,
       });
     } catch (err: any) {
@@ -58,8 +58,8 @@ export default function SuperAdminCockpitPage() {
 
   useEffect(() => {
     let result = [...allProfiles];
-    if (activeTab === 'attente') result = result.filter((p: any) => p.status === 'en_attente_validation');
-    else if (activeTab === 'valides') result = result.filter((p: any) => p.status === 'valide' && p.role === 'artisan');
+    if (activeTab === 'attente') result = result.filter((p: any) => p.statut_verification === 'en_attente_validation' || p.statut_verification === 'incomplet');
+    else if (activeTab === 'valides') result = result.filter((p: any) => p.statut_verification === 'valide' && p.role === 'artisan');
     else if (activeTab === 'ambassadeurs') result = result.filter((p: any) => p.role === 'ambassadeur' || p.role === 'ambassador');
     if (selectedCity !== 'Tous') result = result.filter((p: any) => (p.city && p.city.toLowerCase() === selectedCity.toLowerCase()) || (p.ville && p.ville.toLowerCase() === selectedCity.toLowerCase()));
     setFilteredProfiles(result);
@@ -68,7 +68,7 @@ export default function SuperAdminCockpitPage() {
   const handleUpdateStatus = async (profileId: string, newStatus: 'valide' | 'rejete' | 'en_attente_validation') => {
     try {
       setIsUpdating(true);
-      const updateData: any = { status: newStatus };
+      const updateData: any = { statut_verification: newStatus };
       if (newStatus === 'valide') {
         updateData.role = 'artisan';
         if (assignedAmbassadorZone) updateData.assigned_zone = assignedAmbassadorZone;
@@ -157,8 +157,9 @@ export default function SuperAdminCockpitPage() {
               <div key={profile.id} className="bg-slate-800 border border-slate-700/60 p-6 rounded-2xl flex flex-col justify-between hover:border-slate-600 transition-all">
                 <div>
                   <h3 className="font-bold text-lg text-white tracking-tight mb-2">{profile.full_name || 'Inscrit sans nom'}</h3>
-                  <p className="text-xs text-slate-400 mb-2 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-slate-500" /> {profile.phone}</p>
-                  <p className="text-xs text-slate-400 mb-6 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-slate-500" /> {profile.city || profile.ville}</p>
+                  <p className="text-xs text-slate-400 mb-2 flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-slate-500" /> {profile.telephone || profile.phone}</p>
+                  <p className="text-xs text-slate-400 mb-2 flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-slate-500" /> {profile.city || profile.ville}</p>
+                  <p className="text-xs text-slate-500 mb-6">Statut : <span className="text-amber-400 font-bold">{profile.statut_verification}</span></p>
                 </div>
                 {activeTab === 'ambassadeurs' ? (
                   <button onClick={() => handleToggleAmbassadorRole(profile.id, profile.role)} className="w-full py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Revoquer les droits</button>
@@ -180,26 +181,26 @@ export default function SuperAdminCockpitPage() {
               <h2 className="text-xl font-black text-white mb-6 border-b border-slate-700 pb-4">Analyse : {selectedProfile.full_name}</h2>
               <div className="space-y-6 mb-8">
                 <div className="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 text-xs">
-                  <div><span className="block text-slate-500 font-bold mb-1">Telephone</span><span className="text-slate-200">{selectedProfile.phone}</span></div>
+                  <div><span className="block text-slate-500 font-bold mb-1">Telephone</span><span className="text-slate-200">{selectedProfile.telephone || selectedProfile.phone}</span></div>
                   <div><span className="block text-slate-500 font-bold mb-1">Ville</span><span className="text-slate-200">{selectedProfile.city || selectedProfile.ville}</span></div>
+                  <div><span className="block text-slate-500 font-bold mb-1">Metier</span><span className="text-slate-200">{selectedProfile.metier || '—'}</span></div>
+                  <div><span className="block text-slate-500 font-bold mb-1">Statut</span><span className="text-amber-400 font-bold">{selectedProfile.statut_verification}</span></div>
                 </div>
                 <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Identite (CIP / Acte)</span>
-                  {selectedProfile.cip_url ? (
-                    <a href={selectedProfile.cip_url} target="_blank" rel="noopener noreferrer" className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2"><Eye className="w-4 h-4" /> Visualiser le document</a>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Piece d'identite</span>
+                  {selectedProfile.carte_identite_url || selectedProfile.cip_url ? (
+                    <a href={selectedProfile.carte_identite_url || selectedProfile.cip_url} target="_blank" rel="noopener noreferrer" className="px-4 py-3 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-500 flex justify-center items-center gap-2"><Eye className="w-4 h-4" /> Visualiser le document</a>
                   ) : (
                     <p className="text-xs text-amber-500 font-bold text-center">Aucune piece fournie</p>
                   )}
                 </div>
-                {selectedProfile.status === 'en_attente_validation' && (
-                  <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
-                    <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assignation Terrain Nationale</span>
-                    <input type="text" placeholder="Ex: Secteur Djougou Centre, Agblangandan, Natitingou..." value={assignedAmbassadorZone} onChange={(e) => setAssignedAmbassadorZone(e.target.value)} className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-xs focus:ring-2 focus:ring-blue-500 text-slate-200 outline-none placeholder-slate-600" />
-                  </div>
-                )}
+                <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assignation Zone</span>
+                  <input type="text" placeholder="Ex: Secteur Djougou Centre, Parakou Nord..." value={assignedAmbassadorZone} onChange={(e) => setAssignedAmbassadorZone(e.target.value)} className="w-full p-3 border border-slate-700 rounded-lg bg-slate-900 text-xs focus:ring-2 focus:ring-blue-500 text-slate-200 outline-none placeholder-slate-600" />
+                </div>
               </div>
               <div className="flex gap-4 pt-4 border-t border-slate-700">
-                {selectedProfile.status === 'en_attente_validation' ? (
+                {selectedProfile.statut_verification !== 'valide' ? (
                   <>
                     <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'rejete')} className="flex-1 py-3 px-4 bg-red-500/10 text-red-400 font-bold rounded-xl text-xs hover:bg-red-600 hover:text-white transition-all">Rejeter</button>
                     <button disabled={isUpdating} onClick={() => handleUpdateStatus(selectedProfile.id, 'valide')} className="flex-1 py-3 px-4 bg-blue-600 text-white font-bold rounded-xl text-xs hover:bg-blue-500 transition-all flex justify-center items-center gap-2">
