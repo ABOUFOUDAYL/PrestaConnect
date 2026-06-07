@@ -155,7 +155,6 @@ function DashboardClient({ profile }: { profile: any }) {
                         </p>
                       )}
 
-                      {/* ✅ CORRECTION ICI — <a ajouté */}
                       
                         href={waLink}
                         target="_blank"
