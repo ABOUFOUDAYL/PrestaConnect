@@ -1,4 +1,6 @@
-"use client";
+const fs = require('fs');
+
+const dashboard = `"use client";
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { User, MapPin, Briefcase, Megaphone, CreditCard, ChevronRight, Star, MessageCircle } from 'lucide-react';
@@ -37,9 +39,9 @@ export default function DashboardPage() {
 
   function getWhatsAppLink(p) {
     const tel = p.telephone || p.phone || '';
-    let waNum = tel.replace(/[\s()\-]/g, '');
+    let waNum = tel.replace(/[\\s()\\-]/g, '');
     if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
-    waNum = waNum.replace(/^\+/, '');
+    waNum = waNum.replace(/^\\+/, '');
     return tel ? 'https://wa.me/' + waNum + '?text=Bonjour je viens de PrestaConnect' : '#';
   }
 
@@ -72,8 +74,8 @@ export default function DashboardPage() {
           { label: 'Paiements', value: stats.paiements, icon: CreditCard, color: 'purple', href: '/dashboard/paiements' },
         ].map(({ label, value, icon: Icon, color, href }) => (
           <Link key={label} href={href} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow text-center">
-            <div className={`w-10 h-10 rounded-xl bg-${color}-50 flex items-center justify-center mx-auto mb-2`}>
-              <Icon size={18} className={`text-${color}-600`} />
+            <div className={\`w-10 h-10 rounded-xl bg-\${color}-50 flex items-center justify-center mx-auto mb-2\`}>
+              <Icon size={18} className={\`text-\${color}-600\`} />
             </div>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             <p className="text-xs text-gray-400 mt-0.5">{label}</p>
@@ -154,3 +156,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/(dashboard)/dashboard/page.tsx', dashboard, 'utf8');
+console.log('done!');
