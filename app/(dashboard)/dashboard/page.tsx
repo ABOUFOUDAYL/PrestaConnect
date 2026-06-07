@@ -1,22 +1,19 @@
 ﻿"use client";
-
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Search, MapPin, Star, MessageCircle, Plus, X, Clock, Briefcase, CreditCard, ChevronRight, User } from 'lucide-react';
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { Search, MapPin, Star, MessageCircle, Plus, X, Clock, Briefcase, CreditCard, User } from 'lucide-react';
 
 const METIER_EMOJI: Record<string, string> = {
   'Electricien': '⚡', 'Plombier': '🔧', 'Macon': '🧱', 'Peintre': '🎨',
   'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
-  'Jardinage': '🌱', 'Nettoyage': '🧹', 'Cuisinier': '👨‍🍳', 'Nounou': '👶',
-  'tous': '🔍',
+  'Jardinage': '🌱', 'Nettoyage': '🧹', 'Cuisinier': '👨‍🍳', 'Nounou': '👶', 'tous': '🔍',
 };
 
 export default function DashboardPage() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const [profile, setProfile] = useState<any>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiements'>('prestataires');
@@ -43,20 +40,17 @@ export default function DashboardPage() {
     const { data } = await query.order('note', { ascending: false });
     setPrestataires(data || []);
     setLoading(false);
-  }, [villeClient]);
+  }, [supabase, villeClient]);
 
   const fetchAnnonces = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
-      .from('annonces')
-      .select('*')
-      .eq('client_id', user.id)
-      .order('created_at', { ascending: false });
+      .from('annonces').select('*').eq('client_id', user.id).order('created_at', { ascending: false });
     setAnnonces(data || []);
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     async function loadProfile() {
@@ -68,7 +62,7 @@ export default function DashboardPage() {
       setPageLoading(false);
     }
     loadProfile();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     if (!pageLoading) {
@@ -105,13 +99,13 @@ export default function DashboardPage() {
     let waNum = tel.replace(/[\s()\-]/g, '');
     if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
     waNum = waNum.replace(/^\+/, '');
-    return tel ? `https://wa.me/${waNum}?text=${encodeURIComponent("Bonjour, j'ai trouvé votre profil sur PrestaConnect.")}` : '#';
+    return tel ? `https://wa.me/${waNum}?text=${encodeURIComponent("Bonjour, j'ai trouve votre profil sur PrestaConnect.")}` : '#';
   }
 
   if (pageLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-gray-500 font-medium">Chargement...</p>
       </div>
     </div>
@@ -121,14 +115,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto p-4 md:p-8">
 
-        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
               {profile?.avatar_url
                 ? <img src={profile.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
-                : <User size={20} className="text-blue-600" />
-              }
+                : <User size={20} className="text-blue-600" />}
             </div>
             <div>
               <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Espace Client</p>
@@ -136,14 +128,13 @@ export default function DashboardPage() {
             </div>
           </div>
           {villeClient && (
-            <div className="flex items-center gap-1 mt-2 ml-13">
+            <div className="flex items-center gap-1 mt-2">
               <MapPin size={13} className="text-gray-400" />
               <span className="text-sm text-gray-400">{villeClient}</span>
             </div>
           )}
         </div>
 
-        {/* Tabs */}
         <div className="flex bg-white border border-gray-100 p-1 rounded-2xl w-fit mb-6 shadow-sm gap-1">
           {([
             { key: 'prestataires', label: 'Prestataires', icon: Briefcase },
@@ -154,9 +145,7 @@ export default function DashboardPage() {
               key={key}
               onClick={() => setActiveTab(key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === key
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                activeTab === key ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Icon size={15} />
@@ -165,16 +154,14 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* TAB: Prestataires */}
         {activeTab === 'prestataires' && (
           <div>
-            {/* Search + Filter */}
             <div className="flex flex-col md:flex-row gap-3 mb-6">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Rechercher un prestataire ou un métier..."
+                  placeholder="Rechercher un prestataire..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400"
@@ -186,9 +173,7 @@ export default function DashboardPage() {
                     key={m}
                     onClick={() => setMetierFilter(m)}
                     className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      metierFilter === m
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
+                      metierFilter === m ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-500'
                     }`}
                   >
                     {METIER_EMOJI[m] || '🔧'} {m}
@@ -198,12 +183,11 @@ export default function DashboardPage() {
             </div>
 
             {loading ? (
-              <div className="text-center py-16 text-gray-400">Chargement des prestataires...</div>
+              <div className="text-center py-16 text-gray-400">Chargement...</div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-5xl mb-4">🔍</div>
                 <p className="text-gray-500 font-medium">Aucun prestataire disponible dans votre zone.</p>
-                <p className="text-gray-400 text-sm mt-1">Essayez de modifier vos filtres</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -212,15 +196,13 @@ export default function DashboardPage() {
                   const waLink = getWhatsAppLink(p);
                   const metier = p.metier || p.metier_type || 'Prestataire';
                   const initials = p.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'PC';
-
                   return (
                     <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
                       <div className="flex items-start gap-3 mb-4">
                         <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {p.avatar_url
                             ? <img src={p.avatar_url} className="w-12 h-12 object-cover" alt="" />
-                            : <span className="text-blue-600 font-bold text-sm">{initials}</span>
-                          }
+                            : <span className="text-blue-600 font-bold text-sm">{initials}</span>}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-gray-900 truncate">{p.full_name}</p>
@@ -239,21 +221,20 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-
                       {doitPayer ? (
                         <button
-                          onClick={() => alert("Redirection vers FedaPay : 500 FCFA")}
-                          className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                          onClick={() => alert("Redirection FedaPay : 500 FCFA")}
+                          className="w-full py-2.5 bg-amber-500 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
                         >
                           <CreditCard size={15} />
-                          Débloquer le contact — 500 FCFA
+                          Debloquer le contact — 500 FCFA
                         </button>
                       ) : (
                         
                           href={waLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                          className="w-full py-2.5 bg-green-500 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
                         >
                           <MessageCircle size={15} />
                           Contacter sur WhatsApp
@@ -267,7 +248,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* TAB: Annonces */}
         {activeTab === 'annonces' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -277,7 +257,7 @@ export default function DashboardPage() {
               </div>
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold text-sm"
               >
                 <Plus size={16} />
                 Nouvelle annonce
@@ -289,38 +269,35 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-900">Publier une annonce</h3>
                   <button onClick={() => setShowForm(false)}>
-                    <X size={18} className="text-gray-400 hover:text-gray-600" />
+                    <X size={18} className="text-gray-400" />
                   </button>
                 </div>
-
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Métier recherché *</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Metier recherche *</label>
                     <select
                       value={form.metier_requis}
                       onChange={e => setForm({ ...form, metier_requis: e.target.value })}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
                     >
-                      <option value="">Choisir un métier</option>
+                      <option value="">Choisir un metier</option>
                       {Object.keys(METIER_EMOJI).filter(k => k !== 'tous').map(m => (
                         <option key={m} value={m}>{METIER_EMOJI[m]} {m}</option>
                       ))}
                     </select>
                   </div>
-
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Description *</label>
                     <textarea
                       value={form.description}
                       onChange={e => setForm({ ...form, description: e.target.value })}
-                      placeholder="Décrivez votre besoin en détail..."
+                      placeholder="Decrivez votre besoin..."
                       rows={3}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none"
                     />
                   </div>
-
                   <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Budget estimé (FCFA)</label>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Budget estime (FCFA)</label>
                     <input
                       type="number"
                       value={form.budget_estime}
@@ -329,7 +306,6 @@ export default function DashboardPage() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
                     />
                   </div>
-
                   <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl">
                     <input
                       type="checkbox"
@@ -339,14 +315,13 @@ export default function DashboardPage() {
                       className="w-4 h-4 accent-orange-500"
                     />
                     <label htmlFor="urgence" className="text-sm font-semibold text-orange-700 cursor-pointer">
-                      🚨 Cas urgent — visible uniquement dans ma zone
+                      Cas urgent — visible uniquement dans ma zone
                     </label>
                   </div>
-
                   <button
                     onClick={publierAnnonce}
                     disabled={submitting || !form.description || !form.metier_requis}
-                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm disabled:bg-gray-200 disabled:text-gray-400"
                   >
                     {submitting ? 'Publication...' : 'Publier mon annonce'}
                   </button>
@@ -359,8 +334,8 @@ export default function DashboardPage() {
             ) : annonces.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
                 <div className="text-5xl mb-4">📢</div>
-                <p className="text-gray-600 font-semibold">Aucune annonce publiée</p>
-                <p className="text-gray-400 text-sm mt-1">Publiez votre première annonce pour trouver un prestataire</p>
+                <p className="text-gray-600 font-semibold">Aucune annonce publiee</p>
+                <p className="text-gray-400 text-sm mt-1">Publiez votre premiere annonce pour trouver un prestataire</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -392,17 +367,16 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* TAB: Paiements */}
         {activeTab === 'paiements' && (
           <div>
             <div className="mb-6">
               <h2 className="text-lg font-bold text-gray-900">Historique des paiements</h2>
-              <p className="text-sm text-gray-400">Vos déblocages de contacts prestataires</p>
+              <p className="text-sm text-gray-400">Vos deblocages de contacts prestataires</p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
               <CreditCard size={40} className="text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">Aucun paiement effectué</p>
-              <p className="text-gray-400 text-sm mt-1">Vos paiements pour débloquer des contacts apparaîtront ici</p>
+              <p className="text-gray-500 font-medium">Aucun paiement effectue</p>
+              <p className="text-gray-400 text-sm mt-1">Vos paiements apparaitront ici</p>
             </div>
           </div>
         )}
