@@ -7,42 +7,64 @@ import { Loader2 } from 'lucide-react';
 
 export default function EnAttentePage() {
   const router = useRouter();
-  const [checking, setChecking] = useState(false);
+  const [statut, setStatut] = useState<'chargement' | 'attente' | 'valide' | 'rejete'>('chargement');
 
   useEffect(() => {
+    let interval: NodeJS.Timeout;
+
     const checkStatus = async () => {
-      setChecking(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { router.replace('/login'); return; }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          // Pas encore de session — on attend sans rediriger
+          return;
+        }
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('status, role')
-          .eq('id', user.id)
+          .select('statut_verification, role')
+          .eq('id', session.user.id)
           .maybeSingle();
 
         if (!profile) return;
 
-        if (profile.status === 'valide' || profile.role === 'artisan') {
+        if (profile.statut_verification === 'valide' || profile.role === 'artisan') {
+          setStatut('valide');
+          clearInterval(interval);
           router.replace('/dashboard');
-        } else if (profile.status === 'rejete') {
+        } else if (profile.statut_verification === 'rejete') {
+          setStatut('rejete');
+          clearInterval(interval);
           router.replace('/inscription?erreur=rejete');
+        } else {
+          setStatut('attente');
         }
       } catch (err) {
         console.error(err);
-      } finally {
-        setChecking(false);
+        setStatut('attente');
       }
     };
 
-    // Vérifie immédiatement au chargement
-    checkStatus();
+    // Attend 1 seconde avant le premier check (session pas encore chargée)
+    const timeout = setTimeout(() => {
+      checkStatus();
+      interval = setInterval(checkStatus, 10000);
+    }, 1000);
 
-    // Puis toutes les 10 secondes
-    const interval = setInterval(checkStatus, 10000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [router]);
+
+  if (statut === 'chargement') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="w-10 h-10 text-yellow-500 animate-spin" />
+        <p className="text-gray-500 text-sm">Chargement...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 text-center p-8">
@@ -54,11 +76,8 @@ export default function EnAttentePage() {
         Votre inscription a bien été reçue. Un administrateur va examiner
         votre profil et vous contacter sous peu.
       </p>
-      {checking && (
-        <p className="text-xs text-gray-400">Vérification du statut en cours...</p>
-      )}
       <p className="text-xs text-gray-400">
-        Cette page se met à jour automatiquement.
+        Cette page se met à jour automatiquement toutes les 10 secondes.
       </p>
       <a href="/" className="mt-4 px-6 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">
         Retour au site
