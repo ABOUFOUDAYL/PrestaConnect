@@ -85,7 +85,6 @@ export default function MessagesPage() {
     >
       <div className="w-full max-w-2xl">
 
-        {/* Header */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl mb-6">
             <MessageSquare size={36} className="text-white" />
@@ -94,7 +93,6 @@ export default function MessagesPage() {
           <p className="text-gray-500 max-w-md mx-auto">PrestaConnect connecte artisans et clients via WhatsApp.</p>
         </div>
 
-        {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {features.map((feature) => (
             <div key={feature.title} className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -107,7 +105,6 @@ export default function MessagesPage() {
           ))}
         </div>
 
-        {/* Chantiers actifs avec liens WhatsApp */}
         {loading ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 text-center text-gray-400 text-sm">
             Chargement des chantiers...
@@ -120,10 +117,7 @@ export default function MessagesPage() {
             </h2>
             <div className="space-y-3">
               {chantiers.map((chantier) => (
-                <div
-                  key={chantier.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                >
+                <div key={chantier.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="font-medium text-gray-800 text-sm">{chantier.title}</p>
                     <p className="text-gray-500 text-xs">{chantier.client_name}</p>
@@ -146,7 +140,6 @@ export default function MessagesPage() {
           </div>
         ) : null}
 
-        {/* CTA */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 flex items-center justify-between">
           <div>
             <p className="text-white font-semibold text-sm">Prêt à démarrer ?</p>
