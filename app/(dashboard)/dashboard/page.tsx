@@ -1,24 +1,32 @@
 ﻿"use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { Search, MapPin, Star, MessageCircle, Plus, X, Clock, Briefcase, CreditCard, ChevronRight, User } from 'lucide-react';
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const METIER_EMOJI: Record<string, string> = {
+  'Electricien': '⚡', 'Plombier': '🔧', 'Macon': '🧱', 'Peintre': '🎨',
+  'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
+  'Jardinage': '🌱', 'Nettoyage': '🧹', 'Cuisinier': '👨‍🍳', 'Nounou': '👶',
+  'tous': '🔍',
+};
 
 export default function DashboardPage() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   const [profile, setProfile] = useState<any>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires');
+  const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiements'>('prestataires');
   const [prestataires, setPrestataires] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
-  const [metierFilter, setMetierFilter] = useState<string>('tous');
+  const [metierFilter, setMetierFilter] = useState('tous');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ description: '', metier_requis: '', budget_estime: '' });
+  const [form, setForm] = useState({ description: '', metier_requis: '', budget_estime: '', urgence: false });
   const [submitting, setSubmitting] = useState(false);
 
   const firstName = profile?.full_name?.split(' ')[0] || profile?.prenom || 'vous';
@@ -26,19 +34,16 @@ export default function DashboardPage() {
 
   const fetchPrestataires = useCallback(async () => {
     setLoading(true);
-    // Note : assure-toi que 'diplome_verifie' est bien le nom de ta colonne en base
     let query = supabase
       .from('profiles')
-      .select('id, full_name, metier_type, metier, ville, telephone, phone, note, status, diplome_verifie')
+      .select('id, full_name, metier_type, metier, ville, telephone, phone, note, status, diplome_verifie, avatar_url')
       .in('role', ['artisan', 'prestataire'])
       .eq('status', 'valide');
-      
     if (villeClient) query = query.eq('ville', villeClient);
-    
     const { data } = await query.order('note', { ascending: false });
     setPrestataires(data || []);
     setLoading(false);
-  }, [supabase, villeClient]);
+  }, [villeClient]);
 
   const fetchAnnonces = useCallback(async () => {
     setLoading(true);
@@ -51,7 +56,7 @@ export default function DashboardPage() {
       .order('created_at', { ascending: false });
     setAnnonces(data || []);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     async function loadProfile() {
@@ -63,7 +68,7 @@ export default function DashboardPage() {
       setPageLoading(false);
     }
     loadProfile();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (!pageLoading) {
@@ -82,72 +87,326 @@ export default function DashboardPage() {
       description: form.description,
       metier_requis: form.metier_requis,
       budget_estime: form.budget_estime ? Number(form.budget_estime) : null,
+      urgence: form.urgence,
     });
-    setForm({ description: '', metier_requis: '', budget_estime: '' });
+    setForm({ description: '', metier_requis: '', budget_estime: '', urgence: false });
     setShowForm(false);
     setSubmitting(false);
     fetchAnnonces();
   }
 
   const metiers = ['tous', ...Array.from(new Set(prestataires.map(p => p.metier_type || p.metier || 'Autre').filter(Boolean)))];
-  const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter);
+  const filtered = prestataires
+    .filter(p => metierFilter === 'tous' || (p.metier_type || p.metier) === metierFilter)
+    .filter(p => !searchQuery || p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || (p.metier || p.metier_type)?.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const metierEmoji: Record<string, string> = {
-    'Electricien': '⚡', 'Plombier': '🔧', 'Macon': '🧱', 'Peintre': '🎨',
-    'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
-    'Jardinage': '🌱', 'Nettoyage': '🧹', 'tous': '🔍',
-  };
+  function getWhatsAppLink(p: any) {
+    const tel = p.telephone || p.phone || '';
+    let waNum = tel.replace(/[\s()\-]/g, '');
+    if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
+    waNum = waNum.replace(/^\+/, '');
+    return tel ? `https://wa.me/${waNum}?text=${encodeURIComponent("Bonjour, j'ai trouvé votre profil sur PrestaConnect.")}` : '#';
+  }
 
-  if (pageLoading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center font-bold text-gray-400">Chargement...</div>;
+  if (pageLoading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-500 font-medium">Chargement...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-6 md:p-10">
-        <h1 className="text-4xl font-black text-gray-900 mb-8">Bonjour, {firstName} !</h1>
+      <div className="max-w-5xl mx-auto p-4 md:p-8">
 
-        <div className="flex bg-white border border-gray-100 p-1.5 rounded-2xl w-fit mb-8 shadow-sm gap-1">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
+                : <User size={20} className="text-blue-600" />
+              }
+            </div>
+            <div>
+              <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Espace Client</p>
+              <h1 className="text-2xl font-bold text-gray-900">Bonjour, {firstName} !</h1>
+            </div>
+          </div>
+          {villeClient && (
+            <div className="flex items-center gap-1 mt-2 ml-13">
+              <MapPin size={13} className="text-gray-400" />
+              <span className="text-sm text-gray-400">{villeClient}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex bg-white border border-gray-100 p-1 rounded-2xl w-fit mb-6 shadow-sm gap-1">
           {([
-            { key: 'prestataires', label: 'Prestataires', emoji: '👷' },
-            { key: 'annonces', label: 'Mes annonces', emoji: '📢' },
-            { key: 'paiement', label: 'Paiement', emoji: '💳' },
-          ] as const).map(({ key, label, emoji }) => (
-            <button key={key} onClick={() => setActiveTab(key)} className={'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold ' + (activeTab === key ? 'bg-blue-600 text-white' : 'text-gray-400')}>
-              {emoji} {label}
+            { key: 'prestataires', label: 'Prestataires', icon: Briefcase },
+            { key: 'annonces', label: 'Mes annonces', icon: MessageCircle },
+            { key: 'paiements', label: 'Paiements', icon: CreditCard },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === key
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <Icon size={15} />
+              {label}
             </button>
           ))}
         </div>
 
+        {/* TAB: Prestataires */}
         {activeTab === 'prestataires' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map(p => {
-              const tel = p.telephone || p.phone || '';
-              let waNum = tel.replace(/[\s()\-]/g, '');
-              if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
-              waNum = waNum.replace(/^\+/, '');
-              const waLink = tel ? 'https://wa.me/' + waNum + '?text=' + encodeURIComponent('Bonjour, j\'ai trouvé votre profil sur PrestaConnect.') : '#';
-              
-              // Logique paiement
-              const doitPayer = p.diplome_verifie === false;
+          <div>
+            {/* Search + Filter */}
+            <div className="flex flex-col md:flex-row gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un prestataire ou un métier..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400"
+                />
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {metiers.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setMetierFilter(m)}
+                    className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      metierFilter === m
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white border border-gray-200 text-gray-500 hover:border-blue-300'
+                    }`}
+                  >
+                    {METIER_EMOJI[m] || '🔧'} {m}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-              return (
-                <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <p className="font-bold">{p.full_name}</p>
-                  <p className="text-xs text-gray-400 mb-4">{p.metier}</p>
-                  
-                  {doitPayer ? (
-                    <button onClick={() => alert("Redirection FedaPay : 500 FCFA")} className="w-full py-2.5 bg-amber-500 text-white rounded-xl font-bold text-sm">
-                      Payer 500 FCFA pour contacter
-                    </button>
-                  ) : (
-                    <a href={waLink} target="_blank" className="w-full py-2.5 bg-green-500 text-white rounded-xl font-bold text-sm flex justify-center">
-                      Contacter sur WhatsApp
-                    </a>
-                  )}
-                </div>
-              );
-            })}
+            {loading ? (
+              <div className="text-center py-16 text-gray-400">Chargement des prestataires...</div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">🔍</div>
+                <p className="text-gray-500 font-medium">Aucun prestataire disponible dans votre zone.</p>
+                <p className="text-gray-400 text-sm mt-1">Essayez de modifier vos filtres</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filtered.map(p => {
+                  const doitPayer = p.diplome_verifie === false;
+                  const waLink = getWhatsAppLink(p);
+                  const metier = p.metier || p.metier_type || 'Prestataire';
+                  const initials = p.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'PC';
+
+                  return (
+                    <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {p.avatar_url
+                            ? <img src={p.avatar_url} className="w-12 h-12 object-cover" alt="" />
+                            : <span className="text-blue-600 font-bold text-sm">{initials}</span>
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{p.full_name}</p>
+                          <p className="text-xs text-gray-400">{METIER_EMOJI[metier] || '🔧'} {metier}</p>
+                          {p.ville && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <MapPin size={10} className="text-gray-300" />
+                              <span className="text-xs text-gray-400">{p.ville}</span>
+                            </div>
+                          )}
+                        </div>
+                        {p.note && (
+                          <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
+                            <Star size={11} className="text-amber-500 fill-amber-500" />
+                            <span className="text-xs font-bold text-amber-600">{p.note}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {doitPayer ? (
+                        <button
+                          onClick={() => alert("Redirection vers FedaPay : 500 FCFA")}
+                          className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        >
+                          <CreditCard size={15} />
+                          Débloquer le contact — 500 FCFA
+                        </button>
+                      ) : (
+                        
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        >
+                          <MessageCircle size={15} />
+                          Contacter sur WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
+
+        {/* TAB: Annonces */}
+        {activeTab === 'annonces' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Mes annonces</h2>
+                <p className="text-sm text-gray-400">Publiez une demande, les prestataires vous contacteront</p>
+              </div>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={16} />
+                Nouvelle annonce
+              </button>
+            </div>
+
+            {showForm && (
+              <div className="bg-white rounded-2xl border border-blue-100 p-6 mb-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-gray-900">Publier une annonce</h3>
+                  <button onClick={() => setShowForm(false)}>
+                    <X size={18} className="text-gray-400 hover:text-gray-600" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Métier recherché *</label>
+                    <select
+                      value={form.metier_requis}
+                      onChange={e => setForm({ ...form, metier_requis: e.target.value })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                    >
+                      <option value="">Choisir un métier</option>
+                      {Object.keys(METIER_EMOJI).filter(k => k !== 'tous').map(m => (
+                        <option key={m} value={m}>{METIER_EMOJI[m]} {m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Description *</label>
+                    <textarea
+                      value={form.description}
+                      onChange={e => setForm({ ...form, description: e.target.value })}
+                      placeholder="Décrivez votre besoin en détail..."
+                      rows={3}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Budget estimé (FCFA)</label>
+                    <input
+                      type="number"
+                      value={form.budget_estime}
+                      onChange={e => setForm({ ...form, budget_estime: e.target.value })}
+                      placeholder="Ex: 50000"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl">
+                    <input
+                      type="checkbox"
+                      id="urgence"
+                      checked={form.urgence}
+                      onChange={e => setForm({ ...form, urgence: e.target.checked })}
+                      className="w-4 h-4 accent-orange-500"
+                    />
+                    <label htmlFor="urgence" className="text-sm font-semibold text-orange-700 cursor-pointer">
+                      🚨 Cas urgent — visible uniquement dans ma zone
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={publierAnnonce}
+                    disabled={submitting || !form.description || !form.metier_requis}
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
+                  >
+                    {submitting ? 'Publication...' : 'Publier mon annonce'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="text-center py-16 text-gray-400">Chargement...</div>
+            ) : annonces.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                <div className="text-5xl mb-4">📢</div>
+                <p className="text-gray-600 font-semibold">Aucune annonce publiée</p>
+                <p className="text-gray-400 text-sm mt-1">Publiez votre première annonce pour trouver un prestataire</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {annonces.map((a: any) => (
+                  <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{METIER_EMOJI[a.metier_requis] || '🔧'}</span>
+                        <span className="font-bold text-gray-900">{a.metier_requis}</span>
+                        {a.urgence && (
+                          <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">URGENT</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <Clock size={12} />
+                        {new Date(a.created_at).toLocaleDateString('fr-FR')}
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">{a.description}</p>
+                    {a.budget_estime && (
+                      <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-3 py-1 rounded-full">
+                        Budget : {a.budget_estime.toLocaleString()} FCFA
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB: Paiements */}
+        {activeTab === 'paiements' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900">Historique des paiements</h2>
+              <p className="text-sm text-gray-400">Vos déblocages de contacts prestataires</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+              <CreditCard size={40} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">Aucun paiement effectué</p>
+              <p className="text-gray-400 text-sm mt-1">Vos paiements pour débloquer des contacts apparaîtront ici</p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
