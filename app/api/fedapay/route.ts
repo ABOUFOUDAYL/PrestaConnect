@@ -10,13 +10,7 @@ export async function POST(req: Request) {
   try {
     const { montant, artisan_id, user_id } = await req.json()
 
-    console.log('[fedapay] Params reçus:', { montant, artisan_id, user_id })
-    console.log('[fedapay] FEDAPAY_SECRET_KEY définie:', !!process.env.FEDAPAY_SECRET_KEY)
-    console.log('[fedapay] SUPABASE_SERVICE_ROLE_KEY définie:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
-    console.log('[fedapay] APP_URL:', process.env.NEXT_PUBLIC_APP_URL)
-
     if (!montant || !artisan_id || !user_id) {
-      console.log('[fedapay] Paramètres manquants')
       return NextResponse.json(
         { error: 'Paramètres manquants' },
         { status: 400 }
@@ -24,7 +18,6 @@ export async function POST(req: Request) {
     }
 
     // 1. Créer la transaction en BDD
-    console.log('[fedapay] Insertion transaction Supabase...')
     const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
@@ -38,15 +31,10 @@ export async function POST(req: Request) {
       .select()
       .single()
 
-    if (txError) {
-      console.log('[fedapay] Erreur Supabase:', txError.message)
-      throw txError
-    }
-    console.log('[fedapay] Transaction créée:', transaction.id)
+    if (txError) throw txError
 
-    // 2. Créer la transaction FedaPay
-    console.log('[fedapay] Appel FedaPay sandbox...')
-    const fedapayRes = await fetch('https://sandbox-api.fedapay.com/v1/transactions', {
+    // 2. Créer la transaction FedaPay LIVE
+    const fedapayRes = await fetch('https://api.fedapay.com/v1/transactions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -63,8 +51,6 @@ export async function POST(req: Request) {
     })
 
     const fedapayData = await fedapayRes.json()
-    console.log('[fedapay] FedaPay status:', fedapayRes.status)
-    console.log('[fedapay] FedaPay response:', JSON.stringify(fedapayData))
 
     if (!fedapayRes.ok) throw new Error(fedapayData.message || 'Erreur FedaPay')
 
@@ -77,11 +63,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       transaction_id: transaction.id,
       fedapay_token: fedapayData.v1.transaction.token,
-      payment_url: `https://sandbox.fedapay.com/checkout/${fedapayData.v1.transaction.token}`,
+      payment_url: `https://app.fedapay.com/checkout/${fedapayData.v1.transaction.token}`,
     })
 
   } catch (error: any) {
-    console.log('[fedapay] Erreur finale:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
