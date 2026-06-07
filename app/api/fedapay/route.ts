@@ -51,14 +51,12 @@ export async function POST(req: Request) {
     })
 
     const fedapayData = await fedapayRes.json()
-
     if (!fedapayRes.ok) throw new Error(fedapayData.message || 'Erreur FedaPay')
 
-    // ✅ Structure live : clé "v1/transaction" avec slash
     const tx = fedapayData['v1/transaction']
     if (!tx) throw new Error('Structure FedaPay inattendue')
 
-    // 3. Générer le token de paiement
+    // 3. Générer le token
     const tokenRes = await fetch(`https://api.fedapay.com/v1/transactions/${tx.id}/token`, {
       method: 'POST',
       headers: {
@@ -68,7 +66,17 @@ export async function POST(req: Request) {
     })
 
     const tokenData = await tokenRes.json()
+    console.log('[fedapay] tokenRes status:', tokenRes.status)
+    console.log('[fedapay] tokenData complet:', JSON.stringify(tokenData))
+
+    // Le token peut être à différents endroits selon FedaPay live
     const token = tokenData.token
+      ?? tokenData['v1/transaction']?.token
+      ?? tokenData.data?.token
+
+    console.log('[fedapay] token extrait:', token)
+
+    if (!token) throw new Error('Token FedaPay introuvable: ' + JSON.stringify(tokenData))
 
     // 4. Mettre à jour avec l'ID FedaPay
     await supabaseAdmin
@@ -83,6 +91,7 @@ export async function POST(req: Request) {
     })
 
   } catch (error: any) {
+    console.log('[fedapay] Erreur finale:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
