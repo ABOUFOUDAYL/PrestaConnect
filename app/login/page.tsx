@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, Mail, Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,6 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // 1. Authentification
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -28,7 +29,6 @@ export default function LoginPage() {
 
       const userId = authData.user?.id;
 
-      // 2. Vérifier le rôle dans profiles
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -40,7 +40,6 @@ export default function LoginPage() {
         return;
       }
 
-      // 3. Vérifier si c'est un prestataire
       const { data: prestataire } = await supabase
         .from('prestataires')
         .select('id, statut')
@@ -53,12 +52,11 @@ export default function LoginPage() {
         } else if (prestataire.statut === 'rejete') {
           router.push('/prestataire/rejete');
         } else {
-          router.push('/prestataire');
+          router.push(redirect || '/prestataire');
         }
         return;
       }
 
-      // 4. Vérifier si c'est un client
       const { data: client } = await supabase
         .from('clients')
         .select('id')
@@ -66,11 +64,10 @@ export default function LoginPage() {
         .single();
 
       if (client) {
-        router.push('/dashboard');
+        router.push(redirect || '/dashboard');
         return;
       }
 
-      // 5. Nouveau compte sans profil
       router.push('/register/choice');
 
     } catch (err: any) {
@@ -84,7 +81,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-sm border p-8 w-full max-w-md">
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-7 h-7 text-white" />
@@ -94,12 +90,8 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
-
-          {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -113,11 +105,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Mot de passe */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -131,14 +120,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Erreur */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
               ❌ {error}
             </div>
           )}
 
-          {/* Bouton */}
           <button
             type="submit"
             disabled={loading}
@@ -149,24 +136,18 @@ export default function LoginPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Connexion...
               </>
-            ) : (
-              'Se connecter'
-            )}
+            ) : 'Se connecter'}
           </button>
-
         </form>
 
-        {/* Liens */}
         <div className="mt-6 text-center space-y-3">
-          <p className="text-sm text-gray-500">
-            Pas encore de compte ?
-          </p>
+          <p className="text-sm text-gray-500">Pas encore de compte ?</p>
           <div className="flex gap-3">
             <Link href="/register/client"
               className="flex-1 py-2.5 text-sm font-medium text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-50 transition text-center">
               Je suis client
             </Link>
-            <Link href="/prestataires"
+            <Link href="/register/provider"
               className="flex-1 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition text-center">
               Je suis artisan
             </Link>
