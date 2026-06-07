@@ -51,22 +51,28 @@ export async function POST(req: Request) {
     })
 
     const fedapayData = await fedapayRes.json()
+    console.log('[fedapay] Full response:', JSON.stringify(fedapayData, null, 2))
 
     if (!fedapayRes.ok) throw new Error(fedapayData.message || 'Erreur FedaPay')
 
-    // 3. Mettre à jour avec l'ID FedaPay
+    // 3. Extraire transaction (structure live peut différer du sandbox)
+    const tx = fedapayData.v1?.transaction ?? fedapayData.transaction ?? fedapayData
+    console.log('[fedapay] tx object:', JSON.stringify(tx))
+
+    // 4. Mettre à jour avec l'ID FedaPay
     await supabaseAdmin
       .from('transactions')
-      .update({ fedapay_id: String(fedapayData.v1.transaction.id) })
+      .update({ fedapay_id: String(tx.id) })
       .eq('id', transaction.id)
 
     return NextResponse.json({
       transaction_id: transaction.id,
-      fedapay_token: fedapayData.v1.transaction.token,
-      payment_url: `https://app.fedapay.com/checkout/${fedapayData.v1.transaction.token}`,
+      fedapay_token: tx.token,
+      payment_url: `https://app.fedapay.com/checkout/${tx.token}`,
     })
 
   } catch (error: any) {
+    console.log('[fedapay] Erreur finale:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
