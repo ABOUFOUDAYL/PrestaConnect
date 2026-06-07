@@ -1,77 +1,119 @@
-﻿'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+﻿"use client";
 
-const supabase = createClientComponentClient()
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { createBrowserClient } from '@supabase/ssr';
 
-function DashboardClient({ profile }: { profile: any }) {
-  const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires')
-  const [prestataires, setPrestataires] = useState<any[]>([])
-  const [annonces, setAnnonces] = useState<any[]>([])
-  const [metierFilter, setMetierFilter] = useState<string>('tous')
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ description: '', metier_requis: '', budget_estime: '' })
-  const [submitting, setSubmitting] = useState(false)
-  const firstName = profile?.full_name?.split(' ')[0] || profile?.prenom || 'vous'
-  const villeClient = profile?.ville || ''
+export default function DashboardPage() {
+  // 1. Initialisation de Supabase SSR
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
-  useEffect(() => {
-    if (activeTab === 'prestataires') fetchPrestataires()
-    if (activeTab === 'annonces') fetchAnnonces()
-  }, [activeTab])
+  // 2. États globaux
+  const [profile, setProfile] = useState<any>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  async function fetchPrestataires() {
-    setLoading(true)
+  // 3. États du tableau de bord
+  const [activeTab, setActiveTab] = useState<'prestataires' | 'annonces' | 'paiement'>('prestataires');
+  const [prestataires, setPrestataires] = useState<any[]>([]);
+  const [annonces, setAnnonces] = useState<any[]>([]);
+  const [metierFilter, setMetierFilter] = useState<string>('tous');
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ description: '', metier_requis: '', budget_estime: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  // 4. Variables dérivées
+  const firstName = profile?.full_name?.split(' ')[0] || profile?.prenom || 'vous';
+  const villeClient = profile?.ville || '';
+
+  // 5. Fonctions de récupération de données
+  const fetchPrestataires = useCallback(async () => {
+    setLoading(true);
     let query = supabase
       .from('profiles')
       .select('id, full_name, metier_type, metier, ville, telephone, phone, note, status')
       .in('role', ['artisan', 'prestataire'])
-      .eq('status', 'valide')
-    if (villeClient) query = query.eq('ville', villeClient)
-    const { data } = await query.order('note', { ascending: false })
-    setPrestataires(data || [])
-    setLoading(false)
-  }
+      .eq('status', 'valide');
+      
+    if (villeClient) query = query.eq('ville', villeClient);
+    
+    const { data } = await query.order('note', { ascending: false });
+    setPrestataires(data || []);
+    setLoading(false);
+  }, [supabase, villeClient]);
 
-  async function fetchAnnonces() {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  const fetchAnnonces = useCallback(async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data } = await supabase
       .from('annonces')
       .select('*')
       .eq('client_id', user.id)
-      .order('created_at', { ascending: false })
-    setAnnonces(data || [])
-    setLoading(false)
-  }
+      .order('created_at', { ascending: false });
+    setAnnonces(data || []);
+    setLoading(false);
+  }, [supabase]);
 
+  // 6. Effet d'initialisation (Profil)
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(data);
+      }
+      setPageLoading(false);
+    }
+    loadProfile();
+  }, [supabase]);
+
+  // 7. Effet de changement d'onglet (déclenché seulement après le chargement du profil)
+  useEffect(() => {
+    if (!pageLoading) {
+      if (activeTab === 'prestataires') fetchPrestataires();
+      if (activeTab === 'annonces') fetchAnnonces();
+    }
+  }, [activeTab, pageLoading, fetchPrestataires, fetchAnnonces]);
+
+  // 8. Logique d'envoi de formulaire
   async function publierAnnonce() {
-    if (!form.description || !form.metier_requis) return
-    setSubmitting(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!form.description || !form.metier_requis) return;
+    setSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     await supabase.from('annonces').insert({
       client_id: user.id,
       description: form.description,
       metier_requis: form.metier_requis,
       budget_estime: form.budget_estime ? Number(form.budget_estime) : null,
-    })
-    setForm({ description: '', metier_requis: '', budget_estime: '' })
-    setShowForm(false)
-    setSubmitting(false)
-    fetchAnnonces()
+    });
+    setForm({ description: '', metier_requis: '', budget_estime: '' });
+    setShowForm(false);
+    setSubmitting(false);
+    fetchAnnonces();
   }
 
-  const metiers = ['tous', ...Array.from(new Set(prestataires.map(p => p.metier_type || p.metier || 'Autre').filter(Boolean)))]
-  const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter)
+  // 9. Données pour l'affichage
+  const metiers = ['tous', ...Array.from(new Set(prestataires.map(p => p.metier_type || p.metier || 'Autre').filter(Boolean)))];
+  const filtered = metierFilter === 'tous' ? prestataires : prestataires.filter(p => (p.metier_type || p.metier) === metierFilter);
 
   const metierEmoji: Record<string, string> = {
     'Electricien': '⚡', 'Plombier': '🔧', 'Macon': '🧱', 'Peintre': '🎨',
     'Menuisier': '🪚', 'Carreleur': '🏠', 'Soudeur': '🔥', 'Chauffeur': '🚗',
     'Jardinage': '🌱', 'Nettoyage': '🧹', 'tous': '🔍',
+  };
+
+  // Écran de chargement initial pour éviter les erreurs d'affichage
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse font-bold text-gray-400">Chargement de votre espace...</div>
+      </div>
+    );
   }
 
   return (
@@ -81,7 +123,7 @@ function DashboardClient({ profile }: { profile: any }) {
           <p className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-1">Espace client</p>
           <h1 className="text-4xl font-black text-gray-900 tracking-tight">Bonjour, {firstName} !</h1>
           <p className="text-gray-400 mt-1">
-            {villeClient ? 'Prestataires disponibles a ' + villeClient : 'Trouvez le bon prestataire'}
+            {villeClient ? 'Prestataires disponibles à ' + villeClient : 'Trouvez le bon prestataire'}
           </p>
         </div>
 
@@ -110,7 +152,7 @@ function DashboardClient({ profile }: { profile: any }) {
                   onClick={() => setMetierFilter(m)}
                   className={'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border transition-all ' + (metierFilter === m ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300')}
                 >
-                  {metierEmoji[m] || '🛠'} {m === 'tous' ? 'Tous les metiers' : m}
+                  {metierEmoji[m] || '🛠'} {m === 'tous' ? 'Tous les métiers' : m}
                 </button>
               ))}
             </div>
@@ -119,12 +161,12 @@ function DashboardClient({ profile }: { profile: any }) {
             ) : filtered.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filtered.map(p => {
-                  const tel = p.telephone || p.phone || ''
-                  let waNum = tel.replace(/[\s()\-]/g, '')
-                  if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1)
-                  waNum = waNum.replace(/^\+/, '')
-                  const msg = encodeURIComponent('Bonjour, j ai trouve votre profil sur PrestaConnect. Etes-vous disponible ?')
-                  const waLink = tel ? 'https://wa.me/' + waNum + '?text=' + msg : '#'
+                  const tel = p.telephone || p.phone || '';
+                  let waNum = tel.replace(/[\s()\-]/g, '');
+                  if (waNum.startsWith('0')) waNum = '229' + waNum.slice(1);
+                  waNum = waNum.replace(/^\+/, '');
+                  const msg = encodeURIComponent('Bonjour, j\'ai trouvé votre profil sur PrestaConnect. Êtes-vous disponible ?');
+                  const waLink = tel ? 'https://wa.me/' + waNum + '?text=' + msg : '#';
                   return (
                     <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-all">
                       <div className="flex items-start justify-between mb-4">
@@ -156,7 +198,7 @@ function DashboardClient({ profile }: { profile: any }) {
                         Contacter sur WhatsApp
                       </a>
                     </div>
-                  )
+                  );
                 })}
               </div>
             ) : (
@@ -184,11 +226,11 @@ function DashboardClient({ profile }: { profile: any }) {
                 <h3 className="font-bold text-gray-800 mb-4">Publier une annonce</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Metier requis</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Métier requis</label>
                     <input
                       value={form.metier_requis}
                       onChange={e => setForm({ ...form, metier_requis: e.target.value })}
-                      placeholder="Ex: Electricien, Plombier..."
+                      placeholder="Ex: Électricien, Plombier..."
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
                     />
                   </div>
@@ -197,13 +239,13 @@ function DashboardClient({ profile }: { profile: any }) {
                     <textarea
                       value={form.description}
                       onChange={e => setForm({ ...form, description: e.target.value })}
-                      placeholder="Decrivez votre besoin en detail..."
+                      placeholder="Décrivez votre besoin en détail..."
                       rows={3}
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 resize-none"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Budget estime (FCFA)</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Budget estimé (FCFA)</label>
                     <input
                       type="number"
                       value={form.budget_estime}
@@ -217,7 +259,7 @@ function DashboardClient({ profile }: { profile: any }) {
                     disabled={submitting}
                     className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
                   >
-                    {submitting ? 'Publication...' : 'Publier l annonce'}
+                    {submitting ? 'Publication...' : 'Publier l\'annonce'}
                   </button>
                 </div>
               </div>
@@ -244,7 +286,7 @@ function DashboardClient({ profile }: { profile: any }) {
             ) : (
               <div className="py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100">
                 <p className="text-4xl mb-3">📢</p>
-                <p className="text-gray-400 font-bold">Aucune annonce publiee.</p>
+                <p className="text-gray-400 font-bold">Aucune annonce publiée.</p>
               </div>
             )}
           </div>
@@ -275,15 +317,5 @@ function DashboardClient({ profile }: { profile: any }) {
         )}
       </div>
     </div>
-  )
-}
-
-export default async function DashboardPage() {
-  const { createServerComponentClient } = await import('@supabase/auth-helpers-nextjs')
-  const { cookies } = await import('next/headers')
-  const supabaseServer = createServerComponentClient({ cookies })
-  const { data: { user } } = await supabaseServer.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabaseServer.from('profiles').select('*').eq('id', user.id).single()
-  return <DashboardClient profile={profile} />
+  );
 }
