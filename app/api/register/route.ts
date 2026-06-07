@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       carte_identite_url, casier_judiciaire_url
     } = body;
 
+    // 1. Créer l'utilisateur Auth
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email,
@@ -30,12 +31,13 @@ export async function POST(req: Request) {
     const userId = authData.user?.id;
     if (!userId) throw new Error("User non créé");
 
+    // 2. Créer le profil avec le bon rôle
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .upsert({
         id: userId,
         user_id: userId,
-        role: "artisan",
+        role: role, // ← était toujours 'artisan' avant !
         full_name,
         telephone,
         email,
@@ -43,10 +45,11 @@ export async function POST(req: Request) {
         metier: metier || null,
         carte_identite_url: carte_identite_url || null,
         casier_judiciaire_url: casier_judiciaire_url || null,
-        statut_verification: "en_attente_validation",
+        statut_verification: role === 'client' ? 'valide' : 'en_attente_validation',
       }, { onConflict: "id" });
     if (profileError) throw profileError;
 
+    // 3. Insérer dans la bonne table selon le rôle
     if (role === "prestataire" || role === "artisan") {
       const { error: prestaError } = await supabaseAdmin
         .from("prestataires")
@@ -57,26 +60,38 @@ export async function POST(req: Request) {
           statut: "en_attente",
         });
       if (prestaError) throw prestaError;
-    }
 
-    await resend.emails.send({
-      from: "PrestaConnect <onboarding@resend.dev>",
-      to: process.env.ADMIN_EMAIL!,
-      subject: "Nouvel artisan en attente de validation",
-      html: `
-        <h2>Nouvel artisan inscrit sur PrestaConnect</h2>
-        <p><strong>Nom :</strong> ${full_name}</p>
-        <p><strong>Email :</strong> ${email}</p>
-        <p><strong>Téléphone :</strong> ${telephone}</p>
-        <p><strong>Métier :</strong> ${metier}</p>
-        <p><strong>Ville :</strong> ${ville}</p>
-        <br/>
-        <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
-        <a href="https://presta-connect.vercel.app/admin-ambassadeur">
-          Voir le tableau de bord
-        </a>
-      `,
-    });
+      // Email admin pour validation artisan
+      await resend.emails.send({
+        from: "PrestaConnect <onboarding@resend.dev>",
+        to: process.env.ADMIN_EMAIL!,
+        subject: "Nouvel artisan en attente de validation",
+        html: `
+          <h2>Nouvel artisan inscrit sur PrestaConnect</h2>
+          <p><strong>Nom :</strong> ${full_name}</p>
+          <p><strong>Email :</strong> ${email}</p>
+          <p><strong>Téléphone :</strong> ${telephone}</p>
+          <p><strong>Métier :</strong> ${metier}</p>
+          <p><strong>Ville :</strong> ${ville}</p>
+          <br/>
+          <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
+          <a href="https://presta-connect.vercel.app/admin-ambassadeur">
+            Voir le tableau de bord
+          </a>
+        `,
+      });
+
+    } else if (role === "client") {
+      const { error: clientError } = await supabaseAdmin
+        .from("clients")
+        .insert({
+          user_id: userId,
+          nom: full_name,
+          telephone: telephone || null,
+          email: email,
+        });
+      if (clientError) throw clientError;
+    }
 
     return NextResponse.json({ success: true, userId });
   } catch (err: any) {
