@@ -4,12 +4,26 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { BarChart3, TrendingUp, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
+function getTarif(type: string | null): { montant: number; label: string } {
+  switch (type) {
+    case 'urgent':
+      return { montant: 300, label: 'prestation urgente' };
+    case 'sans_diplome':
+      return { montant: 500, label: 'prestataire sans diplôme' };
+    case 'grand_projet':
+      return { montant: 1500, label: 'grand chantier' };
+    default:
+      return { montant: 300, label: 'mise en relation' };
+  }
+}
+
 export default function AnalyticsPage() {
   const [stats, setStats] = useState({
     totalAcceptes: 0,
     totalTermines: 0,
     enCours: 0,
-    tauxSucces: 0
+    tauxSucces: 0,
+    investissement: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +39,7 @@ export default function AnalyticsPage() {
 
       const { data, error } = await supabase
         .from('demandes')
-        .select('status')
+        .select('status, type_intervention')
         .eq('artisan_id', user.id);
 
       if (error) throw error;
@@ -35,7 +49,13 @@ export default function AnalyticsPage() {
         const termines = data.filter(d => d.status === 'Terminé').length;
         const enCours = data.filter(d => d.status === 'En cours').length;
         const taux = acceptes > 0 ? Math.round((termines / acceptes) * 100) : 0;
-        setStats({ totalAcceptes: acceptes, totalTermines: termines, enCours, tauxSucces: taux });
+
+        // Calcul investissement réel selon type_intervention
+        const investissement = data
+          .filter(d => d.status === 'Accepté')
+          .reduce((sum, d) => sum + getTarif(d.type_intervention).montant, 0);
+
+        setStats({ totalAcceptes: acceptes, totalTermines: termines, enCours, tauxSucces: taux, investissement });
       }
     } catch (err) {
       console.error("Erreur analytiques:", err);
@@ -69,7 +89,7 @@ export default function AnalyticsPage() {
           <p className="text-gray-400 text-[11px] font-semibold uppercase tracking-wide">Chantiers débloqués</p>
           <h3 className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAcceptes}</h3>
           <p className="text-[11px] text-gray-400 mt-2">
-            Investissement : <span className="font-semibold text-gray-600">{stats.totalAcceptes * 200} FCFA</span>
+            Investissement : <span className="font-semibold text-gray-600">{stats.investissement} FCFA</span>
           </p>
         </div>
 
@@ -104,10 +124,14 @@ export default function AnalyticsPage() {
 
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 items-start">
         <AlertCircle size={18} className="text-blue-500 flex-shrink-0 mt-0.5" />
-        <p className="text-gray-600 text-sm">
-          Chaque mise en relation coûte <span className="font-semibold text-gray-900">200 FCFA</span>.
-          Optimisez vos gains en concluant rapidement vos échanges sur WhatsApp !
-        </p>
+        <div className="text-gray-600 text-sm space-y-1">
+          <p>Tarif de déblocage des coordonnées selon le type de demande :</p>
+          <ul className="mt-1 space-y-0.5">
+            <li>• Prestation urgente : <span className="font-semibold text-gray-900">300 FCFA</span></li>
+            <li>• Prestataire sans diplôme : <span className="font-semibold text-gray-900">500 FCFA</span></li>
+            <li>• Grand chantier : <span className="font-semibold text-gray-900">1 500 FCFA</span></li>
+          </ul>
+        </div>
       </div>
 
     </div>
