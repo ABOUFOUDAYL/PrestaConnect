@@ -222,4 +222,53 @@ export default function DashboardPage() {
                     </select>
                   </div>
                   <div>
-                    <l
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Description *</label>
+                    <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="Décrivez votre besoin..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Budget estimé (FCFA)</label>
+                    <input type="number" value={form.budget_estime} onChange={e => setForm({...form, budget_estime: e.target.value})} placeholder="Ex: 5000" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-400" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="urgence" checked={form.urgence} onChange={e => setForm({...form, urgence: e.target.checked})} />
+                    <label htmlFor="urgence" className="text-sm text-gray-600">Urgent</label>
+                  </div>
+                  <button onClick={publierAnnonce} disabled={submitting} className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm">
+                    {submitting ? 'Publication...' : 'Publier'}
+                  </button>
+                </div>
+              </div>
+            )}
+            {annonces.length === 0 ? (
+              <div className="text-center py-16"><div className="text-5xl mb-4">📋</div><p className="text-gray-500">Aucune annonce publiée.</p></div>
+            ) : (
+              <div className="space-y-4">
+                {annonces.map(a => (
+                  <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-sm font-bold text-blue-600">{a.metier_requis}</span>
+                      {a.urgence && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-semibold">Urgent</span>}
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{a.description}</p>
+                    {a.budget_estime && <div className="flex items-center gap-1 text-xs text-gray-400"><Clock size={11} />{a.budget_estime} FCFA</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'paiements' && (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">💳</div>
+            <p className="text-gray-500">Historique des paiements bientôt disponible.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+`;
+
+fs.writeFileSync('app/(dashboard)/dashboard/page.tsx', code, 'utf8');
+console.log('done');
