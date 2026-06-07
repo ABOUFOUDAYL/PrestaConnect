@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,7 +26,6 @@ export default function RegisterClientPage() {
     setError('');
 
     try {
-      // 1. Créer le compte via API admin
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,17 +41,15 @@ export default function RegisterClientPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // 2. Connecter l'utilisateur après création
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
       });
       if (signInError) throw signInError;
 
-      // 3. Attendre que la session soit bien établie
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 4. Redirection
+      await new Promise(resolve => setTimeout(resolve, 800));
+      router.refresh();
+      await new Promise(resolve => setTimeout(resolve, 200));
       router.push('/dashboard');
 
     } catch (err: any) {
@@ -66,13 +63,12 @@ export default function RegisterClientPage() {
     <div className="min-h-screen bg-slate-50 text-slate-950 pt-32 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
         <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 sm:p-10">
-
           <div className="flex flex-col items-center mb-8">
             <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
               <UserCircle className="w-8 h-8 text-slate-500" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Créer un compte</h1>
-            <p className="text-slate-500 text-sm mt-1">Trouvez l'artisan qu'il vous faut</p>
+            <p className="text-slate-500 text-sm mt-1">Trouvez l artisan qu il vous faut</p>
           </div>
 
           {error && (
@@ -84,83 +80,42 @@ export default function RegisterClientPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nom complet</label>
-              <input
-                name="nom"
-                type="text"
-                required
-                value={form.nom}
-                onChange={handleChange}
+              <input name="nom" type="text" required value={form.nom} onChange={handleChange}
                 placeholder="Ex : Kouassi Jean"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-              />
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition" />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input
-                name="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={handleChange}
+              <input name="email" type="email" required value={form.email} onChange={handleChange}
                 placeholder="votre@email.com"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-              />
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition" />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Téléphone</label>
-              <input
-                name="telephone"
-                type="tel"
-                required
-                value={form.telephone}
-                onChange={handleChange}
+              <input name="telephone" type="tel" required value={form.telephone} onChange={handleChange}
                 placeholder="+229 97 00 00 00"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-              />
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition" />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
-              <input
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                value={form.password}
-                onChange={handleChange}
+              <input name="password" type="password" required minLength={6} value={form.password} onChange={handleChange}
                 placeholder="Minimum 6 caractères"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition"
-              />
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 transition" />
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 bg-slate-900 text-white rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-700 transition disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full mt-2 bg-slate-900 text-white rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2 hover:bg-slate-700 transition disabled:opacity-50">
               {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Création du compte...</span>
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" /><span>Création du compte...</span></>
               ) : (
-                <>
-                  <span>Créer mon compte</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <><span>Créer mon compte</span><ArrowRight className="w-4 h-4" /></>
               )}
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-500 mt-6">
             Déjà un compte ?{' '}
-            <a href="/login" className="text-slate-900 font-medium hover:underline">
-              Se connecter
-            </a>
+            <a href="/login" className="text-slate-900 font-medium hover:underline">Se connecter</a>
           </p>
-
         </div>
       </div>
     </div>
