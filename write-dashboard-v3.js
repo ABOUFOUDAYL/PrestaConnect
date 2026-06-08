@@ -167,5 +167,5 @@ export default function DashboardPage() {
 }
 `;
 
-fs.writeFileSync('app/(dashboard)/dashboard/page.tsx', code, 'utf8');
+fs.writeFileSync('app/dashboard/page.tsx', code, 'utf8');
 console.log('done!');
