@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 
 const ToastProvider = ToastPrimitives.Provider
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ToastViewport = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Viewport
     ref={ref}
@@ -34,7 +33,6 @@ const toastVariants = cva(
   }
 )
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Toast = React.forwardRef<any, any>(({ className, variant, ...props }, ref) => (
   <ToastPrimitives.Root
     ref={ref}
@@ -44,20 +42,26 @@ const Toast = React.forwardRef<any, any>(({ className, variant, ...props }, ref)
 ))
 Toast.displayName = "Toast"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ToastAction = React.forwardRef<any, any>(({ className, ...props }, ref) => (
-  <ToastPrimitives.Action
-    ref={ref}
-    className={cn(
-      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
-      className
-    )}
-    {...props}
-  />
-))
+type ToastActionProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action> & {
+  altText: string
+  className?: string
+}
+
+const ToastAction = React.forwardRef<HTMLButtonElement, ToastActionProps>(
+  ({ className, altText, ...props }, ref) => (
+    <ToastPrimitives.Action
+      ref={ref}
+      altText={altText}
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+        className
+      )}
+      {...props}
+    />
+  )
+)
 ToastAction.displayName = "ToastAction"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ToastClose = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Close
     ref={ref}
@@ -73,7 +77,6 @@ const ToastClose = React.forwardRef<any, any>(({ className, ...props }, ref) => 
 ))
 ToastClose.displayName = "ToastClose"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ToastTitle = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
@@ -83,7 +86,6 @@ const ToastTitle = React.forwardRef<any, any>(({ className, ...props }, ref) => 
 ))
 ToastTitle.displayName = "ToastTitle"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ToastDescription = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
@@ -99,6 +101,7 @@ type ToastActionElement = React.ReactElement<typeof ToastAction>
 export {
   type ToastProps,
   type ToastActionElement,
+  type ToastActionProps,
   ToastProvider,
   ToastViewport,
   Toast,
