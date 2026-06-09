@@ -8,10 +8,8 @@ import { cn } from "@/lib/utils"
 
 const ToastProvider = ToastPrimitives.Provider
 
-const ToastViewport = React.forwardRef
-  HTMLOListElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
->(({ className, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ToastViewport = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
@@ -21,7 +19,7 @@ const ToastViewport = React.forwardRef
     {...props}
   />
 ))
-ToastViewport.displayName = ToastPrimitives.Viewport.displayName
+ToastViewport.displayName = "ToastViewport"
 
 const toastVariants = cva(
   "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
@@ -36,22 +34,18 @@ const toastVariants = cva(
   }
 )
 
-const Toast = React.forwardRef
-  HTMLLIElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Toast = React.forwardRef<any, any>(({ className, variant, ...props }, ref) => (
   <ToastPrimitives.Root
     ref={ref}
     className={cn(toastVariants({ variant }), className)}
     {...props}
   />
 ))
-Toast.displayName = ToastPrimitives.Root.displayName
+Toast.displayName = "Toast"
 
-const ToastAction = React.forwardRef
-  HTMLButtonElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
->(({ className, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ToastAction = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
@@ -61,12 +55,10 @@ const ToastAction = React.forwardRef
     {...props}
   />
 ))
-ToastAction.displayName = ToastPrimitives.Action.displayName
+ToastAction.displayName = "ToastAction"
 
-const ToastClose = React.forwardRef
-  HTMLButtonElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
->(({ className, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ToastClose = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
@@ -79,31 +71,27 @@ const ToastClose = React.forwardRef
     <X className="h-4 w-4" />
   </ToastPrimitives.Close>
 ))
-ToastClose.displayName = ToastPrimitives.Close.displayName
+ToastClose.displayName = "ToastClose"
 
-const ToastTitle = React.forwardRef
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
->(({ className, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ToastTitle = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
     className={cn("text-sm font-semibold [&+div]:text-xs", className)}
     {...props}
   />
 ))
-ToastTitle.displayName = ToastPrimitives.Title.displayName
+ToastTitle.displayName = "ToastTitle"
 
-const ToastDescription = React.forwardRef
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
->(({ className, ...props }, ref) => (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ToastDescription = React.forwardRef<any, any>(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
     className={cn("text-sm opacity-90", className)}
     {...props}
   />
 ))
-ToastDescription.displayName = ToastPrimitives.Description.displayName
+ToastDescription.displayName = "ToastDescription"
 
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>
 type ToastActionElement = React.ReactElement<typeof ToastAction>
