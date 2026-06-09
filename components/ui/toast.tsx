@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Viewport>,
+  HTMLOListElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Viewport
@@ -37,7 +37,7 @@ const toastVariants = cva(
 )
 
 const Toast = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Root>,
+  HTMLLIElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => (
   <ToastPrimitives.Root
@@ -49,7 +49,7 @@ const Toast = React.forwardRef
 Toast.displayName = ToastPrimitives.Root.displayName
 
 const ToastAction = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Action>,
+  HTMLButtonElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Action
@@ -64,7 +64,7 @@ const ToastAction = React.forwardRef
 ToastAction.displayName = ToastPrimitives.Action.displayName
 
 const ToastClose = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Close>,
+  HTMLButtonElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Close
@@ -82,7 +82,7 @@ const ToastClose = React.forwardRef
 ToastClose.displayName = ToastPrimitives.Close.displayName
 
 const ToastTitle = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Title>,
+  HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
@@ -94,7 +94,7 @@ const ToastTitle = React.forwardRef
 ToastTitle.displayName = ToastPrimitives.Title.displayName
 
 const ToastDescription = React.forwardRef
-  React.ComponentRef<typeof ToastPrimitives.Description>,
+  HTMLDivElement,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
