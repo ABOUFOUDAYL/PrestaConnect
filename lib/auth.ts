@@ -1,20 +1,36 @@
-﻿import { supabase } from './supabase'
+﻿import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-export async function signUp(email: string, password: string, metadata?: Record<string, unknown>) {
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: metadata } })
-  if (error) throw error
-  return data
-}
+export const supabase = createClientComponentClient()
 
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw error
-  return data
+  return { data, error }
+}
+
+export async function signUp(email: string, password: string, metadata?: object) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: metadata }
+  })
+  return { data, error }
 }
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  return { error }
+}
+
+export async function resetPasswordRequest(email: string) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`
+  })
+  return { data, error }
+}
+
+export async function updatePassword(newPassword: string) {
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword })
+  return { data, error }
 }
 
 export async function getSession() {

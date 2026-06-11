@@ -1,19 +1,12 @@
-﻿import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
-import RegisterForm from '@/components/auth/RegisterForm'
 import { Wrench } from 'lucide-react'
+import ResetPasswordForm from '@/components/auth/ResetPasswordForm'
 
 export const metadata = {
-  title: 'Inscription Client — PrestaConnect',
-  description: 'Créez votre compte client PrestaConnect',
+  title: 'Nouveau mot de passe — PrestaConnect',
+  description: 'Choisissez un nouveau mot de passe pour votre compte',
 }
 
-export default async function RegisterClientPage() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) redirect('/client/dashboard')
-
+export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen">
 
@@ -30,19 +23,18 @@ export default async function RegisterClientPage() {
 
           <div className="space-y-3">
             <h1 className="text-3xl font-bold leading-tight">
-              Trouvez l'artisan idéal pour vos travaux
+              Choisissez un mot de passe sécurisé
             </h1>
             <p className="text-blue-100 text-base leading-relaxed">
-              Inscription gratuite. Recevez vos premiers devis en moins de 24h.
+              Votre nouveau mot de passe doit être différent de l'ancien et contenir au minimum 8 caractères.
             </p>
           </div>
 
           <ul className="space-y-4">
             {[
-              { icon: '🆓', text: 'Inscription et devis 100% gratuits' },
-              { icon: '⚡', text: 'Réponse des artisans sous 24h' },
-              { icon: '🔒', text: 'Données sécurisées et confidentielles' },
-              { icon: '✅', text: 'Artisans vérifiés et assurés' },
+              { icon: '🔒', text: 'Minimum 8 caractères' },
+              { icon: '💡', text: 'Mélangez lettres, chiffres et symboles' },
+              { icon: '🚫', text: 'Évitez les mots de passe évidents' },
             ].map((item) => (
               <li key={item.text} className="flex items-center gap-3 text-sm text-blue-50">
                 <span className="text-lg">{item.icon}</span>
@@ -65,17 +57,20 @@ export default async function RegisterClientPage() {
             <span className="text-lg font-bold text-gray-900">PrestaConnect</span>
           </div>
 
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-gray-900">Créer un compte client</h2>
-            <p className="text-sm text-gray-500">
-              Déjà un compte ?{' '}
-              <a href="/login" className="text-blue-600 hover:underline font-medium">
-                Se connecter
-              </a>
-            </p>
+          {/* Icône + titre */}
+          <div className="space-y-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50">
+              <span className="text-2xl">🔐</span>
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-gray-900">Nouveau mot de passe</h2>
+              <p className="text-sm text-gray-500">
+                Choisissez un mot de passe sécurisé pour votre compte
+              </p>
+            </div>
           </div>
 
-          <RegisterForm />
+          <ResetPasswordForm />
 
         </div>
       </div>

@@ -1,19 +1,12 @@
-﻿import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
-import RegisterForm from '@/components/auth/RegisterForm'
 import { Wrench } from 'lucide-react'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
 
 export const metadata = {
-  title: 'Inscription Client — PrestaConnect',
-  description: 'Créez votre compte client PrestaConnect',
+  title: 'Mot de passe oublié — PrestaConnect',
+  description: 'Réinitialisez votre mot de passe PrestaConnect',
 }
 
-export default async function RegisterClientPage() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) redirect('/client/dashboard')
-
+export default function ForgotPasswordPage() {
   return (
     <div className="flex min-h-screen">
 
@@ -30,19 +23,18 @@ export default async function RegisterClientPage() {
 
           <div className="space-y-3">
             <h1 className="text-3xl font-bold leading-tight">
-              Trouvez l'artisan idéal pour vos travaux
+              Récupérez l'accès à votre compte
             </h1>
             <p className="text-blue-100 text-base leading-relaxed">
-              Inscription gratuite. Recevez vos premiers devis en moins de 24h.
+              Entrez votre email et nous vous enverrons un lien pour réinitialiser votre mot de passe en quelques secondes.
             </p>
           </div>
 
           <ul className="space-y-4">
             {[
-              { icon: '🆓', text: 'Inscription et devis 100% gratuits' },
-              { icon: '⚡', text: 'Réponse des artisans sous 24h' },
-              { icon: '🔒', text: 'Données sécurisées et confidentielles' },
-              { icon: '✅', text: 'Artisans vérifiés et assurés' },
+              { icon: '📧', text: 'Lien envoyé instantanément par email' },
+              { icon: '🔒', text: 'Lien sécurisé valable 1 heure' },
+              { icon: '✅', text: 'Aucune donnée perdue' },
             ].map((item) => (
               <li key={item.text} className="flex items-center gap-3 text-sm text-blue-50">
                 <span className="text-lg">{item.icon}</span>
@@ -65,17 +57,20 @@ export default async function RegisterClientPage() {
             <span className="text-lg font-bold text-gray-900">PrestaConnect</span>
           </div>
 
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-gray-900">Créer un compte client</h2>
-            <p className="text-sm text-gray-500">
-              Déjà un compte ?{' '}
-              <a href="/login" className="text-blue-600 hover:underline font-medium">
-                Se connecter
-              </a>
-            </p>
+          {/* Icône */}
+          <div className="space-y-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
+              <span className="text-2xl">🔑</span>
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-gray-900">Mot de passe oublié ?</h2>
+              <p className="text-sm text-gray-500">
+                Entrez votre email pour recevoir un lien de réinitialisation
+              </p>
+            </div>
           </div>
 
-          <RegisterForm />
+          <ForgotPasswordForm />
 
         </div>
       </div>
