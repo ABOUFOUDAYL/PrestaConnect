@@ -12,7 +12,7 @@ export default async function LoginPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (user) redirect('/client/dashboard')
+  if (user) redirect('/dashboard')
 
   return (
     <div className="flex min-h-screen">
