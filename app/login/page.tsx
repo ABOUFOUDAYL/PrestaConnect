@@ -1,79 +1,173 @@
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
-import LoginForm from '@/components/auth/LoginForm'
-import { Wrench } from 'lucide-react'
+'use client'
 
-export const metadata = {
-  title: 'Connexion — PrestaConnect',
-  description: 'Connectez-vous à votre espace client',
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+
+interface FormData {
+  email: string
+  password: string
 }
 
-export default async function LoginPage() {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+interface FieldErrors {
+  email?: string
+  password?: string
+}
 
-  if (user) redirect('/dashboard')
+export default function LoginForm() {
+  const router = useRouter()
+  const [form, setForm] = useState<FormData>({ email: '', password: '' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  function validate(): boolean {
+    const errors: FieldErrors = {}
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      errors.email = 'Adresse email invalide'
+    }
+    if (!form.password) {
+      errors.password = 'Mot de passe requis'
+    }
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!validate()) return
+
+    setLoading(true)
+    setError(null)
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
+
+    if (authError) {
+      setError('Email ou mot de passe incorrect.')
+      setLoading(false)
+      return
+    }
+
+    // Lecture du rôle réel depuis la table profiles
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .single()
+
+    const role = profile?.role
+
+    if (role === 'admin') {
+      router.push('/admin/dashboard')
+    } else if (role === 'artisan') {
+      router.push('/artisan/dashboard')
+    } else {
+      router.push('/client/dashboard')
+    }
+
+    router.refresh()
+  }
 
   return (
-    <div className="flex min-h-screen">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
-      {/* Panneau gauche — visuel */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 px-12 text-white">
-        <div className="max-w-sm w-full space-y-8">
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-              <Wrench className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold">PrestaConnect</span>
-          </div>
-
-          <div className="space-y-3">
-            <h1 className="text-3xl font-bold leading-tight">
-              Trouvez l'artisan idéal pour vos travaux
-            </h1>
-            <p className="text-blue-100 text-base leading-relaxed">
-              Publiez votre demande, recevez des devis comparatifs et échangez directement avec des professionnels vérifiés.
-            </p>
-          </div>
-
-          <ul className="space-y-4">
-            {[
-              { icon: '🔍', text: "Recherche parmi des centaines d'artisans" },
-              { icon: '📋', text: 'Devis gratuits et comparatifs' },
-              { icon: '💬', text: 'Messagerie intégrée sécurisée' },
-              { icon: '✅', text: 'Artisans vérifiés et notés' },
-            ].map((item) => (
-              <li key={item.text} className="flex items-center gap-3 text-sm text-blue-50">
-                <span className="text-lg">{item.icon}</span>
-                {item.text}
-              </li>
-            ))}
-          </ul>
+      {/* Erreur globale */}
+      {error && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
         </div>
+      )}
+
+      {/* Email */}
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          Adresse email
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          placeholder="vous@exemple.fr"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+            ${fieldErrors.email
+              ? 'border-red-400 bg-red-50'
+              : 'border-gray-200 bg-white hover:border-gray-300'
+            }`}
+        />
+        {fieldErrors.email && (
+          <p className="text-xs text-red-600">{fieldErrors.email}</p>
+        )}
       </div>
 
-      {/* Panneau droit — formulaire */}
-      <div className="flex flex-1 flex-col justify-center items-center bg-white px-6 py-12 sm:px-12">
-        <div className="w-full max-w-md space-y-8">
-
-          {/* Logo mobile uniquement */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-              <Wrench className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">PrestaConnect</span>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-gray-900">Bon retour 👋</h2>
-            <p className="text-sm text-gray-500">Connectez-vous à votre espace client</p>
-          </div>
-
-          <LoginForm />
-
+      {/* Mot de passe */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            Mot de passe
+          </label>
+          <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+            Mot de passe oublié ?
+          </Link>
         </div>
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={form.password}
+            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            className={`w-full rounded-xl border px-4 py-2.5 pr-11 text-sm outline-none transition
+              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+              ${fieldErrors.password
+                ? 'border-red-400 bg-red-50'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {fieldErrors.password && (
+          <p className="text-xs text-red-600">{fieldErrors.password}</p>
+        )}
       </div>
-    </div>
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading ? 'Connexion en cours…' : 'Se connecter'}
+      </button>
+
+      {/* Lien inscription */}
+      <p className="text-center text-sm text-gray-500">
+        Pas encore de compte ?{' '}
+        <Link href="/register" className="font-semibold text-blue-600 hover:underline">
+          Créer un compte
+        </Link>
+      </p>
+
+    </form>
   )
 }
