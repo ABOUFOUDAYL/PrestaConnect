@@ -54,7 +54,25 @@ export default function LoginForm() {
       return
     }
 
-    router.push('/dashboard')
+    // Lecture du rôle réel depuis la table profiles
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .single()
+
+    const role = profile?.role
+
+    if (role === 'admin') {
+      router.push('/admin-ambassadeur')
+    } else if (role === 'artisan') {
+      router.push('/artisan')
+    } else {
+      router.push('/dashboard')
+    }
+
     router.refresh()
   }
 

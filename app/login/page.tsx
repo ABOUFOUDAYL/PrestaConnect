@@ -21,9 +21,9 @@ export default async function LoginPage() {
 
     const role = profile?.role
 
-    if (role === 'admin') redirect('/admin/dashboard')
-    else if (role === 'artisan') redirect('/artisan/dashboard')
-    else redirect('/client/dashboard')
+    if (role === 'admin') redirect('/admin-ambassadeur')
+    else if (role === 'artisan') redirect('/artisan')
+    else redirect('/dashboard')
   }
 
   return (
@@ -62,6 +62,7 @@ export default async function LoginPage() {
               </li>
             ))}
           </ul>
+
         </div>
       </div>
 
@@ -86,6 +87,7 @@ export default async function LoginPage() {
 
         </div>
       </div>
+
     </div>
   )
 }
