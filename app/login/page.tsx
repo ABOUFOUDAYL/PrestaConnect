@@ -22,7 +22,7 @@ export default async function LoginPage() {
     const role = profile?.role
 
     if (role === 'admin') redirect('/admin-ambassadeur')
-    else if (role === 'artisan') redirect('/artisan')
+    else if (role === 'artisan') redirect('/artisan/dashboard')
     else redirect('/dashboard')
   }
 

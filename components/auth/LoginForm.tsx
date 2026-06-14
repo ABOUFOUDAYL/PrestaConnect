@@ -68,7 +68,7 @@ export default function LoginForm() {
     if (role === 'admin') {
       router.push('/admin-ambassadeur')
     } else if (role === 'artisan') {
-      router.push('/artisan')
+      router.push('/artisan/dashboard')
     } else {
       router.push('/dashboard')
     }
