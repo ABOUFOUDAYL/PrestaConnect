@@ -181,7 +181,7 @@ export function Navbar() {
 
             {isLoggedIn && (
               <Link
-                href="/dashboard"
+                href="/"
                 onClick={() => setMobileOpen(false)}
                 className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
               >
@@ -208,7 +208,7 @@ function AppNavbar() {
   const router = useRouter();
   return (
     <header className="fixed top-0 left-0 right-0 z-50 flex h-[var(--navbar-height)] items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
-      <Link href="/dashboard" className="flex items-center gap-2">
+      <Link href="/" className="flex items-center gap-2">
         <img src="/logo.svg" alt="PrestaConnect" style={{ height: "32px", width: "auto" }} />
       </Link>
       <Button onClick={() => router.push('/')}>
