@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { createClient } from "@/lib/supabase/client";
-import WelcomeBanner from "@/components/client/WelcomeBanner";
-import StatsCard from "@/components/client/StatsCard";
-import RecentActivity from "@/components/client/RecentActivity";
+import { supabase } from "@/lib/supabase";
+import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
+import StatsCard from "@/components/dashboard/StatsCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 
 export default function DashboardPage() {
   const { authUser } = useAuth();
@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!authUser) return;
-    const supabase = createClient();
+    
 
     async function loadData() {
       const userId = authUser.id;
