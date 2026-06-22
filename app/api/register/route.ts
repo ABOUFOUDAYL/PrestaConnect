@@ -13,10 +13,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
-      email, password, role, full_name,
+      email, password, role, first_name, last_name,
       telephone, ville, metier,
       carte_identite_url, casier_judiciaire_url
     } = body;
+    const full_name = `${first_name} ${last_name}`.trim();
 
     // 1. Créer l'utilisateur Auth
     const { data: authData, error: authError } =
@@ -55,7 +56,8 @@ export async function POST(req: Request) {
         .from("prestataires")
         .insert({
           user_id: userId,
-          nom: full_name,
+          nom: last_name,
+          prenom: first_name,
           metier: metier || "Non renseigné",
           statut: "en_attente",
         });
@@ -86,7 +88,8 @@ export async function POST(req: Request) {
         .from("clients")
         .insert({
           user_id: userId,
-          nom: full_name,
+          nom: last_name,
+          prenom: first_name,
           telephone: telephone || null,
           email: email,
         });
