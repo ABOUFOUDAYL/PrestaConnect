@@ -38,8 +38,8 @@ export async function POST(req: Request) {
       .upsert({
         id: userId,
         user_id: userId,
-        role: role, // ← était toujours 'artisan' avant !
-        full_name,
+        nom: last_name,
+        prenom: first_name,
         telephone,
         email,
         ville: ville || null,

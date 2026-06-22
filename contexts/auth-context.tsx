@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthUser({
           id: user.id,
           role: prof.role,
-          full_name: prof.full_name || prof.nom || `${prof.prenom || ''} ${prof.nom || ''}`.trim() || '',
+          full_name: `${prof.prenom || ''} ${prof.nom || ''}`.trim() || prof.full_name || '',
           profile: prof,
         });
       }
