@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth-context";
 import { supabase } from "@/lib/supabase";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import StatsCard from "@/components/dashboard/StatsCard";
