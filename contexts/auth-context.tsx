@@ -22,9 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+    const loadUser = async (user: any) => {
+      // Si pas d'user (déconnexion), on remet à null
+      if (!user) {
+        setAuthUser(null);
+        setLoading(false);
+        return;
+      }
 
       const { data: prof } = await supabase
         .from('profiles')
@@ -39,14 +43,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: `${prof.prenom || ''} ${prof.nom || ''}`.trim() || prof.full_name || '',
           profile: prof,
         });
+      } else {
+        // Profil pas encore créé mais user connecté
+        setAuthUser({
+          id: user.id,
+          role: null,
+          full_name: '',
+          profile: null,
+        });
       }
       setLoading(false);
     };
 
-    loadUser();
+    // Charger l'utilisateur au démarrage
+    supabase.auth.getUser().then(({ data: { user } }) => loadUser(user));
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
+    // Écouter connexion ET déconnexion
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      loadUser(session?.user ?? null);
     });
 
     return () => listener.subscription.unsubscribe();

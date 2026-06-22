@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+const SESSION_TIMEOUT_MINUTES = 30
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -21,9 +23,7 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
-          response = NextResponse.next({
-            request,
-          })
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
@@ -33,6 +33,35 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+
+  // ✅ Timeout de session : déconnexion après 30 min d'inactivité
+  if (user) {
+    const lastActivity = request.cookies.get('last_activity')?.value
+    const now = Date.now()
+
+    if (lastActivity) {
+      const diff = now - parseInt(lastActivity)
+      const timeoutMs = SESSION_TIMEOUT_MINUTES * 60 * 1000
+
+      if (diff > timeoutMs) {
+        // Session expirée → déconnexion et redirection login
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
+        loginUrl.searchParams.set('reason', 'timeout')
+        const res = NextResponse.redirect(loginUrl)
+        res.cookies.delete('last_activity')
+        return res
+      }
+    }
+
+    // Mettre à jour le timestamp d'activité
+    response.cookies.set('last_activity', now.toString(), {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_TIMEOUT_MINUTES * 60,
+    })
+  }
 
   const protectedPaths = [
     '/dashboard',
