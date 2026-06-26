@@ -518,4 +518,25 @@
        --text-2xl: 1.25rem;
      }
      .container { padding: 0 var(--space-4); }
-   }
+   }/* Navigation client responsive : sidebar (desktop) ↔ barre du bas (mobile) */
+.client-sidebar-desktop {
+  display: flex;
+}
+.client-bottom-nav {
+  display: none;
+}
+.client-main-content {
+  padding-bottom: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .client-sidebar-desktop {
+    display: none;
+  }
+  .client-bottom-nav {
+    display: flex;
+  }
+  .client-main-content {
+    padding-bottom: 88px;
+  }
+}
