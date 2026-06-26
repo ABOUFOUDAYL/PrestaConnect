@@ -22,53 +22,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true; // Empêche les mises à jour d'état si le composant est démonté
+
     const loadUser = async (user: any) => {
-      if (!user) {
-        setAuthUser(null);
-        setLoading(false);
-        return;
+      try {
+        if (!user) {
+          if (isMounted) setAuthUser(null);
+          return;
+        }
+
+        const { data: prof, error: profError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        console.log('DEBUG profil:', { userId: user.id, prof, profError });
+
+        if (profError) {
+          console.error('Erreur Supabase lors de la récupération du profil:', profError);
+        }
+
+        if (isMounted) {
+          if (prof) {
+            setAuthUser({
+              id: user.id,
+              role: prof.role,
+              full_name:
+                prof.full_name?.trim() ||
+                `${prof.prenom || ''} ${prof.nom || ''}`.trim() ||
+                '',
+              profile: prof,
+            });
+          } else {
+            setAuthUser({
+              id: user.id,
+              role: null,
+              full_name: '',
+              profile: null,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Erreur inattendue dans loadUser:', error);
+        if (isMounted) setAuthUser(null);
+      } finally {
+        // TRÈS IMPORTANT : S'exécute TOUJOURS, succès ou échec.
+        if (isMounted) setLoading(false);
       }
-
-      const { data: prof, error: profError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      console.log('DEBUG profil:', { userId: user.id, prof, profError });
-
-      if (prof) {
-        setAuthUser({
-          id: user.id,
-          role: prof.role,
-          full_name:
-            prof.full_name?.trim() ||
-            `${prof.prenom || ''} ${prof.nom || ''}`.trim() ||
-            '',
-          profile: prof,
-        });
-      } else {
-        setAuthUser({
-          id: user.id,
-          role: null,
-          full_name: '',
-          profile: null,
-        });
-      }
-      setLoading(false);
     };
 
-    supabase.auth.getUser().then(({ data: { user }, error }) => {
-      console.log('GETUSER RESULT:', { user, error });
-      loadUser(user);
-    });
+    // 1. On initialise la session avec getSession() (plus rapide et stable côté client)
+    const initSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        await loadUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Erreur initSession:', error);
+        if (isMounted) {
+          setAuthUser(null);
+          setLoading(false);
+        }
+      }
+    };
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    initSession();
+
+    // 2. On écoute les changements futurs (connexion, déconnexion)
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('AUTH STATE CHANGE:', { event: _event, session });
-      loadUser(session?.user ?? null);
+      // On ne recharge le profil que s'il y a un vrai changement
+      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED' || _event === 'SIGNED_OUT') {
+        await loadUser(session?.user ?? null);
+      }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return (
