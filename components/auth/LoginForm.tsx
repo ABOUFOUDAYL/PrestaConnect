@@ -43,24 +43,21 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: form.email,
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email: form.email.trim().toLowerCase(),
       password: form.password,
     })
 
-    if (authError) {
+    if (authError || !data.user) {
       setError('Email ou mot de passe incorrect.')
       setLoading(false)
       return
     }
 
-    // Lecture du rôle réel depuis la table profiles
-    const { data: { user } } = await supabase.auth.getUser()
-
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('user_id', user?.id)
+      .eq('user_id', data.user.id)
       .single()
 
     const role = profile?.role
@@ -100,7 +97,7 @@ export default function LoginForm() {
           value={form.email}
           onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-            focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+            focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
             ${fieldErrors.email
               ? 'border-red-400 bg-red-50'
               : 'border-gray-200 bg-white hover:border-gray-300'
@@ -117,7 +114,7 @@ export default function LoginForm() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
             Mot de passe
           </label>
-          <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+          <Link href="/forgot-password" className="text-xs text-primary-600 hover:underline">
             Mot de passe oublié ?
           </Link>
         </div>
@@ -130,7 +127,7 @@ export default function LoginForm() {
             value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             className={`w-full rounded-xl border px-4 py-2.5 pr-11 text-sm outline-none transition
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${fieldErrors.password
                 ? 'border-red-400 bg-red-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
@@ -154,7 +151,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {loading ? 'Connexion en cours…' : 'Se connecter'}
@@ -163,7 +160,7 @@ export default function LoginForm() {
       {/* Lien inscription */}
       <p className="text-center text-sm text-gray-500">
         Pas encore de compte ?{' '}
-        <Link href="/register" className="font-semibold text-blue-600 hover:underline">
+        <Link href="/register" className="font-semibold text-primary-600 hover:underline">
           Créer un compte
         </Link>
       </p>
