@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
 
 interface FormData {
   email: string
@@ -23,6 +23,12 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  // ✅ Créer le client directement ici (pas d'import externe)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   function validate(): boolean {
     const errors: FieldErrors = {}
@@ -43,13 +49,28 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
+    // ✅ Log pour voir l'erreur réelle
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: form.email.trim().toLowerCase(),
       password: form.password,
     })
 
+    console.log('🔍 Auth result:', { user: data?.user?.email, error: authError?.message, code: authError?.status })
+
     if (authError || !data.user) {
-      setError('Email ou mot de passe incorrect.')
+      // ✅ Afficher le vrai message d'erreur Supabase
+      const msg = authError?.message ?? 'Erreur inconnue'
+      
+      if (msg.includes('Invalid login credentials')) {
+        setError('Email ou mot de passe incorrect.')
+      } else if (msg.includes('Email not confirmed')) {
+        setError('Veuillez confirmer votre email avant de vous connecter.')
+      } else if (msg.includes('Too many requests')) {
+        setError('Trop de tentatives. Réessayez dans quelques minutes.')
+      } else {
+        setError(`Erreur : ${msg}`) // ✅ Affiche le vrai message pour déboguer
+      }
+      
       setLoading(false)
       return
     }
@@ -59,6 +80,8 @@ export default function LoginForm() {
       .select('role')
       .eq('user_id', data.user.id)
       .single()
+
+    console.log('👤 Profile:', profile)
 
     const role = profile?.role
 
@@ -76,7 +99,6 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
-      {/* Erreur globale */}
       {error && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -84,7 +106,6 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* Email */}
       <div className="space-y-1.5">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Adresse email
@@ -108,7 +129,6 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* Mot de passe */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -147,7 +167,6 @@ export default function LoginForm() {
         )}
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
@@ -157,7 +176,6 @@ export default function LoginForm() {
         {loading ? 'Connexion en cours…' : 'Se connecter'}
       </button>
 
-      {/* Lien inscription */}
       <p className="text-center text-sm text-gray-500">
         Pas encore de compte ?{' '}
         <Link href="/register" className="font-semibold text-primary-600 hover:underline">
