@@ -8,7 +8,7 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 
 export default function DashboardPage() {
-  const { authUser } = useAuth();
+  const { authUser, loading } = useAuth();
   const [stats, setStats] = useState([
     { label: "Demandes", value: 0, icon: "📋", color: "var(--color-primary-500)" },
     { label: "Devis reçus", value: 0, icon: "📄", color: "var(--color-secondary-500)" },
@@ -66,7 +66,8 @@ export default function DashboardPage() {
         border: "1px solid #ccc",
         borderRadius: 8,
       }}>
-        {JSON.stringify(authUser, null, 2)}
+        {"loading: " + String(loading) + "\n\n"}
+        {"authUser: " + JSON.stringify(authUser, null, 2)}
       </pre>
       {/* 🔍 FIN BLOC DEBUG */}
 

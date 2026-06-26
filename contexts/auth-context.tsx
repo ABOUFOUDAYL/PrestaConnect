@@ -29,7 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // ✅ Requête simplifiée et fiable
       const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('*')
@@ -42,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthUser({
           id: user.id,
           role: prof.role,
-          // ✅ On utilise full_name en priorité, prenom/nom en secours seulement
           full_name:
             prof.full_name?.trim() ||
             `${prof.prenom || ''} ${prof.nom || ''}`.trim() ||
@@ -60,9 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    supabase.auth.getUser().then(({ data: { user } }) => loadUser(user));
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      console.log('GETUSER RESULT:', { user, error });
+      loadUser(user);
+    });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('AUTH STATE CHANGE:', { event: _event, session });
       loadUser(session?.user ?? null);
     });
 
