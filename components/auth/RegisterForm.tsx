@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 
 interface FormData {
   firstName: string
@@ -64,22 +63,24 @@ export default function RegisterForm() {
     setLoading(true)
     setError(null)
 
-    const { error: authError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          first_name: form.firstName,
-          last_name: form.lastName,
-          phone: form.phone,
-          role: 'client',
-        },
-      },
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        role: 'client',
+        first_name: form.firstName,
+        last_name: form.lastName,
+        telephone: form.phone || null,
+      }),
     })
 
-    if (authError) {
+    const data = await res.json()
+
+    if (!res.ok) {
       setError(
-        authError.message === 'User already registered'
+        data.error?.includes('already registered') || data.error?.includes('already been registered')
           ? 'Un compte existe déjà avec cet email.'
           : 'Une erreur est survenue. Veuillez réessayer.'
       )
@@ -91,7 +92,6 @@ export default function RegisterForm() {
     setLoading(false)
   }
 
-  // État succès
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-green-200 bg-green-50 px-6 py-10 text-center">
@@ -99,17 +99,15 @@ export default function RegisterForm() {
         <div className="space-y-1">
           <h3 className="text-lg font-semibold text-gray-900">Compte créé avec succès !</h3>
           <p className="text-sm text-gray-500">
-            Un email de confirmation a été envoyé à{' '}
+            Vous pouvez maintenant vous connecter avec votre email{' '}
             <span className="font-medium text-gray-700">{form.email}</span>.
-            <br />
-            Vérifiez votre boîte de réception pour activer votre compte.
           </p>
         </div>
         <Link
           href="/login"
           className="mt-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition"
         >
-          Aller à la connexion
+          Se connecter
         </Link>
       </div>
     )
@@ -118,7 +116,6 @@ export default function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
-      {/* Erreur globale */}
       {error && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -126,7 +123,6 @@ export default function RegisterForm() {
         </div>
       )}
 
-      {/* Prénom + Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
@@ -173,7 +169,6 @@ export default function RegisterForm() {
         </div>
       </div>
 
-      {/* Email */}
       <div className="space-y-1.5">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Adresse email *
@@ -196,7 +191,6 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* Téléphone */}
       <div className="space-y-1.5">
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
           Téléphone <span className="text-gray-400">(optionnel)</span>
@@ -205,14 +199,13 @@ export default function RegisterForm() {
           id="phone"
           type="tel"
           autoComplete="tel"
-          placeholder="06 12 34 56 78"
+          placeholder="+229 97 00 00 00"
           value={form.phone}
           onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none transition hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 
-      {/* Mot de passe */}
       <div className="space-y-1.5">
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Mot de passe *
@@ -245,7 +238,6 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* Confirmer mot de passe */}
       <div className="space-y-1.5">
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
           Confirmer le mot de passe *
@@ -278,7 +270,6 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* CGU */}
       <div className="space-y-1">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
@@ -303,7 +294,6 @@ export default function RegisterForm() {
         )}
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
@@ -313,7 +303,6 @@ export default function RegisterForm() {
         {loading ? 'Création du compte…' : 'Créer mon compte'}
       </button>
 
-      {/* Retour */}
       <p className="text-center text-sm text-gray-500">
         Mauvais profil ?{' '}
         <Link href="/register/choice" className="text-blue-600 hover:underline font-medium">
