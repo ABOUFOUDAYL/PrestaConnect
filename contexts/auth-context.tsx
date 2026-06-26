@@ -23,18 +23,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const loadUser = async (user: any) => {
-      // Si pas d'user (déconnexion), on remet à null
       if (!user) {
         setAuthUser(null);
         setLoading(false);
         return;
       }
 
+      // ✅ Requête simplifiée et fiable
       const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('*')
-        .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
       console.log('DEBUG profil:', { userId: user.id, prof, profError });
 
@@ -46,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile: prof,
         });
       } else {
-        // Profil pas encore créé mais user connecté
         setAuthUser({
           id: user.id,
           role: null,
@@ -57,10 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    // Charger l'utilisateur au démarrage
     supabase.auth.getUser().then(({ data: { user } }) => loadUser(user));
 
-    // Écouter connexion ET déconnexion
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       loadUser(session?.user ?? null);
     });
