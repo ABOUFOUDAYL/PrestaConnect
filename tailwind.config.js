@@ -27,9 +27,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans:  ['DM Sans', 'sans-serif'],
-        title: ['Sora', 'sans-serif'],
-        mono:  ['DM Mono', 'monospace'],
+        sans:  ['var(--font-dm-sans)', 'sans-serif'],
+        title: ['var(--font-sora)', 'sans-serif'],
+        mono:  ['var(--font-dm-mono)', 'monospace'],
       },
     },
   },

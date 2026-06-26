@@ -1,4 +1,4 @@
-﻿import { Inter } from 'next/font/google';
+﻿import { Sora, DM_Sans, DM_Mono } from 'next/font/google';
 import './globals.css';
 import { Footer } from '../components/layout/footer';
 import { Toaster } from '../components/ui/toaster';
@@ -7,7 +7,23 @@ import { Navbar } from '../components/layout/navbar';
 import { ImpersonationProvider } from '../contexts/impersonation-context';
 import { ImpersonationBar } from '../components/layout/impersonation-bar';
 
-const inter = Inter({ subsets: ['latin'] });
+const sora = Sora({
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800'],
+  variable: '--font-sora',
+})
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-dm-sans',
+})
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-dm-mono',
+})
 
 export default function RootLayout({
   children,
@@ -16,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
+      <body className={`${sora.variable} ${dmSans.variable} ${dmMono.variable} font-sans`}>
         <ImpersonationProvider>
           <ImpersonationBar />
           <ConditionalShell
