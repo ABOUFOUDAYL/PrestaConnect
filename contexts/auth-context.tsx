@@ -42,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthUser({
           id: user.id,
           role: prof.role,
-          full_name: `${prof.prenom || ''} ${prof.nom || ''}`.trim() || prof.full_name || '',
+          // ✅ On utilise full_name en priorité, prenom/nom en secours seulement
+          full_name:
+            prof.full_name?.trim() ||
+            `${prof.prenom || ''} ${prof.nom || ''}`.trim() ||
+            '',
           profile: prof,
         });
       } else {

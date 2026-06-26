@@ -21,7 +21,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!authUser) return;
-    
 
     async function loadData() {
       const userId = authUser.id;
@@ -54,7 +53,8 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <WelcomeBanner userName={authUser?.full_name || "..."} />
+      {/* ✅ Fallback "Client" au lieu de "..." si le nom est vide */}
+      <WelcomeBanner userName={authUser?.full_name?.trim() || "Client"} />
 
       <div style={{
         display: "grid",
