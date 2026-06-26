@@ -30,11 +30,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
         .single();
+
+      console.log('DEBUG profil:', { userId: user.id, prof, profError });
 
       if (prof) {
         setAuthUser({
