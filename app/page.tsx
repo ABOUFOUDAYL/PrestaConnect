@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
-  Wallet, CheckCircle2, UserCheck, ShieldCheck, ArrowRight,
-  Search, Star, Zap, Users, MapPin, Phone, ChevronDown,
-  Wrench, Bolt, Hammer, Paintbrush, Waves, Flame, Wind, Home,
-  Quote, TrendingUp, Award, Clock, Shield, BadgeCheck,
+  ArrowRight, Search, MapPin, CheckCircle2, Hammer,
+  Quote, Clock, Shield, Star, BadgeCheck, Users,
 } from "lucide-react";
 
 /* ─────────────────── HOOKS SUPABASE ─────────────────── */
@@ -62,7 +60,6 @@ function useTopPrestataires() {
 
       if (!data) return;
 
-      // Récupérer les notes moyennes pour chaque prestataire
       const withNotes = await Promise.all(
         data.map(async (p) => {
           const { data: avis } = await supabase
@@ -100,7 +97,7 @@ function useTemoignages() {
         .gte("note", 4)
         .not("texte", "is", null)
         .order("created_at", { ascending: false })
-        .limit(3);
+        .limit(2);
 
       setTemoignages(data ?? []);
     }
@@ -127,16 +124,16 @@ const MARQUEE_WORDS = [
 
 const CATEGORIES = [
   { label: "Électricité", emoji: "⚡", color: "#FEF3C7", text: "#92400E" },
-  { label: "Plomberie", emoji: "🔧", color: "#DBEAFE", text: "#1E40AF" },
+  { label: "Plomberie", emoji: "🔧", color: "#FFE1E3", text: "#7A1D25" },
   { label: "Maçonnerie", emoji: "🧱", color: "#FCE7F3", text: "#831843" },
   { label: "Menuiserie", emoji: "🪵", color: "#DCFCE7", text: "#14532D" },
   { label: "Peinture", emoji: "🖌️", color: "#F3E8FF", text: "#4C1D95" },
   { label: "Carrelage", emoji: "🏠", color: "#FFEDD5", text: "#7C2D12" },
-  { label: "Soudure", emoji: "🔥", color: "#FEE2E2", text: "#7F1D1D" },
+  { label: "Soudure", emoji: "🔥", color: "#FFC8CB", text: "#7A1D25" },
   { label: "Climatisation", emoji: "❄️", color: "#E0F2FE", text: "#0C4A6E" },
 ];
 
-const AVATAR_COLORS = ["#DBEAFE", "#DCFCE7", "#F3E8FF", "#FFEDD5"];
+const AVATAR_COLORS = ["#FFC8CB", "#DCFCE7", "#F3E8FF", "#FFEDD5"];
 
 /* ─────────────────── COMPOSANT PRINCIPAL ─────────────────── */
 
@@ -148,18 +145,9 @@ export default function HomePage() {
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const refs = useRef<Record<string, HTMLElement | null>>({});
 
-  // Données dynamiques Supabase
   const stats = useStats();
   const prestataires = useTopPrestataires();
   const temoignages = useTemoignages();
-
-  // Stats formatées dynamiquement
-  const STATS = [
-    { value: stats.artisans > 0 ? `${stats.artisans}+` : "—", label: "Artisans inscrits", icon: "👷", color: "#4F46E5" },
-    { value: stats.missions > 0 ? `${stats.missions}+` : "—", label: "Missions réalisées", icon: "✅", color: "#059669" },
-    { value: stats.villes > 0 ? stats.villes.toString() : "—", label: "Villes couvertes", icon: "📍", color: "#D97706" },
-    { value: stats.noteMoyenne > 0 ? `${stats.noteMoyenne}/5` : "—", label: "Note moyenne", icon: "⭐", color: "#DC2626" },
-  ];
 
   useEffect(() => {
     const t = setInterval(() => setCurrentImg((i) => (i + 1) % HERO_IMAGES.length), 5000);
@@ -195,7 +183,6 @@ export default function HomePage() {
     ));
   }
 
-  // Initiales pour avatar fallback
   function getInitiales(nom: string) {
     return nom?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) ?? "??";
   }
@@ -205,43 +192,38 @@ export default function HomePage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; color: #0f172a; }
-        .syne { font-family: 'Syne', sans-serif; }
+        body { font-family: 'DM Sans', sans-serif; color: #0f172a; }
+        .syne { font-family: 'Sora', sans-serif; }
         .marquee-track { display: flex; gap: 40px; animation: marquee 25s linear infinite; white-space: nowrap; }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         .img-slide { position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%; transition: opacity 1.2s ease; }
-        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; padding: 13px 24px; border-radius: 12px; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
-        .btn-primary { background: #4F46E5; color: #fff; }
-        .btn-primary:hover { background: #4338CA; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(79,70,229,0.35); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14px; padding: 13px 24px; border-radius: 14px; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
+        .btn-primary { background: #E63946; color: #fff; }
+        .btn-primary:hover { background: #D32F2F; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(230,57,70,0.35); }
         .btn-outline { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,0.3); }
         .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.6); }
         .btn-green { background: #059669; color: #fff; }
         .btn-green:hover { background: #047857; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(5,150,105,0.35); }
-        .search-box { background: #fff; border-radius: 16px; padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
-        .search-input { border: none; outline: none; background: transparent; font-family: 'Inter', sans-serif; font-size: 15px; color: #0f172a; flex: 1; min-width: 0; padding: 8px 0; }
+        .search-box { background: #fff; border-radius: 18px; padding: 6px 6px 6px 20px; display: flex; align-items: center; gap: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+        .search-input { border: none; outline: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 15px; color: #0f172a; flex: 1; min-width: 0; padding: 8px 0; }
         .search-input::placeholder { color: #94a3b8; }
         .search-divider { width: 1px; height: 28px; background: #E5E7EB; flex-shrink: 0; }
-        .tab-btn { padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; font-family: 'Syne', sans-serif; white-space: nowrap; }
-        .tab-active-client { background: #4F46E5; color: #fff; }
+        .tab-btn { padding: 10px 20px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; font-family: 'Sora', sans-serif; white-space: nowrap; }
+        .tab-active-client { background: #E63946; color: #fff; }
         .tab-active-presta { background: #059669; color: #fff; }
         .tab-inactive { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.15); }
         .tab-inactive:hover { background: rgba(255,255,255,0.15); color: #fff; }
         .card { background: #fff; border-radius: 20px; border: 1px solid #F1F5F9; transition: transform 0.25s, box-shadow 0.25s; }
         .card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
-        .card-dark { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; transition: transform 0.25s, background 0.25s; }
-        .card-dark:hover { transform: translateY(-4px); background: rgba(255,255,255,0.07); }
         .cat-card { border-radius: 16px; padding: 20px 14px; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; border: 1.5px solid transparent; }
         .cat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.06); }
         .presta-card { background: #fff; border-radius: 20px; border: 1px solid #F1F5F9; overflow: hidden; transition: transform 0.25s, box-shadow 0.25s; }
         .presta-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(0,0,0,0.1); }
         .temoignage-card { background: #fff; border-radius: 20px; border: 1px solid #F1F5F9; padding: 28px; transition: transform 0.25s, box-shadow 0.25s; }
         .temoignage-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.07); }
-        .section-label { display: inline-flex; align-items: center; gap: 6px; background: #EEF2FF; color: #4F46E5; border-radius: 999px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 14px; }
-        .stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 28px 24px; text-align: center; transition: background 0.2s; }
-        .stat-card:hover { background: rgba(255,255,255,0.08); }
+        .section-label { display: inline-flex; align-items: center; gap: 6px; background: #FFF1F2; color: #E63946; border-radius: 999px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 14px; }
         .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
         .skeleton-light { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -255,16 +237,16 @@ export default function HomePage() {
 
       <main style={{ overflowX: "hidden" }}>
 
-        {/* ══════════════ HERO ══════════════ */}
+        {/* ══════════════ HERO (avec mini-stats intégrées) ══════════════ */}
         <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#06091A", overflow: "hidden", paddingTop: "var(--navbar-height, 64px)" }}>
           {HERO_IMAGES.map((src, i) => (
             <img key={i} src={src} alt="" className="img-slide" style={{ opacity: i === currentImg ? 0.3 : 0 }} />
           ))}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(6,9,26,0.7) 0%, rgba(79,70,229,0.15) 50%, rgba(6,9,26,0.85) 100%)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(6,9,26,0.7) 0%, rgba(230,57,70,0.15) 50%, rgba(6,9,26,0.85) 100%)" }} />
           <div style={{ position: "absolute", inset: 0, opacity: 0.12, backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
 
           <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 860, margin: "0 auto", padding: "60px 20px 100px", textAlign: "center" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(79,70,229,0.18)", border: "1px solid rgba(79,70,229,0.4)", color: "#A5B4FC", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 600, marginBottom: 28, letterSpacing: "0.05em" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(230,57,70,0.18)", border: "1px solid rgba(230,57,70,0.4)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 600, marginBottom: 28, letterSpacing: "0.05em" }}>
               🇧🇯 La première plateforme artisanale du Bénin
             </div>
 
@@ -277,7 +259,7 @@ export default function HomePage() {
               <div>
                 <h1 className="syne" style={{ fontSize: "clamp(2.2rem, 7vw, 4.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.1, marginBottom: 20 }}>
                   Trouvez l'artisan<br />
-                  <span style={{ background: "linear-gradient(135deg, #818CF8, #6366F1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>qu'il vous faut</span><br />en quelques clics
+                  <span style={{ background: "linear-gradient(135deg, #FB6B72, #E63946)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>qu'il vous faut</span><br />en quelques clics
                 </h1>
                 <p style={{ fontSize: "clamp(0.95rem, 2.2vw, 1.1rem)", color: "#94A3B8", maxWidth: 500, margin: "0 auto 36px", lineHeight: 1.75 }}>
                   PrestaConnect connecte directement les particuliers avec les meilleurs professionnels locaux vérifiés.
@@ -302,7 +284,7 @@ export default function HomePage() {
                 <div className="search-divider" />
                 <MapPin size={18} color="#94A3B8" style={{ flexShrink: 0, marginLeft: 12 }} />
                 <input className="search-input" placeholder="Votre ville…" value={searchVille} onChange={(e) => setSearchVille(e.target.value)} style={{ maxWidth: 160 }} />
-                <Link href={searchHref} className="btn btn-primary" style={{ borderRadius: 10, padding: "12px 20px", fontSize: 14 }}>Rechercher</Link>
+                <Link href={searchHref} className="btn btn-primary" style={{ borderRadius: 12, padding: "12px 20px", fontSize: 14 }}>Rechercher</Link>
               </div>
             )}
 
@@ -320,15 +302,15 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Mini stats dynamiques */}
             <div style={{ display: "flex", gap: 32, justifyContent: "center", marginTop: 52, flexWrap: "wrap" }}>
               {[
                 { value: stats.artisans > 0 ? `${stats.artisans}+` : "—", label: "Artisans" },
                 { value: stats.villes > 0 ? `${stats.villes} villes` : "—", label: "Couvertes" },
+                { value: stats.noteMoyenne > 0 ? `${stats.noteMoyenne}/5` : "—", label: "Note moyenne" },
                 { value: "0%", label: "Commission" },
               ].map((s) => (
                 <div key={s.label} style={{ textAlign: "center" }}>
-                  <div className="syne" style={{ fontSize: "clamp(1.4rem, 3vw, 1.9rem)", fontWeight: 800, color: activeTab === "client" ? "#818CF8" : "#34D399" }}>{s.value}</div>
+                  <div className="syne" style={{ fontSize: "clamp(1.4rem, 3vw, 1.9rem)", fontWeight: 800, color: activeTab === "client" ? "#FB6B72" : "#34D399" }}>{s.value}</div>
                   <div style={{ fontSize: 12, color: "#475569", marginTop: 3 }}>{s.label}</div>
                 </div>
               ))}
@@ -339,7 +321,7 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════ MARQUEE ══════════════ */}
-        <div style={{ background: "#4F46E5", padding: "14px 0", overflow: "hidden" }}>
+        <div style={{ background: "#E63946", padding: "14px 0", overflow: "hidden" }}>
           <div className="marquee-track">
             {[...MARQUEE_WORDS, ...MARQUEE_WORDS].map((w, i) => (
               <span key={i} className="syne" style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: 14 }}>
@@ -349,32 +331,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ══════════════ STATS DYNAMIQUES ══════════════ */}
-        <section style={{ background: "#06091A", padding: "64px 20px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="stats" ref={addRef("stats")} style={{ ...reveal("stats"), display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-              {STATS.map((s, i) => (
-                <div key={s.label} className="stat-card" style={{ ...reveal("stats", `${i * 80}ms`) }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>{s.icon}</div>
-                  {s.value === "—" ? (
-                    <div className="skeleton" style={{ height: 40, width: 100, margin: "0 auto 6px" }} />
-                  ) : (
-                    <div className="syne" style={{ fontSize: "2.2rem", fontWeight: 800, color: "#fff", lineHeight: 1 }}>{s.value}</div>
-                  )}
-                  <div style={{ fontSize: 13, color: "#64748B", marginTop: 6 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* ══════════════ CATEGORIES ══════════════ */}
-        <section style={{ background: "#F8FAFC", padding: "80px 20px" }}>
+        <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="cats-title" ref={addRef("cats-title")} style={{ ...reveal("cats-title"), textAlign: "center", marginBottom: 44 }}>
+            <div id="cats-title" ref={addRef("cats-title")} style={{ ...reveal("cats-title"), textAlign: "center", marginBottom: 36 }}>
               <span className="section-label">Catégories populaires</span>
               <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Tous les métiers,<br /><span style={{ color: "#4F46E5" }}>partout au Bénin</span>
+                Tous les métiers, <span style={{ color: "#E63946" }}>partout au Bénin</span>
               </h2>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
@@ -382,27 +345,27 @@ export default function HomePage() {
                 <Link key={cat.label} href={`/explore?categorie=${encodeURIComponent(cat.label)}`} style={{ textDecoration: "none" }}>
                   <div id={`cat-${i}`} ref={addRef(`cat-${i}`)} className="cat-card" style={{ ...reveal(`cat-${i}`, `${i * 55}ms`), background: cat.color }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>{cat.emoji}</div>
-                    <div className="syne" style={{ fontWeight: 700, fontSize: 13, color: "#0F172A", marginBottom: 4 }}>{cat.label}</div>
+                    <div className="syne" style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{cat.label}</div>
                   </div>
                 </Link>
               ))}
             </div>
-            <div style={{ textAlign: "center", marginTop: 28 }}>
-              <Link href="/explore" className="btn" style={{ background: "#EEF2FF", color: "#4F46E5", padding: "11px 24px", borderRadius: 12 }}>
+            <div style={{ textAlign: "center", marginTop: 24 }}>
+              <Link href="/explore" className="btn" style={{ background: "#FFF1F2", color: "#E63946", padding: "11px 24px", borderRadius: 12 }}>
                 Voir toutes les catégories <ArrowRight size={16} />
               </Link>
             </div>
           </div>
         </section>
 
-        {/* ══════════════ PRESTATAIRES EN VEDETTE (DYNAMIQUE) ══════════════ */}
-        <section style={{ background: "#fff", padding: "80px 20px" }}>
+        {/* ══════════════ PRESTATAIRES EN VEDETTE ══════════════ */}
+        <section style={{ background: "#fff", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="presta-title" ref={addRef("presta-title")} style={{ ...reveal("presta-title"), display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 36, flexWrap: "wrap", gap: 12 }}>
+            <div id="presta-title" ref={addRef("presta-title")} style={{ ...reveal("presta-title"), display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
               <div>
                 <span className="section-label">Artisans en vedette</span>
                 <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                  Les meilleurs professionnels<br /><span style={{ color: "#4F46E5" }}>près de chez vous</span>
+                  Les meilleurs professionnels <span style={{ color: "#E63946" }}>près de chez vous</span>
                 </h2>
               </div>
               <Link href="/explore" className="btn" style={{ background: "#F8FAFC", color: "#0F172A", border: "1px solid #E2E8F0", padding: "10px 20px", borderRadius: 12, fontSize: 13 }}>
@@ -412,10 +375,9 @@ export default function HomePage() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
               {prestataires.length === 0
-                ? /* Skeleton loading */
-                  Array.from({ length: 4 }).map((_, i) => (
+                ? Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="presta-card">
-                      <div style={{ background: "linear-gradient(135deg, #06091A 0%, #1E1B4B 100%)", padding: "24px 20px 20px" }}>
+                      <div style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 100%)", padding: "24px 20px 20px" }}>
                         <div className="skeleton" style={{ width: 64, height: 64, borderRadius: "50%", marginBottom: 12 }} />
                         <div className="skeleton" style={{ height: 16, width: "70%", marginBottom: 8 }} />
                         <div className="skeleton" style={{ height: 12, width: "50%" }} />
@@ -429,7 +391,7 @@ export default function HomePage() {
                   ))
                 : prestataires.map((p, i) => (
                     <div key={p.id} id={`presta-${i}`} ref={addRef(`presta-${i}`)} className="presta-card" style={reveal(`presta-${i}`, `${i * 80}ms`)}>
-                      <div style={{ background: "linear-gradient(135deg, #06091A 0%, #1E1B4B 100%)", padding: "24px 20px 20px", position: "relative" }}>
+                      <div style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 100%)", padding: "24px 20px 20px", position: "relative" }}>
                         <div style={{ position: "absolute", top: 12, right: 12, background: p.verifie ? "#059669" : "#D97706", color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
                           {p.verifie ? "Vérifié" : "Nouveau"}
                         </div>
@@ -461,11 +423,11 @@ export default function HomePage() {
                           </div>
                           <div style={{ width: 1, background: "#F1F5F9" }} />
                           <div style={{ textAlign: "center" }}>
-                            <BadgeCheck size={18} color="#4F46E5" style={{ margin: "0 auto 2px" }} />
+                            <BadgeCheck size={18} color="#E63946" style={{ margin: "0 auto 2px" }} />
                             <div style={{ fontSize: 10, color: "#94A3B8" }}>vérifié</div>
                           </div>
                         </div>
-                        <Link href={`/prestataire/${p.id}`} className="btn btn-primary" style={{ width: "100%", borderRadius: 10, padding: "11px 16px", fontSize: 13 }}>
+                        <Link href={`/prestataire/${p.id}`} className="btn btn-primary" style={{ width: "100%", borderRadius: 12, padding: "11px 16px", fontSize: 13 }}>
                           Voir le profil
                         </Link>
                       </div>
@@ -476,145 +438,108 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════ DOUBLE CTA ══════════════ */}
-        <section style={{ background: "#F8FAFC", padding: "80px 20px" }}>
+        <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="double-title" ref={addRef("double-title")} style={{ ...reveal("double-title"), textAlign: "center", marginBottom: 44 }}>
+            <div id="double-title" ref={addRef("double-title")} style={{ ...reveal("double-title"), textAlign: "center", marginBottom: 36 }}>
               <span className="section-label">Une plateforme, deux côtés</span>
               <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.25 }}>
-                Que vous soyez client ou artisan,<br /><span style={{ color: "#4F46E5" }}>PrestaConnect est fait pour vous.</span>
+                Que vous soyez client ou artisan, <span style={{ color: "#E63946" }}>PrestaConnect est fait pour vous.</span>
               </h2>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-              <div id="cta-client" ref={addRef("cta-client")} className="card" style={{ ...reveal("cta-client"), background: "#EEF2FF", border: "1px solid #C7D2FE", padding: "32px 28px" }}>
-                <div style={{ width: 52, height: 52, background: "#4F46E5", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+              <div id="cta-client" ref={addRef("cta-client")} className="card" style={{ ...reveal("cta-client"), background: "#FFF1F2", border: "1px solid #FFC8CB", padding: "28px 26px" }}>
+                <div style={{ width: 52, height: 52, background: "#E63946", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                   <Search size={24} color="#fff" />
                 </div>
                 <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous cherchez un artisan ?</h3>
-                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 20 }}>Trouvez en quelques clics un professionnel vérifié près de chez vous. Réponse rapide, prix transparent.</p>
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: 28, display: "flex", flexDirection: "column", gap: 9 }}>
-                  {["Prestataires vérifiés et certifiés", "Réponse en moins de 1h", "Zéro avance de frais", "Paiement après validation"].map(item => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#312E81", fontWeight: 500 }}>
-                      <CheckCircle2 size={15} color="#4F46E5" style={{ flexShrink: 0 }} /> {item}
+                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Trouvez en quelques clics un professionnel vérifié près de chez vous.</p>
+                <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {["Prestataires vérifiés", "Réponse en moins de 1h", "Zéro avance de frais"].map(item => (
+                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#7A1D25", fontWeight: 500 }}>
+                      <CheckCircle2 size={15} color="#E63946" style={{ flexShrink: 0 }} /> {item}
                     </li>
                   ))}
                 </ul>
-                <Link href="/explore" className="btn btn-primary" style={{ width: "100%", borderRadius: 12 }}><Search size={16} /> Trouver un artisan</Link>
+                <Link href="/explore" className="btn btn-primary" style={{ width: "100%", borderRadius: 14 }}><Search size={16} /> Trouver un artisan</Link>
               </div>
 
-              <div id="cta-presta" ref={addRef("cta-presta")} className="card" style={{ ...reveal("cta-presta", "120ms"), background: "#F0FDF4", border: "1px solid #BBF7D0", padding: "32px 28px" }}>
-                <div style={{ width: 52, height: 52, background: "#059669", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 }}>
+              <div id="cta-presta" ref={addRef("cta-presta")} className="card" style={{ ...reveal("cta-presta", "120ms"), background: "#F0FDF4", border: "1px solid #BBF7D0", padding: "28px 26px" }}>
+                <div style={{ width: 52, height: 52, background: "#059669", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                   <Hammer size={24} color="#fff" />
                 </div>
                 <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous êtes artisan ?</h3>
-                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 20 }}>Recevez des missions qualifiées près de chez vous sans payer d'abonnement mensuel.</p>
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: 28, display: "flex", flexDirection: "column", gap: 9 }}>
-                  {["Zéro abonnement mensuel", "Clients dans votre zone", "Paiement via Mobile Money", "Profil certifié visible"].map(item => (
+                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Recevez des missions qualifiées sans payer d'abonnement mensuel.</p>
+                <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {["Zéro abonnement mensuel", "Clients dans votre zone", "Paiement via Mobile Money"].map(item => (
                     <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#14532D", fontWeight: 500 }}>
                       <CheckCircle2 size={15} color="#059669" style={{ flexShrink: 0 }} /> {item}
                     </li>
                   ))}
                 </ul>
-                <Link href="/register/provider" className="btn btn-green" style={{ width: "100%", borderRadius: 12 }}>S'inscrire comme artisan <ArrowRight size={16} /></Link>
+                <Link href="/register/provider" className="btn btn-green" style={{ width: "100%", borderRadius: 14 }}>S'inscrire comme artisan <ArrowRight size={16} /></Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ══════════════ COMMENT ÇA MARCHE ══════════════ */}
-        <section style={{ background: "#fff", padding: "80px 20px" }}>
+        {/* ══════════════ COMMENT ÇA MARCHE (version compacte) ══════════════ */}
+        <section style={{ background: "#fff", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="how-title" ref={addRef("how-title")} style={{ ...reveal("how-title"), textAlign: "center", marginBottom: 52 }}>
+            <div id="how-title" ref={addRef("how-title")} style={{ ...reveal("how-title"), textAlign: "center", marginBottom: 36 }}>
               <span className="section-label">Comment ça marche</span>
               <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Simple, rapide, <span style={{ color: "#4F46E5" }}>efficace.</span>
+                Simple, rapide, <span style={{ color: "#E63946" }}>efficace.</span>
               </h2>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
               {[
-                { num: "01", delay: "0ms", title: "Décrivez votre besoin", desc: "Indiquez le type de travaux et votre ville. Notre algorithme alerte les artisans qualifiés de votre zone.", img: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80", icon: <Search size={18} color="#4F46E5" /> },
-                { num: "02", delay: "120ms", title: "Choisissez votre artisan", desc: "Comparez les profils, notes et avis vérifiés. Contactez directement l'artisan qui vous convient.", img: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80", icon: <Users size={18} color="#4F46E5" /> },
-                { num: "03", delay: "240ms", title: "Travail fait, payez après", desc: "L'artisan intervient, vous validez le travail. Zéro avance, zéro risque. 100% sécurisé.", img: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&q=80", icon: <CheckCircle2 size={18} color="#4F46E5" /> },
+                { num: "01", delay: "0ms", title: "Décrivez votre besoin", desc: "Indiquez le type de travaux et votre ville.", icon: <Search size={18} color="#E63946" /> },
+                { num: "02", delay: "100ms", title: "Choisissez votre artisan", desc: "Comparez profils, notes et avis vérifiés.", icon: <Users size={18} color="#E63946" /> },
+                { num: "03", delay: "200ms", title: "Travail fait, payez après", desc: "Vous validez, zéro avance, zéro risque.", icon: <CheckCircle2 size={18} color="#E63946" /> },
               ].map((step) => (
-                <div key={step.num} id={`step-${step.num}`} ref={addRef(`step-${step.num}`)} className="card" style={{ ...reveal(`step-${step.num}`, step.delay), overflow: "hidden" }}>
-                  <div style={{ position: "relative", height: 180, overflow: "hidden" }}>
-                    <img src={step.img} alt={step.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <div style={{ position: "absolute", top: 14, left: 14, background: "#fff", color: "#4F46E5", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                      <span className="syne" style={{ fontWeight: 800, fontSize: 13 }}>{step.num}</span>
-                    </div>
+                <div key={step.num} id={`step-${step.num}`} ref={addRef(`step-${step.num}`)} className="card" style={{ ...reveal(`step-${step.num}`, step.delay), padding: "24px 20px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#FFF1F2", borderRadius: 10, width: 36, height: 36 }}>{step.icon}</div>
+                    <span className="syne" style={{ fontWeight: 800, fontSize: 13, color: "#E63946" }}>{step.num}</span>
                   </div>
-                  <div style={{ padding: "20px 22px 24px" }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#EEF2FF", borderRadius: 10, width: 36, height: 36, marginBottom: 12 }}>{step.icon}</div>
-                    <h3 className="syne" style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>{step.title}</h3>
-                    <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75 }}>{step.desc}</p>
-                  </div>
+                  <h3 className="syne" style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{step.title}</h3>
+                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.7 }}>{step.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ══════════════ TARIFS ══════════════ */}
-        <section style={{ background: "#06091A", padding: "80px 20px" }}>
+        {/* ══════════════ TÉMOIGNAGES (réduit à 2) ══════════════ */}
+        <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
-            <div id="tarifs-title" ref={addRef("tarifs-title")} style={{ ...reveal("tarifs-title"), textAlign: "center", marginBottom: 48 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(79,70,229,0.15)", color: "#A5B4FC", borderRadius: 999, padding: "5px 14px", fontSize: 11, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 14 }}>Tarifs artisans</span>
-              <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>
-                Un modèle transparent, <span style={{ color: "#818CF8" }}>sans abonnement</span>
-              </h2>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 28 }}>
-              {[
-                { icon: "⚡", label: "Cas urgent", price: "300", tag: "FCFA / contact", desc: "Intervention rapide, besoin immédiat. Débloquez le contact du client en un seul clic.", delay: "0ms" },
-                { icon: "🏗️", label: "Grand chantier", price: "1 500", tag: "FCFA / contact", desc: "Travaux importants à forte valeur. Un seul chantier rentabilise des dizaines de contacts.", delay: "120ms" },
-              ].map((t) => (
-                <div key={t.label} id={`tarif-${t.label}`} ref={addRef(`tarif-${t.label}`)} className="card-dark" style={{ ...reveal(`tarif-${t.label}`, t.delay), padding: "28px 24px" }}>
-                  <div style={{ fontSize: 28, marginBottom: 10 }}>{t.icon}</div>
-                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.label}</div>
-                  <div className="syne" style={{ fontSize: "2.8rem", fontWeight: 800, color: "#fff", lineHeight: 1 }}>{t.price}</div>
-                  <div style={{ color: "#818CF8", fontWeight: 600, marginBottom: 14, fontSize: 13 }}>{t.tag}</div>
-                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75 }}>{t.desc}</p>
-                </div>
-              ))}
-            </div>
-            <div style={{ textAlign: "center", marginTop: 36 }}>
-              <Link href="/tarifs" className="btn btn-outline" style={{ borderRadius: 12, fontSize: 14 }}>Voir tous les tarifs <ArrowRight size={16} /></Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ══════════════ TÉMOIGNAGES DYNAMIQUES ══════════════ */}
-        <section style={{ background: "#fff", padding: "80px 20px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="testi-title" ref={addRef("testi-title")} style={{ ...reveal("testi-title"), textAlign: "center", marginBottom: 48 }}>
+            <div id="testi-title" ref={addRef("testi-title")} style={{ ...reveal("testi-title"), textAlign: "center", marginBottom: 36 }}>
               <span className="section-label">Témoignages</span>
               <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Ils font confiance<br /><span style={{ color: "#4F46E5" }}>à PrestaConnect</span>
+                Ils font confiance <span style={{ color: "#E63946" }}>à PrestaConnect</span>
               </h2>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
               {temoignages.length === 0
-                ? /* Skeleton ou message vide */
-                  Array.from({ length: 3 }).map((_, i) => (
+                ? Array.from({ length: 2 }).map((_, i) => (
                     <div key={i} className="temoignage-card">
                       <div className="skeleton-light" style={{ height: 28, width: 28, marginBottom: 14, borderRadius: 6 }} />
                       <div className="skeleton-light" style={{ height: 14, marginBottom: 8 }} />
-                      <div className="skeleton-light" style={{ height: 14, width: "80%", marginBottom: 8 }} />
-                      <div className="skeleton-light" style={{ height: 14, width: "60%", marginBottom: 20 }} />
+                      <div className="skeleton-light" style={{ height: 14, width: "80%", marginBottom: 20 }} />
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div className="skeleton-light" style={{ width: 40, height: 40, borderRadius: "50%" }} />
                         <div style={{ flex: 1 }}>
                           <div className="skeleton-light" style={{ height: 13, width: "50%", marginBottom: 6 }} />
-                          <div className="skeleton-light" style={{ height: 11, width: "70%" }} />
                         </div>
                       </div>
                     </div>
                   ))
                 : temoignages.map((t, i) => (
                     <div key={t.id} id={`testi-${i}`} ref={addRef(`testi-${i}`)} className="temoignage-card" style={reveal(`testi-${i}`, `${i * 100}ms`)}>
-                      <div style={{ color: "#C7D2FE", marginBottom: 14 }}><Quote size={28} /></div>
-                      <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 20 }}>"{t.texte}"</p>
-                      <div style={{ display: "flex", gap: 2, marginBottom: 16 }}>{renderStars(t.note)}</div>
+                      <div style={{ color: "#FFC8CB", marginBottom: 14 }}><Quote size={28} /></div>
+                      <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 18 }}>"{t.texte}"</p>
+                      <div style={{ display: "flex", gap: 2, marginBottom: 14 }}>{renderStars(t.note)}</div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 40, height: 40, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#334155" }}>
                           {getInitiales(t.auteur?.nom ?? "?")}
@@ -630,28 +555,27 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ══════════════ CTA FINAL ══════════════ */}
-        <section style={{ background: "linear-gradient(135deg, #06091A 0%, #1E1B4B 60%, #06091A 100%)", padding: "100px 20px", position: "relative", overflow: "hidden" }}>
+        {/* ══════════════ CTA FINAL (intègre les tarifs en bref) ══════════════ */}
+        <section style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 60%, #06091A 100%)", padding: "80px 20px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, opacity: 0.06, backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
           <div id="cta-final" ref={addRef("cta-final")} style={{ ...reveal("cta-final"), textAlign: "center", position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(129,140,248,0.15)", color: "#A5B4FC", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 24 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(251,107,114,0.15)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 20 }}>
               🚀 Rejoignez la communauté
             </span>
-            <h2 className="syne" style={{ fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, marginBottom: 18 }}>
-              Prêt à rejoindre<br />
-              <span style={{ background: "linear-gradient(135deg, #818CF8, #6366F1)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PrestaConnect ?</span>
+            <h2 className="syne" style={{ fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, marginBottom: 16 }}>
+              Prêt à rejoindre <span style={{ background: "linear-gradient(135deg, #FB6B72, #E63946)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PrestaConnect ?</span>
             </h2>
-            <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.75, maxWidth: 460, margin: "0 auto 40px" }}>
-              Des milliers de Béninois — clients et artisans — font déjà confiance à PrestaConnect pour leurs travaux du quotidien.
+            <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.75, maxWidth: 460, margin: "0 auto 32px" }}>
+              Pas d'abonnement pour les artisans : <strong style={{ color: "#fff" }}>300 FCFA</strong> pour un contact urgent, <strong style={{ color: "#fff" }}>1 500 FCFA</strong> pour un grand chantier.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/explore" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 12 }}><Search size={18} /> Trouver un prestataire</Link>
-              <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 12 }}>🔨 Devenir Prestataire</Link>
+              <Link href="/explore" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}><Search size={18} /> Trouver un prestataire</Link>
+              <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}>🔨 Devenir Prestataire</Link>
             </div>
-            <div style={{ display: "flex", gap: 28, justifyContent: "center", marginTop: 48, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 28, justifyContent: "center", marginTop: 40, flexWrap: "wrap" }}>
               {[{ icon: <Shield size={15} />, text: "Artisans vérifiés" }, { icon: <Clock size={15} />, text: "Réponse < 1h" }, { icon: <Star size={15} />, text: `${stats.noteMoyenne > 0 ? stats.noteMoyenne : "4.8"}/5 de satisfaction` }].map((item) => (
                 <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#64748B" }}>
-                  <span style={{ color: "#818CF8" }}>{item.icon}</span>{item.text}
+                  <span style={{ color: "#FB6B72" }}>{item.icon}</span>{item.text}
                 </div>
               ))}
             </div>
@@ -659,21 +583,21 @@ export default function HomePage() {
         </section>
 
         {/* ══════════════ FOOTER ══════════════ */}
-        <footer style={{ background: "#020617", color: "#fff", padding: "56px 20px 28px" }}>
+        <footer style={{ background: "#020617", color: "#fff", padding: "48px 20px 24px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 32, marginBottom: 48 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 28, marginBottom: 36 }}>
               <div>
-                <div className="syne" style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 10 }}>Presta<span style={{ color: "#818CF8" }}>Connect</span></div>
-                <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.75, marginBottom: 16, maxWidth: 220 }}>La première plateforme artisanale du Bénin. Simple, rapide, local.</p>
+                <div className="syne" style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 10 }}>Presta<span style={{ color: "#FB6B72" }}>Connect</span></div>
+                <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.75, maxWidth: 220 }}>La première plateforme artisanale du Bénin. Simple, rapide, local.</p>
               </div>
               {[
-                { title: "Plateforme", links: [{ label: "Explorer", href: "/explore" }, { label: "Catégories", href: "/explore" }, { label: "Comment ça marche", href: "/solutions" }] },
-                { title: "Artisans", links: [{ label: "S'inscrire", href: "/register/provider" }, { label: "Tarifs", href: "/tarifs" }, { label: "Recharger mon compte", href: "/recharge" }] },
-                { title: "Aide", links: [{ label: "Contact", href: "/contact" }, { label: "À propos", href: "/about" }, { label: "FAQ", href: "/about" }] },
+                { title: "Plateforme", links: [{ label: "Explorer", href: "/explore" }, { label: "Comment ça marche", href: "/solutions" }] },
+                { title: "Artisans", links: [{ label: "S'inscrire", href: "/register/provider" }, { label: "Tarifs", href: "/tarifs" }] },
+                { title: "Aide", links: [{ label: "Contact", href: "/contact" }, { label: "FAQ", href: "/about" }] },
               ].map((col) => (
                 <div key={col.title}>
-                  <div className="syne" style={{ fontWeight: 700, fontSize: 12, color: "#E2E8F0", marginBottom: 14, letterSpacing: "0.06em", textTransform: "uppercase" }}>{col.title}</div>
-                  <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 9 }}>
+                  <div className="syne" style={{ fontWeight: 700, fontSize: 12, color: "#E2E8F0", marginBottom: 12, letterSpacing: "0.06em", textTransform: "uppercase" }}>{col.title}</div>
+                  <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
                     {col.links.map((l) => (
                       <li key={l.label}>
                         <Link href={l.href} style={{ fontSize: 13, color: "#475569", textDecoration: "none" }}>{l.label}</Link>
@@ -683,7 +607,7 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 12, color: "#334155", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 12, color: "#334155", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 20 }}>
               <span>© 2026 PrestaConnect · Tous droits réservés</span>
               <div style={{ display: "flex", gap: 16 }}>
                 {["Mentions légales", "Confidentialité", "CGU"].map((l) => (
