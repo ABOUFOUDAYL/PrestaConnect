@@ -53,8 +53,22 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* ✅ Fallback "Client" au lieu de "..." si le nom est vide */}
       <WelcomeBanner userName={authUser?.full_name?.trim() || "Client"} />
+
+      {/* 🔍 BLOC DEBUG TEMPORAIRE — à retirer une fois le bug résolu */}
+      <pre style={{
+        fontSize: 10,
+        background: "#eee",
+        padding: 8,
+        marginBottom: "var(--space-4)",
+        wordBreak: "break-all",
+        whiteSpace: "pre-wrap",
+        border: "1px solid #ccc",
+        borderRadius: 8,
+      }}>
+        {JSON.stringify(authUser, null, 2)}
+      </pre>
+      {/* 🔍 FIN BLOC DEBUG */}
 
       <div style={{
         display: "grid",
