@@ -1,122 +1,201 @@
 ﻿'use client'
 
-import { useState } from 'react'
-
-const initialProfile = {
-  nom: 'ISSA Sabirou',
-  metier: 'Plombier',
-  ville: 'Cotonou',
-  telephone: '+229 97 00 00 00',
-  description: 'Artisan plombier avec 10 ans d\'expérience. Intervention rapide et travail soigné.',
-  tarif: '5000',
-  disponible: true,
-}
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@supabase/ssr'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 
 export default function ArtisanProfilPage() {
-  const [profile, setProfile] = useState(initialProfile)
+  const [profile, setProfile] = useState({
+    nom: '',
+    prenom: '',
+    metier: '',
+    ville: '',
+    telephone: '',
+    description: '',
+    disponible: true,
+  })
   const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function handleSave() {
-    setEditing(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (data) {
+        setProfile({
+          nom: data.nom || '',
+          prenom: data.prenom || '',
+          metier: data.metier || '',
+          ville: data.ville || '',
+          telephone: data.telephone || '',
+          description: data.description || '',
+          disponible: data.disponible ?? true,
+        })
+      }
+      setLoading(false)
+    }
+    loadProfile()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        nom: profile.nom,
+        prenom: profile.prenom,
+        metier: profile.metier,
+        ville: profile.ville,
+        telephone: profile.telephone,
+        description: profile.description,
+        disponible: profile.disponible,
+      })
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      setError('Erreur lors de la sauvegarde.')
+    } else {
+      setEditing(false)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    }
+    setSaving(false)
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    )
+  }
+
+  const fullName = `${profile.prenom} ${profile.nom}`.trim()
+  const initials = `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}`.toUpperCase()
+
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
-        <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)' }}>Mon Profil</h1>
+    <div className="max-w-2xl mx-auto">
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
         <button
           onClick={() => editing ? handleSave() : setEditing(true)}
-          style={{
-            padding: 'var(--space-2) var(--space-4)',
-            background: editing ? 'var(--color-success-500)' : 'var(--color-primary-500)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--radius-md)',
-            cursor: 'pointer',
-            fontWeight: 'var(--font-weight-medium)',
-          }}
+          disabled={saving}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition
+            ${editing ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-600 hover:bg-orange-700'}
+            disabled:opacity-60`}
         >
-          {editing ? 'Sauvegarder' : 'Modifier'}
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {editing ? (saving ? 'Sauvegarde...' : 'Sauvegarder') : 'Modifier'}
         </button>
       </div>
 
+      {/* Success */}
       {saved && (
-        <div style={{ background: 'var(--color-success-50)', border: '1px solid var(--color-success-200)', borderRadius: 'var(--radius-md)', padding: 'var(--space-3)', marginBottom: 'var(--space-4)', color: 'var(--color-success-700)' }}>
-          ✅ Profil mis à jour avec succès
+        <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 text-green-700 text-sm">
+          <CheckCircle2 className="h-4 w-4" />
+          Profil mis à jour avec succès
         </div>
       )}
 
-      <div style={{ background: 'var(--color-white)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-6)', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-red-700 text-sm">
+          {error}
+        </div>
+      )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--color-gray-100)' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--color-primary-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
-            🔧
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+
+        {/* Avatar + nom */}
+        <div className="flex items-center gap-4 pb-5 border-b border-gray-100">
+          <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-2xl">
+            {initials || '?'}
           </div>
           <div>
-            <div style={{ fontWeight: 'var(--font-weight-bold)', fontSize: 'var(--font-size-xl)' }}>{profile.nom}</div>
-            <div style={{ color: 'var(--color-gray-500)' }}>{profile.metier} · {profile.ville}</div>
-            <div style={{ marginTop: 4 }}>
-              <span style={{
-                background: profile.disponible ? 'var(--color-success-100)' : 'var(--color-gray-100)',
-                color: profile.disponible ? 'var(--color-success-700)' : 'var(--color-gray-500)',
-                borderRadius: 'var(--radius-full)',
-                padding: '2px 10px',
-                fontSize: 'var(--font-size-xs)',
-                fontWeight: 'var(--font-weight-medium)',
-              }}>
-                {profile.disponible ? '● Disponible' : '● Indisponible'}
-              </span>
-            </div>
+            <div className="font-bold text-xl text-gray-900">{fullName || 'Nom non renseigné'}</div>
+            <div className="text-gray-500 text-sm">{profile.metier} · {profile.ville}</div>
+            <span className={`mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-medium
+              ${profile.disponible ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+              {profile.disponible ? '● Disponible' : '● Indisponible'}
+            </span>
           </div>
         </div>
 
+        {/* Champs */}
         {[
-          { label: 'Nom complet', key: 'nom' },
+          { label: 'Prénom', key: 'prenom' },
+          { label: 'Nom', key: 'nom' },
           { label: 'Métier', key: 'metier' },
           { label: 'Ville', key: 'ville' },
           { label: 'Téléphone', key: 'telephone' },
-          { label: 'Tarif journalier (FCFA)', key: 'tarif' },
         ].map(({ label, key }) => (
           <div key={key}>
-            <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)', display: 'block', marginBottom: 4 }}>{label}</label>
+            <label className="block text-sm text-gray-500 mb-1">{label}</label>
             {editing ? (
               <input
                 value={profile[key as keyof typeof profile] as string}
                 onChange={e => setProfile(p => ({ ...p, [key]: e.target.value }))}
-                style={{ width: '100%', padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--color-gray-300)', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-sm)' }}
+                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
               />
             ) : (
-              <div style={{ fontWeight: 'var(--font-weight-medium)' }}>{profile[key as keyof typeof profile] as string}</div>
+              <div className="font-medium text-gray-900">
+                {profile[key as keyof typeof profile] as string || '—'}
+              </div>
             )}
           </div>
         ))}
 
+        {/* Description */}
         <div>
-          <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)', display: 'block', marginBottom: 4 }}>Description</label>
+          <label className="block text-sm text-gray-500 mb-1">Description</label>
           {editing ? (
             <textarea
               value={profile.description}
               onChange={e => setProfile(p => ({ ...p, description: e.target.value }))}
               rows={3}
-              style={{ width: '100%', padding: 'var(--space-2) var(--space-3)', border: '1px solid var(--color-gray-300)', borderRadius: 'var(--radius-md)', fontSize: 'var(--font-size-sm)', resize: 'vertical' }}
+              placeholder="Décrivez votre activité, votre expérience..."
+              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 resize-vertical"
             />
           ) : (
-            <div style={{ color: 'var(--color-gray-700)' }}>{profile.description}</div>
+            <div className="text-gray-700 text-sm">{profile.description || '—'}</div>
           )}
         </div>
 
+        {/* Disponibilité */}
         {editing && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <label style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>Disponibilité</label>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-gray-500">Disponibilité</label>
             <input
               type="checkbox"
               checked={profile.disponible}
               onChange={e => setProfile(p => ({ ...p, disponible: e.target.checked }))}
+              className="h-4 w-4 accent-orange-600"
             />
-            <span style={{ fontSize: 'var(--font-size-sm)' }}>{profile.disponible ? 'Disponible' : 'Indisponible'}</span>
+            <span className="text-sm text-gray-700">
+              {profile.disponible ? 'Disponible' : 'Indisponible'}
+            </span>
           </div>
         )}
       </div>
