@@ -1,19 +1,58 @@
 "use client"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import DemandeCard, { Demande } from "@/components/demandes/DemandeCard"
 import DemandeFilters, { DemandeFilterState } from "@/components/demandes/DemandeFilters"
-
-const DEMANDES_INITIALES: Demande[] = [
-  { id: "1", titre: "Plombier urgence - fuite cuisine", description: "J'ai une fuite sous mon évier de cuisine qui s'aggrave. Besoin d'une intervention rapide pour réparer la canalisation et vérifier les joints.", categorie: "Plomberie", ville: "Cotonou", statut: "En cours", dateCreation: "Aujourd'hui", devisCount: 3 },
-  { id: "2", titre: "Installation prise électrique extérieure", description: "Je souhaite installer 2 prises électriques étanches dans mon jardin pour alimenter des équipements extérieurs.", categorie: "Électricité", ville: "Cotonou", statut: "Ouvert", dateCreation: "Hier", devisCount: 1 },
-  { id: "3", titre: "Peinture salon et chambre", description: "Besoin de repeindre mon salon (30m²) et ma chambre principale (20m²). Murs et plafonds. Fourniture de la peinture incluse.", categorie: "Peinture", ville: "Porto-Novo", statut: "En attente", dateCreation: "Il y a 3 jours", devisCount: 0 },
-  { id: "4", titre: "Réparation climatiseur", description: "Mon climatiseur de salon ne refroidit plus correctement. Besoin d'un diagnostic et réparation.", categorie: "Climatisation", ville: "Cotonou", statut: "Terminé", dateCreation: "Il y a 1 semaine", devisCount: 2 },
-]
+import { supabase } from "@/lib/supabase"
 
 export default function DemandesPage() {
-  const [demandes, setDemandes] = useState<Demande[]>(DEMANDES_INITIALES)
+  const [demandes, setDemandes] = useState<Demande[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [filters, setFilters] = useState<DemandeFilterState>({ statut: "Tous", categorie: "Toutes" })
+
+  useEffect(() => {
+    const loadDemandes = async () => {
+      setIsLoading(true)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsLoading(false); return }
+
+      const { data, error } = await supabase
+        .from("demandes")
+        .select("*")
+        .eq("client_id", user.id)
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        const formatted: Demande[] = data.map((d: any) => ({
+          id: d.id,
+          titre: d.titre || d.description?.slice(0, 50) || "Demande sans titre",
+          description: d.description || "",
+          categorie: d.categorie || d.metier || "Non renseigné",
+          ville: d.ville || "Non renseignée",
+          statut: d.statut || "Ouvert",
+          dateCreation: new Date(d.created_at).toLocaleDateString("fr-FR"),
+          devisCount: d.devis_count || 0,
+        }))
+        setDemandes(formatted)
+      }
+
+      setIsLoading(false)
+    }
+
+    loadDemandes()
+  }, [])
+
+  const handleAnnuler = async (id: string) => {
+    const { error } = await supabase
+      .from("demandes")
+      .update({ statut: "Annulé" })
+      .eq("id", id)
+
+    if (!error) {
+      setDemandes((prev) => prev.map((d) => d.id === id ? { ...d, statut: "Annulé" as const } : d))
+    }
+  }
 
   const filtered = useMemo(() => demandes.filter((d) => {
     if (filters.statut !== "Tous" && d.statut !== filters.statut) return false
@@ -21,8 +60,15 @@ export default function DemandesPage() {
     return true
   }), [demandes, filters])
 
-  const handleAnnuler = (id: string) => {
-    setDemandes((prev) => prev.map((d) => d.id === id ? { ...d, statut: "Annulé" as const } : d))
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "40vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", border: "4px solid #e63946", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
+          <p style={{ color: "var(--color-neutral-500)", marginTop: "16px" }}>Chargement...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -56,7 +102,7 @@ export default function DemandesPage() {
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
           <p style={{ fontSize: "3rem" }}>📋</p>
-          <p>Aucune demande trouvée</p>
+          <p>Aucune demande pour le moment</p>
           <Link href="/devis/nouvelle" style={{ color: "var(--color-primary-500)", fontSize: "var(--text-sm)" }}>
             Créer votre première demande →
           </Link>
