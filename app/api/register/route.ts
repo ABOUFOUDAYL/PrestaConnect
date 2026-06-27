@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         prenom: first_name,
         telephone: telephone || null,
         email,
-        role: normalizedRole, // ✅ rôle correctement sauvegardé
+        role: normalizedRole,
         ville: ville || null,
         metier: metier || null,
         carte_identite_url: carte_identite_url || null,
@@ -75,32 +75,38 @@ export async function POST(req: Request) {
         .from("prestataires")
         .insert({
           user_id: userId,
-          nom: last_name,
-          prenom: first_name,
+          nom: full_name, // ✅ nom complet car pas de colonne prenom
           metier: metier || "Non renseigné",
+          ville: ville || null,
+          telephone: telephone || null,
           statut: "en_attente",
         });
       if (prestaError) throw prestaError;
 
       // Email admin pour validation artisan
-      await resend.emails.send({
-        from: "PrestaConnect <onboarding@resend.dev>",
-        to: process.env.ADMIN_EMAIL!,
-        subject: "Nouvel artisan en attente de validation",
-        html: `
-          <h2>Nouvel artisan inscrit sur PrestaConnect</h2>
-          <p><strong>Nom :</strong> ${full_name}</p>
-          <p><strong>Email :</strong> ${email}</p>
-          <p><strong>Téléphone :</strong> ${telephone}</p>
-          <p><strong>Métier :</strong> ${metier}</p>
-          <p><strong>Ville :</strong> ${ville}</p>
-          <br/>
-          <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
-          <a href="https://presta-connect.vercel.app/admin-ambassadeur">
-            Voir le tableau de bord
-          </a>
-        `,
-      });
+      try {
+        await resend.emails.send({
+          from: "PrestaConnect <onboarding@resend.dev>",
+          to: process.env.ADMIN_EMAIL!,
+          subject: "Nouvel artisan en attente de validation",
+          html: `
+            <h2>Nouvel artisan inscrit sur PrestaConnect</h2>
+            <p><strong>Nom :</strong> ${full_name}</p>
+            <p><strong>Email :</strong> ${email}</p>
+            <p><strong>Téléphone :</strong> ${telephone}</p>
+            <p><strong>Métier :</strong> ${metier}</p>
+            <p><strong>Ville :</strong> ${ville}</p>
+            <br/>
+            <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
+            <a href="https://presta-connect.vercel.app/admin-ambassadeur">
+              Voir le tableau de bord
+            </a>
+          `,
+        });
+      } catch (emailError) {
+        // ✅ Ne pas bloquer l'inscription si l'email échoue
+        console.error("Email admin error:", emailError);
+      }
 
     } else if (normalizedRole === 'client') {
       const { error: clientError } = await supabaseAdmin
@@ -115,21 +121,25 @@ export async function POST(req: Request) {
       if (clientError) throw clientError;
     }
 
-    // 4. ✅ Envoyer email de confirmation à l'utilisateur
-    await resend.emails.send({
-      from: "PrestaConnect <onboarding@resend.dev>",
-      to: email,
-      subject: "Bienvenue sur PrestaConnect !",
-      html: `
-        <h2>Bienvenue ${first_name} !</h2>
-        <p>Votre compte ${normalizedRole === 'artisan' ? 'artisan' : 'client'} a bien été créé.</p>
-        ${normalizedRole === 'artisan'
-          ? `<p>Votre profil est en cours de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.</p>`
-          : `<p>Vous pouvez dès maintenant vous connecter et publier vos demandes.</p>`
-        }
-        <a href="https://presta-connect.vercel.app/login">Se connecter</a>
-      `,
-    });
+    // 4. ✅ Email de confirmation à l'utilisateur (non bloquant)
+    try {
+      await resend.emails.send({
+        from: "PrestaConnect <onboarding@resend.dev>",
+        to: email,
+        subject: "Bienvenue sur PrestaConnect !",
+        html: `
+          <h2>Bienvenue ${first_name} !</h2>
+          <p>Votre compte ${normalizedRole === 'artisan' ? 'artisan' : 'client'} a bien été créé.</p>
+          ${normalizedRole === 'artisan'
+            ? `<p>Votre profil est en cours de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.</p>`
+            : `<p>Vous pouvez dès maintenant vous connecter et publier vos demandes.</p>`
+          }
+          <a href="https://presta-connect.vercel.app/login">Se connecter</a>
+        `,
+      });
+    } catch (emailError) {
+      console.error("Email confirmation error:", emailError);
+    }
 
     return NextResponse.json({ success: true, userId });
 
