@@ -1,7 +1,13 @@
 "use client"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ClientHeader() {
+  const { authUser } = useAuth()
+
+  const firstName = authUser?.profile?.prenom || authUser?.full_name?.split(" ")[0] || ""
+  const avatarLetter = firstName.charAt(0).toUpperCase() || "?"
+
   return (
     <header style={{
       height: "64px",
@@ -45,7 +51,7 @@ export default function ClientHeader() {
           color: "var(--color-primary-700)",
           textDecoration: "none",
         }}>
-          U
+          {avatarLetter}
         </Link>
       </div>
     </header>
