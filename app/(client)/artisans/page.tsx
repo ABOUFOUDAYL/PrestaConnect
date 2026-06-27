@@ -1,20 +1,14 @@
 "use client"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import ArtisanCard, { Artisan } from "@/components/artisans/ArtisanCard"
 import ArtisanFilters, { Filters } from "@/components/artisans/ArtisanFilters"
-
-const ARTISANS: Artisan[] = [
-  { id: "1", name: "Jean Kouassi", metier: "Plombier", ville: "Cotonou", note: 4.8, avis: 32, verifie: true, description: "Plombier expérimenté spécialisé dans les installations sanitaires et réparations urgentes.", categories: ["Plomberie", "Bâtiment"] },
-  { id: "2", name: "Marie Adjobi", metier: "Électricienne", ville: "Porto-Novo", note: 4.5, avis: 18, verifie: true, description: "Électricienne certifiée pour installations résidentielles et dépannages électriques.", categories: ["Électricité"] },
-  { id: "3", name: "Kofi Mensah", metier: "Maçon", ville: "Abomey-Calavi", note: 4.2, avis: 45, verifie: false, description: "Maçon qualifié pour constructions, rénovations et travaux de gros œuvre.", categories: ["Bâtiment", "Maçonnerie"] },
-  { id: "4", name: "Afi Togbe", metier: "Peintre", ville: "Cotonou", note: 4.9, avis: 27, verifie: true, description: "Peintre professionnelle spécialisée en décoration intérieure et extérieure.", categories: ["Peinture", "Bâtiment"] },
-  { id: "5", name: "Brice Hounton", metier: "Menuisier", ville: "Parakou", note: 4.0, avis: 12, verifie: false, description: "Menuisier artisan pour fabrication de meubles sur mesure et aménagements bois.", categories: ["Menuiserie", "Bâtiment"] },
-  { id: "6", name: "Sèna Kpodo", metier: "Climatiseur", ville: "Cotonou", note: 4.7, avis: 21, verifie: true, description: "Technicien climatisation pour installation, entretien et dépannage de systèmes HVAC.", categories: ["Climatisation"] },
-]
+import { supabase } from "@/lib/supabase"
 
 const ITEMS_PAR_PAGE = 4
 
 export default function ArtisansPage() {
+  const [artisans, setArtisans] = useState<Artisan[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>({
     search: "", metier: "Tous", ville: "Toutes",
     categorie: "Toutes", noteMin: 0, verifieOnly: false,
@@ -23,8 +17,48 @@ export default function ArtisansPage() {
   const [tri, setTri] = useState("note")
   const [page, setPage] = useState(1)
 
+  useEffect(() => {
+    const loadArtisans = async () => {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from("prestataires")
+        .select(`
+          id,
+          prenom,
+          nom,
+          metier,
+          user_id,
+          statut,
+          profiles (
+            ville,
+            photo_url
+          )
+        `)
+        .eq("statut", "valide")
+
+      if (!error && data) {
+        const formatted: Artisan[] = data.map((p: any) => ({
+          id: p.id,
+          name: `${p.prenom || ""} ${p.nom || ""}`.trim(),
+          metier: p.metier || "Non renseigné",
+          ville: p.profiles?.ville || "Non renseignée",
+          note: p.note_moyenne || 0,
+          avis: p.nombre_avis || 0,
+          verifie: p.statut === "valide",
+          description: p.description || "",
+          categories: p.metier ? [p.metier] : [],
+          photo_url: p.profiles?.photo_url || null,
+        }))
+        setArtisans(formatted)
+      }
+      setIsLoading(false)
+    }
+
+    loadArtisans()
+  }, [])
+
   const filtered = useMemo(() => {
-    return ARTISANS
+    return artisans
       .filter((a) => {
         if (filters.search && !a.name.toLowerCase().includes(filters.search.toLowerCase()) && !a.metier.toLowerCase().includes(filters.search.toLowerCase())) return false
         if (filters.metier !== "Tous" && a.metier !== filters.metier) return false
@@ -39,7 +73,7 @@ export default function ArtisansPage() {
         if (tri === "avis") return b.avis - a.avis
         return a.name.localeCompare(b.name)
       })
-  }, [filters, tri])
+  }, [artisans, filters, tri])
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PAR_PAGE)
   const paginated = filtered.slice((page - 1) * ITEMS_PAR_PAGE, page * ITEMS_PAR_PAGE)
@@ -54,6 +88,17 @@ export default function ArtisansPage() {
     fontSize: "var(--text-sm)",
     fontFamily: "var(--font-body)",
   })
+
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "40vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", border: "4px solid #e63946", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
+          <p style={{ color: "var(--color-neutral-500)", marginTop: "var(--space-4)" }}>Chargement des artisans...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -87,10 +132,10 @@ export default function ArtisansPage() {
         </select>
       </div>
 
-      {paginated.length === 0 ? (
+      {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
           <p style={{ fontSize: "2rem" }}>🔍</p>
-          <p>Aucun artisan trouvé avec ces critères</p>
+          <p>Aucun artisan disponible pour le moment</p>
         </div>
       ) : (
         <div style={{
