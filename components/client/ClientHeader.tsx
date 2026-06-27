@@ -10,7 +10,6 @@ export default function ClientHeader() {
 
   useEffect(() => {
     const getInitial = async () => {
-      // Si authUser est chargé, utiliser le prénom
       if (authUser?.profile?.prenom) {
         setAvatarLetter(authUser.profile.prenom.charAt(0).toUpperCase())
         return
@@ -20,7 +19,6 @@ export default function ClientHeader() {
         return
       }
 
-      // Sinon charger directement depuis Supabase
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
