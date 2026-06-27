@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useNotifications } from '@/hooks/useNotifications'
 import Link from 'next/link'
+import { Menu } from 'lucide-react'
 
-export default function ArtisanTopbar() {
+interface ArtisanTopbarProps {
+  onMenuClick?: () => void
+}
+
+export default function ArtisanTopbar({ onMenuClick }: ArtisanTopbarProps) {
   const [userName, setUserName] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -14,14 +19,42 @@ export default function ArtisanTopbar() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        setUserName(data.user.user_metadata?.full_name || data.user.email || '')
+        supabase
+          .from('profiles')
+          .select('prenom, nom')
+          .eq('user_id', data.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              setUserName(`${profile.prenom || ''} ${profile.nom || ''}`.trim())
+            } else {
+              setUserName(data.user.user_metadata?.full_name || data.user.email || '')
+            }
+          })
         setAvatarUrl(data.user.user_metadata?.avatar_url || null)
       }
     })
   }, [])
 
+  const initials = userName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-10">
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
+      
+      {/* Hamburger mobile */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2"
+      >
+        <Menu className="w-5 h-5 text-gray-600" />
+      </button>
+
+      {/* Barre de recherche */}
       <div className="flex-1 max-w-md">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +87,7 @@ export default function ArtisanTopbar() {
             <img src={avatarUrl} alt={userName} className="w-8 h-8 rounded-full object-cover" />
           ) : (
             <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold text-sm">
-              {userName.charAt(0).toUpperCase() || 'A'}
+              {initials || 'A'}
             </div>
           )}
           <div className="hidden md:block">
