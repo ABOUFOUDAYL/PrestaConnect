@@ -1,19 +1,88 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import FavorisGrid from "@/components/favoris/FavorisGrid"
 import { Artisan } from "@/components/artisans/ArtisanCard"
-
-const FAVORIS_INITIAUX: Artisan[] = [
-  { id: "1", name: "Jean Kouassi", metier: "Plombier", ville: "Cotonou", note: 4.8, avis: 32, verifie: true, description: "Plombier expérimenté spécialisé dans les installations sanitaires.", categories: ["Plomberie"] },
-  { id: "4", name: "Afi Togbe", metier: "Peintre", ville: "Cotonou", note: 4.9, avis: 27, verifie: true, description: "Peintre professionnelle spécialisée en décoration intérieure.", categories: ["Peinture"] },
-  { id: "6", name: "Sèna Kpodo", metier: "Climatiseur", ville: "Cotonou", note: 4.7, avis: 21, verifie: true, description: "Technicien climatisation pour installation et entretien.", categories: ["Climatisation"] },
-]
+import { supabase } from "@/lib/supabase"
 
 export default function FavorisPage() {
-  const [favoris, setFavoris] = useState<Artisan[]>(FAVORIS_INITIAUX)
+  const [favoris, setFavoris] = useState<Artisan[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleRetirer = (id: string) => {
-    setFavoris((prev) => prev.filter((a) => a.id !== id))
+  useEffect(() => {
+    const loadFavoris = async () => {
+      setIsLoading(true)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsLoading(false); return }
+
+      const { data, error } = await supabase
+        .from("favoris")
+        .select(`
+          id,
+          prestataire_id,
+          prestataires (
+            id,
+            prenom,
+            nom,
+            metier,
+            statut,
+            profiles (
+              ville,
+              photo_url
+            )
+          )
+        `)
+        .eq("user_id", user.id)
+
+      if (!error && data) {
+        const formatted: Artisan[] = data
+          .filter((f: any) => f.prestataires)
+          .map((f: any) => ({
+            id: f.prestataires.id,
+            name: `${f.prestataires.prenom || ""} ${f.prestataires.nom || ""}`.trim(),
+            metier: f.prestataires.metier || "Non renseigné",
+            ville: f.prestataires.profiles?.ville || "Non renseignée",
+            note: f.prestataires.note_moyenne || 0,
+            avis: f.prestataires.nombre_avis || 0,
+            verifie: f.prestataires.statut === "valide",
+            description: f.prestataires.description || "",
+            categories: f.prestataires.metier ? [f.prestataires.metier] : [],
+            photo_url: f.prestataires.profiles?.photo_url || null,
+            favori_id: f.id,
+          }))
+        setFavoris(formatted)
+      }
+
+      setIsLoading(false)
+    }
+
+    loadFavoris()
+  }, [])
+
+  const handleRetirer = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error } = await supabase
+      .from("favoris")
+      .delete()
+      .eq("prestataire_id", id)
+      .eq("user_id", user.id)
+
+    if (!error) {
+      setFavoris((prev) => prev.filter((a) => a.id !== id))
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "40vh" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", border: "4px solid #e63946", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
+          <p style={{ color: "var(--color-neutral-500)", marginTop: "16px" }}>Chargement...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -27,7 +96,17 @@ export default function FavorisPage() {
         </p>
       </div>
 
-      <FavorisGrid artisans={favoris} onRetirer={handleRetirer} />
+      {favoris.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
+          <p style={{ fontSize: "3rem" }}>❤️</p>
+          <p>Aucun artisan sauvegardé pour le moment</p>
+          <a href="/artisans" style={{ color: "var(--color-primary-500)", fontSize: "var(--text-sm)" }}>
+            Découvrir des artisans →
+          </a>
+        </div>
+      ) : (
+        <FavorisGrid artisans={favoris} onRetirer={handleRetirer} />
+      )}
     </div>
   )
 }
