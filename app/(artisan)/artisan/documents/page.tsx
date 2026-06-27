@@ -1,193 +1,199 @@
 ﻿'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Upload, FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { FileText, Upload, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react'
 
-interface Document {
-  id: string
-  nom: string
-  description: string
-  status: 'manquant' | 'soumis' | 'vérifié' | 'rejeté'
-  date?: string
-  optionnel?: boolean
-}
-
-const statusConfig = {
-  manquant: { label: 'Manquant', bg: '#FEF2F2', color: '#DC2626', icon: <XCircle size={14} /> },
-  soumis:   { label: 'En vérification', bg: '#FFF7ED', color: '#D97706', icon: <Clock size={14} /> },
-  vérifié:  { label: 'Vérifié', bg: '#F0FDF4', color: '#16A34A', icon: <CheckCircle size={14} /> },
-  rejeté:   { label: 'Rejeté', bg: '#FEF2F2', color: '#DC2626', icon: <XCircle size={14} /> },
-}
-
-const DEFAULT_DOCUMENTS: Document[] = [
-  {
-    id: '1',
-    nom: "Pièce d'identité",
-    description: "CIP ou carte biométrique en cours de validité",
-    status: 'manquant',
-  },
-  {
-    id: '2',
-    nom: "Diplôme du métier",
-    description: "Attestation ou CQM (Certificat de Qualification au Métier)",
-    status: 'manquant',
-  },
-  {
-    id: '3',
-    nom: "Casier judiciaire",
-    description: "Pour les métiers ne possédant pas de diplôme",
-    status: 'manquant',
-    optionnel: true,
-  },
+const DOC_TYPES = [
+  { key: 'piece_identite_url', label: "Piece d'identite", hint: 'CNI, passeport ou permis' },
+  { key: 'diplome_url', label: 'Diplome / Certification', hint: 'Preuve de qualification' },
+  { key: 'casier_judiciaire_url', label: 'Casier judiciaire', hint: "Extrait de moins de 3 mois" },
+  { key: 'selfie_identite_url', label: "Selfie d'identite", hint: "Photo de vous avec votre piece" },
 ]
 
-export default function DocumentsPage() {
-  const [documents, setDocuments] = useState<Document[]>(DEFAULT_DOCUMENTS)
-  const [uploading, setUploading] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+const STATUT_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string }> = {
+  valide: { label: 'Valide', icon: CheckCircle2, color: '#16a34a', bg: '#f0fdf4' },
+  en_attente: { label: 'En attente de verification', icon: Clock, color: '#ca8a04', bg: '#fefce8' },
+  rejete: { label: 'Rejete - a refaire', icon: XCircle, color: '#dc2626', bg: '#fef2f2' },
+}
+
+export default function ArtisanDocumentsPage() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [prestataireId, setPrestataireId] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Record<string, string | null>>({})
+  const [statut, setStatut] = useState<string | null>(null)
+  const [verifie, setVerifie] = useState(false)
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
-    fetchDocuments()
+    const load = async () => {
+      setIsLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsLoading(false); return }
+      setUserId(user.id)
+
+      const { data: presta } = await supabase
+        .from('prestataires')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (presta) {
+        setPrestataireId(presta.id)
+        setStatut(presta.statut)
+        setVerifie(presta.verifie)
+        setDocs({
+          piece_identite_url: presta.piece_identite_url,
+          diplome_url: presta.diplome_url,
+          casier_judiciaire_url: presta.casier_judiciaire_url,
+          selfie_identite_url: presta.selfie_identite_url,
+        })
+      }
+
+      setIsLoading(false)
+    }
+    load()
   }, [])
 
-  async function fetchDocuments() {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+  const handleUpload = async (key: string, file: File) => {
+    if (!userId) return
+    setError('')
+    setUploadingKey(key)
 
-    const { data } = await supabase
-      .from('artisan_documents')
-      .select('*')
-      .eq('artisan_id', user.id)
+    const ext = file.name.split('.').pop()
+    const path = `${userId}/${key}_${Date.now()}.${ext}`
 
-    if (data && data.length > 0) {
-      setDocuments(prev => prev.map(doc => {
-        const found = data.find((d: any) => d.document_id === doc.id)
-        return found ? { ...doc, status: found.status, date: found.created_at ? new Date(found.created_at).toLocaleDateString('fr-FR') : undefined } : doc
-      }))
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) {
+      setError(`Erreur upload: ${uploadError.message}`)
+      setUploadingKey(null)
+      return
     }
-    setLoading(false)
+
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
+    const publicUrl = urlData.publicUrl
+
+    const { error: updateError } = await supabase
+      .from('prestataires')
+      .update({ [key]: publicUrl, statut: 'en_attente' })
+      .eq('user_id', userId)
+
+    if (updateError) {
+      setError(`Erreur enregistrement: ${updateError.message}`)
+    } else {
+      setDocs((prev) => ({ ...prev, [key]: publicUrl }))
+      setStatut('en_attente')
+    }
+
+    setUploadingKey(null)
   }
 
-  async function handleUpload(docId: string) {
-    setUploading(docId)
-    setSuccess(null)
+  const config = statut ? STATUT_CONFIG[statut] : null
 
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.pdf,.jpg,.jpeg,.png'
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) { setUploading(null); return }
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setUploading(null); return }
-
-      const path = `documents/${user.id}/${docId}/${file.name}`
-      const { error: uploadError } = await supabase.storage
-        .from('artisan-documents')
-        .upload(path, file, { upsert: true })
-
-      if (!uploadError) {
-        await supabase
-          .from('artisan_documents')
-          .upsert({ artisan_id: user.id, document_id: docId, status: 'soumis', file_path: path })
-
-        setDocuments(prev =>
-          prev.map(d => d.id === docId ? { ...d, status: 'soumis', date: new Date().toLocaleDateString('fr-FR') } : d)
-        )
-        setSuccess(docId)
-      }
-      setUploading(null)
-    }
-    input.click()
-  }
-
-  const obligatoires = documents.filter(d => !d.optionnel)
-  const verified = obligatoires.filter(d => d.status === 'vérifié').length
-  const total = obligatoires.length
-  const progress = total > 0 ? Math.round((verified / total) * 100) : 0
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <span className="text-gray-500">Chargement…</span>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '48px', height: '48px', border: '4px solid #f97316', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          <p style={{ color: '#64748b', marginTop: '16px' }}>Chargement...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-
-      {/* En-tête */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Documents & Validation</h1>
-        <p className="text-sm text-gray-500">Soumettez vos documents pour valider votre profil professionnel</p>
-      </div>
-
-      {/* Progression */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-5">
-        <div className="flex justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-900">Progression du profil</span>
-          <span className="text-sm font-bold text-orange-600">{verified}/{total} documents vérifiés</span>
-        </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${progress}%`,
-              background: progress === 100 ? '#16A34A' : '#EA580C',
-            }}
-          />
-        </div>
-        <p className="text-xs text-gray-400 mt-1.5">
-          {progress === 100
-            ? '✅ Profil complet — votre compte est vérifié'
-            : `${progress}% — complétez vos documents pour apparaître dans les recherches`}
+    <div style={{ maxWidth: '640px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>Mes documents</h1>
+        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+          Ces documents sont necessaires pour verifier votre profil
         </p>
       </div>
 
+      {/* Statut global */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        background: verifie ? '#f0fdf4' : (config?.bg || '#f1f5f9'),
+        border: `1px solid ${verifie ? '#bbf7d0' : '#f1f5f9'}`,
+        borderRadius: '14px', padding: '14px 18px', marginBottom: '20px',
+      }}>
+        {verifie ? (
+          <CheckCircle2 size={20} color="#16a34a" />
+        ) : config ? (
+          <config.icon size={20} color={config.color} />
+        ) : (
+          <AlertCircle size={20} color="#64748b" />
+        )}
+        <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, color: verifie ? '#16a34a' : (config?.color || '#64748b') }}>
+          {verifie ? 'Profil verifie' : (config?.label || 'Documents non soumis')}
+        </p>
+      </div>
+
+      {error && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px' }}>
+          <p style={{ fontSize: '13px', color: '#dc2626', margin: 0 }}>{error}</p>
+        </div>
+      )}
+
       {/* Liste des documents */}
-      <div className="flex flex-col gap-3">
-        {documents.map(doc => {
-          const cfg = statusConfig[doc.status]
+      <div style={{ display: 'grid', gap: '12px' }}>
+        {DOC_TYPES.map((doc) => {
+          const url = docs[doc.key]
+          const isUploading = uploadingKey === doc.key
+
           return (
-            <div key={doc.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <FileText size={16} className="text-gray-400" />
-                  <span className="font-semibold text-gray-900">{doc.nom}</span>
-                  {doc.optionnel && (
-                    <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Optionnel</span>
-                  )}
-                  <span
-                    className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
-                    style={{ background: cfg.bg, color: cfg.color }}
-                  >
-                    {cfg.icon} {cfg.label}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">{doc.description}</p>
-                {doc.date && (
-                  <p className="text-xs text-gray-400 mt-1">Soumis le {doc.date}</p>
-                )}
-                {success === doc.id && (
-                  <p className="text-xs text-green-600 mt-1">✅ Document soumis, en cours de vérification</p>
-                )}
+            <div key={doc.key} style={{
+              background: 'white', borderRadius: '14px', border: '1px solid #f1f5f9',
+              padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px',
+            }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '10px',
+                background: url ? '#f0fdf4' : '#f1f5f9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <FileText size={18} color={url ? '#16a34a' : '#94a3b8'} />
               </div>
 
-              {(doc.status === 'manquant' || doc.status === 'rejeté') && (
-                <button
-                  onClick={() => handleUpload(doc.id)}
-                  disabled={uploading === doc.id}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-xl transition whitespace-nowrap disabled:opacity-60"
-                >
-                  <Upload size={14} />
-                  {uploading === doc.id ? '⏳ Envoi...' : 'Soumettre'}
-                </button>
-              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: '0 0 2px' }}>
+                  {doc.label}
+                </p>
+                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
+                  {url ? 'Document soumis' : doc.hint}
+                </p>
+              </div>
+
+              <input
+                ref={(el) => { fileInputs.current[doc.key] = el }}
+                type="file"
+                accept="image/*,.pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleUpload(doc.key, file)
+                }}
+              />
+
+              <button
+                onClick={() => fileInputs.current[doc.key]?.click()}
+                disabled={isUploading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 14px', borderRadius: '8px',
+                  border: '1px solid #e2e8f0', background: 'white',
+                  fontSize: '12px', fontWeight: 600, color: '#475569',
+                  cursor: isUploading ? 'not-allowed' : 'pointer', flexShrink: 0,
+                }}
+              >
+                <Upload size={13} />
+                {isUploading ? 'Envoi...' : url ? 'Remplacer' : 'Ajouter'}
+              </button>
             </div>
           )
         })}
