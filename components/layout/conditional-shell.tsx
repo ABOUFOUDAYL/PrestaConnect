@@ -2,7 +2,18 @@
 
 import { usePathname } from 'next/navigation'
 
-const DASHBOARD_ROUTES = ['/dashboard', '/settings', '/bookings', '/messages', '/payments', '/services', '/analytics', '/admin']
+const DASHBOARD_ROUTES = [
+  '/dashboard',
+  '/settings',
+  '/bookings',
+  '/messages',
+  '/payments',
+  '/services',
+  '/analytics',
+  '/admin',
+  '/artisan',
+  '/admin-ambassadeur'
+]
 
 export function ConditionalShell({
   children,
