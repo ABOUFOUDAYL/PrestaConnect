@@ -17,6 +17,24 @@ export async function POST(req: Request) {
       telephone, ville, metier,
       carte_identite_url, casier_judiciaire_url
     } = body;
+
+    // ✅ Validation des champs obligatoires
+    if (!email || !password || !role || !first_name || !last_name) {
+      return NextResponse.json(
+        { error: "Champs obligatoires manquants" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Normaliser le rôle
+    const normalizedRole = role === 'prestataire' ? 'artisan' : role;
+    if (!['client', 'artisan', 'admin'].includes(normalizedRole)) {
+      return NextResponse.json(
+        { error: "Rôle invalide" },
+        { status: 400 }
+      );
+    }
+
     const full_name = `${first_name} ${last_name}`.trim();
 
     // 1. Créer l'utilisateur Auth
@@ -25,14 +43,14 @@ export async function POST(req: Request) {
         email,
         password,
         email_confirm: false,
-        user_metadata: { full_name, role },
+        user_metadata: { full_name, role: normalizedRole },
       });
     if (authError) throw authError;
 
     const userId = authData.user?.id;
     if (!userId) throw new Error("User non créé");
 
-    // 2. Créer le profil avec le bon rôle
+    // 2. Créer le profil avec le bon rôle ✅
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .upsert({
@@ -40,18 +58,19 @@ export async function POST(req: Request) {
         user_id: userId,
         nom: last_name,
         prenom: first_name,
-        telephone,
+        telephone: telephone || null,
         email,
+        role: normalizedRole, // ✅ rôle correctement sauvegardé
         ville: ville || null,
         metier: metier || null,
         carte_identite_url: carte_identite_url || null,
         casier_judiciaire_url: casier_judiciaire_url || null,
-        statut_verification: role === 'client' ? 'valide' : 'en_attente_validation',
+        statut_verification: normalizedRole === 'client' ? 'valide' : 'en_attente_validation',
       }, { onConflict: "id" });
     if (profileError) throw profileError;
 
     // 3. Insérer dans la bonne table selon le rôle
-    if (role === "prestataire" || role === "artisan") {
+    if (normalizedRole === 'artisan') {
       const { error: prestaError } = await supabaseAdmin
         .from("prestataires")
         .insert({
@@ -83,7 +102,7 @@ export async function POST(req: Request) {
         `,
       });
 
-    } else if (role === "client") {
+    } else if (normalizedRole === 'client') {
       const { error: clientError } = await supabaseAdmin
         .from("clients")
         .insert({
@@ -91,13 +110,31 @@ export async function POST(req: Request) {
           nom: last_name,
           prenom: first_name,
           telephone: telephone || null,
-          email: email,
+          email,
         });
       if (clientError) throw clientError;
     }
 
+    // 4. ✅ Envoyer email de confirmation à l'utilisateur
+    await resend.emails.send({
+      from: "PrestaConnect <onboarding@resend.dev>",
+      to: email,
+      subject: "Bienvenue sur PrestaConnect !",
+      html: `
+        <h2>Bienvenue ${first_name} !</h2>
+        <p>Votre compte ${normalizedRole === 'artisan' ? 'artisan' : 'client'} a bien été créé.</p>
+        ${normalizedRole === 'artisan'
+          ? `<p>Votre profil est en cours de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.</p>`
+          : `<p>Vous pouvez dès maintenant vous connecter et publier vos demandes.</p>`
+        }
+        <a href="https://presta-connect.vercel.app/login">Se connecter</a>
+      `,
+    });
+
     return NextResponse.json({ success: true, userId });
+
   } catch (err: any) {
+    console.error("❌ Register error:", err);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }
