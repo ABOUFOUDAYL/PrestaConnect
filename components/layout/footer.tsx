@@ -5,10 +5,8 @@ export function Footer() {
     <footer className="border-t border-border bg-card">
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
 
-        {/* Ligne principale */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
 
-          {/* Logo + tagline */}
           <div className="flex flex-col items-center md:items-start gap-1">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
@@ -23,58 +21,31 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Liens essentiels */}
           <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            <Link href="/explore" className="hover:text-foreground transition-colors">
-              Explorer
-            </Link>
-            <Link href="/register/provider" className="hover:text-foreground transition-colors">
-              Devenir prestataire
-            </Link>
-            <Link href="/about" className="hover:text-foreground transition-colors">
-              À propos
-            </Link>
-            <Link href="/contact" className="hover:text-foreground transition-colors">
-              Contact
-            </Link>
-            <Link href="/tarifs" className="hover:text-foreground transition-colors">
-              Tarifs
-            </Link>
+            <Link href="/explore" className="hover:text-foreground transition-colors">Explorer</Link>
+            <Link href="/register/provider" className="hover:text-foreground transition-colors">Devenir prestataire</Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">À propos</Link>
+            <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+            <Link href="/tarifs" className="hover:text-foreground transition-colors">Tarifs</Link>
           </nav>
 
-          {/* Réseaux sociaux */}
           <div className="flex items-center gap-3">
-            
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm"
-              aria-label="Facebook"
-            >
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm">
               f
             </a>
-            
-              href="https://wa.me/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm"
-              aria-label="WhatsApp"
-            >
+            <a href="https://wa.me/" target="_blank" rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm">
               w
             </a>
           </div>
         </div>
 
-        {/* Ligne bas */}
         <div className="mt-6 border-t border-border pt-4 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} PrestaConnect Bénin. Tous droits réservés.</span>
           <div className="flex gap-4">
-            <Link href="/cgu" className="hover:text-foreground transition-colors">
-              CGU
-            </Link>
-            <Link href="/confidentialite" className="hover:text-foreground transition-colors">
-              Confidentialité
-            </Link>
+            <Link href="/cgu" className="hover:text-foreground transition-colors">CGU</Link>
+            <Link href="/confidentialite" className="hover:text-foreground transition-colors">Confidentialité</Link>
           </div>
         </div>
 
