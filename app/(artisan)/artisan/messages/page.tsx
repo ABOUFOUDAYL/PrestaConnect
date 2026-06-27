@@ -19,7 +19,6 @@ function MessagesContent() {
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Charger les conversations
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -42,7 +41,6 @@ function MessagesContent() {
     load()
   }, [])
 
-  // Charger les messages de la conversation sélectionnée + realtime
   useEffect(() => {
     if (!selectedId) return
 
@@ -55,7 +53,6 @@ function MessagesContent() {
 
       setMessages(msgs || [])
 
-      // Marquer comme lu les messages reçus
       if (userId) {
         await supabase
           .from('messages')
@@ -143,7 +140,6 @@ function MessagesContent() {
   return (
     <div style={{ display: 'flex', gap: '16px', height: 'calc(100vh - 140px)', minHeight: '500px' }}>
 
-      {/* Liste des conversations */}
       <div style={{
         width: '320px', flexShrink: 0, background: 'white', borderRadius: '16px',
         border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -205,7 +201,6 @@ function MessagesContent() {
         </div>
       </div>
 
-      {/* Zone de chat */}
       <div style={{
         flex: 1, background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -213,11 +208,10 @@ function MessagesContent() {
         {!selectedConv ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px' }}>
             <MessageCircle size={32} color="#cbd5e1" />
-            <p style={{ color: '#94a3b8', fontSize: '14px' }}>Sélectionnez une conversation</p>
+            <p style={{ color: '#94a3b8', fontSize: '14px' }}>Selectionnez une conversation</p>
           </div>
         ) : (
           <>
-            {/* Header */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
                 width: '36px', height: '36px', borderRadius: '50%',
@@ -237,11 +231,10 @@ function MessagesContent() {
               </div>
             </div>
 
-            {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {messages.length === 0 ? (
                 <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', margin: 'auto' }}>
-                  Aucun message — démarrez la conversation
+                  Aucun message, demarrez la conversation
                 </p>
               ) : (
                 messages.map((m) => {
@@ -265,14 +258,38 @@ function MessagesContent() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Saisie */}
             <div style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' }}>
               <input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
-                placeholder="Écrire un message..."
+                placeholder="Ecrire un message..."
                 style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}
               />
               <button
                 onClick={handleSend}
+                disabled={!newMessage.trim() || sending}
+                style={{
+                  width: '44px', height: '44px', borderRadius: '10px', border: 'none',
+                  background: !newMessage.trim() || sending ? '#cbd5e1' : 'linear-gradient(135deg, #f97316, #ea580c)',
+                  color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: !newMessage.trim() || sending ? 'not-allowed' : 'pointer', flexShrink: 0,
+                }}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function ArtisanMessagesPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Chargement...</div>}>
+      <MessagesContent />
+    </Suspense>
+  )
+}
