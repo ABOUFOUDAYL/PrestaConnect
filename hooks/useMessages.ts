@@ -9,8 +9,13 @@ export function useConversations() {
   const [loading, setLoading] = useState(true)
 
   const fetchConversations = useCallback(async () => {
+    setLoading(true)
+
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
 
     const { data, error } = await supabase
       .from('conversations')
@@ -22,7 +27,11 @@ export function useConversations() {
       .or(`client_id.eq.${user.id},artisan_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
 
-    if (error) { console.error(error); return }
+    if (error) {
+      console.error(error)
+      setLoading(false)
+      return
+    }
 
     const enriched = await Promise.all(
       (data || []).map(async (conv) => {
