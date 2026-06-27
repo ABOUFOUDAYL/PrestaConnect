@@ -24,7 +24,6 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  // ✅ Créer le client directement ici (pas d'import externe)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -49,18 +48,14 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
-    // ✅ Log pour voir l'erreur réelle
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email: form.email.trim().toLowerCase(),
       password: form.password,
     })
 
-    console.log('🔍 Auth result:', { user: data?.user?.email, error: authError?.message, code: authError?.status })
-
     if (authError || !data.user) {
-      // ✅ Afficher le vrai message d'erreur Supabase
       const msg = authError?.message ?? 'Erreur inconnue'
-      
+
       if (msg.includes('Invalid login credentials')) {
         setError('Email ou mot de passe incorrect.')
       } else if (msg.includes('Email not confirmed')) {
@@ -68,9 +63,9 @@ export default function LoginForm() {
       } else if (msg.includes('Too many requests')) {
         setError('Trop de tentatives. Réessayez dans quelques minutes.')
       } else {
-        setError(`Erreur : ${msg}`) // ✅ Affiche le vrai message pour déboguer
+        setError(`Erreur : ${msg}`)
       }
-      
+
       setLoading(false)
       return
     }
@@ -81,19 +76,19 @@ export default function LoginForm() {
       .eq('user_id', data.user.id)
       .single()
 
-    console.log('👤 Profile:', profile)
-
     const role = profile?.role
 
-    if (role === 'admin') {
-      router.push('/admin-ambassadeur')
-    } else if (role === 'artisan') {
-      router.push('/artisan/dashboard')
-    } else {
-      router.push('/dashboard')
-    }
-
     router.refresh()
+
+    if (role === 'admin') {
+      router.replace('/admin/dashboard')
+    } else if (role === 'ambassadeur') {
+      router.replace('/ambassadeur/dashboard')
+    } else if (role === 'artisan') {
+      router.replace('/artisan/dashboard')
+    } else {
+      router.replace('/dashboard')
+    }
   }
 
   return (

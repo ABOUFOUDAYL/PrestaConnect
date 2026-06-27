@@ -12,6 +12,7 @@ const DASHBOARD_ROUTES = [
   '/analytics',
   '/admin',
   '/artisan',
+  '/ambassadeur',
   '/admin-ambassadeur'
 ]
 
