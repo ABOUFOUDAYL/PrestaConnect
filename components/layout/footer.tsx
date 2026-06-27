@@ -3,89 +3,81 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-7xl px-4 py-10 md:px-6">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
+      <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
+
+        {/* Ligne principale */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+
+          {/* Logo + tagline */}
+          <div className="flex flex-col items-center md:items-start gap-1">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <span className="text-xs font-bold text-primary-foreground">P</span>
               </div>
-              <span className="font-bold">
+              <span className="font-bold text-base">
                 Presta<span className="text-primary">Connect</span>
               </span>
             </Link>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Marketplace de services de confiance au Bénin 🇧🇯
             </p>
           </div>
 
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Plateforme</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/explore" className="hover:text-foreground transition-colors">
-                  Explorer
-                </Link>
-              </li>
-              <li>
-                <Link href="/prestataires" className="hover:text-foreground transition-colors">
-                  Prestataires
-                </Link>
-              </li>
-              <li>
-                <Link href="/register/provider" className="hover:text-foreground transition-colors">
-                  Devenir prestataire
-                </Link>
-              </li>
-            </ul>
-          </div>
+          {/* Liens essentiels */}
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <Link href="/explore" className="hover:text-foreground transition-colors">
+              Explorer
+            </Link>
+            <Link href="/register/provider" className="hover:text-foreground transition-colors">
+              Devenir prestataire
+            </Link>
+            <Link href="/about" className="hover:text-foreground transition-colors">
+              À propos
+            </Link>
+            <Link href="/contact" className="hover:text-foreground transition-colors">
+              Contact
+            </Link>
+            <Link href="/tarifs" className="hover:text-foreground transition-colors">
+              Tarifs
+            </Link>
+          </nav>
 
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Entreprise</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/solutions" className="hover:text-foreground transition-colors">
-                  Solutions
-                </Link>
-              </li>
-              <li>
-                <Link href="/tarifs" className="hover:text-foreground transition-colors">
-                  Tarifs
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-foreground transition-colors">
-                  À propos
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Support</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/ressources" className="hover:text-foreground transition-colors">
-                  Ressources
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-foreground transition-colors">
-                  Contact
-                </Link>
-              </li>
-              <li>
-                <Link href="/login" className="hover:text-foreground transition-colors">
-                  Connexion
-                </Link>
-              </li>
-            </ul>
+          {/* Réseaux sociaux */}
+          <div className="flex items-center gap-3">
+            
+              href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm"
+              aria-label="Facebook"
+            >
+              f
+            </a>
+            
+              href="https://wa.me/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm"
+              aria-label="WhatsApp"
+            >
+              w
+            </a>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} PrestaConnect Bénin. Tous droits réservés.
+        {/* Ligne bas */}
+        <div className="mt-6 border-t border-border pt-4 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>© {new Date().getFullYear()} PrestaConnect Bénin. Tous droits réservés.</span>
+          <div className="flex gap-4">
+            <Link href="/cgu" className="hover:text-foreground transition-colors">
+              CGU
+            </Link>
+            <Link href="/confidentialite" className="hover:text-foreground transition-colors">
+              Confidentialité
+            </Link>
+          </div>
         </div>
+
       </div>
     </footer>
   );
