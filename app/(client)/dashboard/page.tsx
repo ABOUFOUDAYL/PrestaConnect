@@ -1,130 +1,100 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { 
-  FileText, 
-  MessageSquare, 
-  Heart, 
-  Clock, 
-  AlertCircle,
-  User
-} from "lucide-react";
-
-// Initialisation universelle et infaillible de Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/lib/supabase";
+import { FileText, MessageSquare, Heart, Clock, User } from "lucide-react";
 
 export default function DashboardPage() {
-  // États de chargement et d'erreurs
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Données de l'utilisateur et statistiques
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({
     demandes: 0,
     devis: 0,
     conversations: 0,
     favoris: 0,
   });
-
-  // Listes pour les activités récentes
   const [recentDemandes, setRecentDemandes] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setIsLoading(true);
-        setErrorMessage(null);
+    const init = async () => {
+      // Attendre que la session soit disponible
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-        // 1. Récupération sécurisée de la session utilisateur
-        const { data: { session }, error: authError } = await supabase.auth.getSession();
-        
-        if (authError) throw authError;
-        
-        if (!session?.user) {
-          setErrorMessage("Vous devez être connecté pour accéder à cette page.");
-          return;
-        }
-
-        const currentUser = session.user;
-        setUser(currentUser);
-        const userId = currentUser.id;
-
-        // 2. Récupération des données en parallèle
-        const [
-          demandesRes, 
-          devisRes, 
-          conversationsRes, 
-          favorisRes
-        ] = await Promise.all([
-          supabase.from("demandes").select("*", { count: "exact" }).eq("client_id", userId).order("created_at", { ascending: false }).limit(5),
-          supabase.from("devis").select("*", { count: "exact", head: true }).eq("client_id", userId),
-          supabase.from("conversations").select("*", { count: "exact", head: true }).eq("client_id", userId),
-          supabase.from("favoris").select("*", { count: "exact", head: true }).eq("user_id", userId),
-        ]);
-
-        // Traitement des demandes récentes
-        if (!demandesRes.error && demandesRes.data) {
-          setRecentDemandes(demandesRes.data);
-          setStats(prev => ({ ...prev, demandes: demandesRes.count || 0 }));
-        }
-
-        // Mise à jour des autres compteurs
-        setStats(prev => ({
-          ...prev,
-          devis: devisRes.count || 0,
-          conversations: conversationsRes.count || 0,
-          favoris: favorisRes.count || 0,
-        }));
-
-      } catch (error: any) {
-        console.error("Erreur lors du chargement du tableau de bord :", error);
-        setErrorMessage("Impossible de charger vos données. Veuillez rafraîchir la page.");
-      } finally {
-        // Arrêt forcé du chargement
-        setIsLoading(false);
+      if (!currentUser) {
+        // Écouter le changement d'état auth
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+          if (session?.user) {
+            subscription.unsubscribe();
+            await loadData(session.user);
+          }
+        });
+        return;
       }
+
+      await loadData(currentUser);
     };
 
-    loadDashboardData();
+    const loadData = async (currentUser: any) => {
+      setUser(currentUser);
+      const userId = currentUser.id;
+
+      // Charger le profil
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("*")
+        .or(`user_id.eq.${userId},id.eq.${userId}`)
+        .single();
+      setProfile(prof);
+
+      // Charger les stats en parallèle
+      const [demandesRes, devisRes, conversationsRes, favorisRes] = await Promise.all([
+        supabase.from("demandes").select("*", { count: "exact" }).eq("client_id", userId).order("created_at", { ascending: false }).limit(5),
+        supabase.from("devis").select("*", { count: "exact", head: true }).eq("client_id", userId),
+        supabase.from("conversations").select("*", { count: "exact", head: true }).eq("client_id", userId),
+        supabase.from("favoris").select("*", { count: "exact", head: true }).eq("user_id", userId),
+      ]);
+
+      setRecentDemandes(demandesRes.data || []);
+      setStats({
+        demandes: demandesRes.count || 0,
+        devis: devisRes.count || 0,
+        conversations: conversationsRes.count || 0,
+        favoris: favorisRes.count || 0,
+      });
+
+      setIsLoading(false);
+    };
+
+    init();
   }, []);
 
-  // Écran de chargement initial
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bonjour";
+    if (h < 18) return "Bon après-midi";
+    return "Bonsoir";
+  };
+
+  const firstName = profile?.prenom || profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "";
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
         <p className="text-gray-500 font-medium animate-pulse">Chargement de votre espace...</p>
-      </div>
-    );
-  }
-
-  // Écran si l'utilisateur n'est pas connecté
-  if (errorMessage && !user) {
-    return (
-      <div className="p-6 max-w-md mx-auto my-12 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3 text-red-700">
-        <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-        <div>
-          <h3 className="font-semibold">Accès restreint</h3>
-          <p className="text-sm mt-1">{errorMessage}</p>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-8 p-6 max-w-7xl mx-auto">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            Bienvenue <span>👋</span>
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
-        </div>
+
+      {/* En-tête de bienvenue */}
+      <div className="rounded-2xl bg-gradient-to-r from-red-600 to-red-400 p-6 text-white">
+        <p className="text-red-100 text-sm font-medium">{getGreeting()} 👋</p>
+        <h1 className="text-2xl font-bold mt-1">{firstName}</h1>
+        <p className="text-red-100 text-sm mt-1">Que recherchez-vous aujourd'hui ?</p>
       </div>
 
       {/* Cartes de statistiques */}
@@ -134,7 +104,7 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-sm font-medium">Mes demandes</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{stats.demandes}</h3>
           </div>
-          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+          <div className="p-3 bg-red-50 text-red-600 rounded-xl">
             <FileText className="w-6 h-6" />
           </div>
         </div>
@@ -144,7 +114,7 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-sm font-medium">Devis reçus</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{stats.devis}</h3>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
         </div>
@@ -170,7 +140,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Activité Récente */}
+      {/* Activité récente */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Clock className="w-5 h-5 text-gray-400" /> Activité récente
@@ -179,32 +149,34 @@ export default function DashboardPage() {
         {recentDemandes.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-gray-200 rounded-xl bg-gray-50">
             <p className="text-gray-500 font-medium">Aucune activité pour le moment</p>
-            <p className="text-gray-400 text-xs mt-1">Vos dernières demandes de prestations apparaîtront ici.</p>
+            <p className="text-gray-400 text-xs mt-1">Vos dernières demandes apparaîtront ici.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-gray-500">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50 rounded-lg">
                 <tr>
-                  <th className="px-4 py-3">Client</th>
-                  <th className="px-4 py-3">Téléphone</th>
+                  <th className="px-4 py-3">Demande</th>
                   <th className="px-4 py-3">Ville</th>
+                  <th className="px-4 py-3">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {recentDemandes.map((demande) => (
                   <tr key={demande.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-4 font-medium text-gray-900 flex items-center gap-2">
-                      <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                      <div className="w-7 h-7 bg-red-50 rounded-full flex items-center justify-center text-red-500">
                         <User className="w-4 h-4" />
                       </div>
-                      {demande.client_name || "Client anonyme"}
+                      {demande.titre || demande.description?.slice(0, 40) || "Demande sans titre"}
                     </td>
-                    <td className="px-4 py-4">{demande.telephone || "Non renseigné"}</td>
                     <td className="px-4 py-4">
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
                         {demande.ville || "N/A"}
                       </span>
+                    </td>
+                    <td className="px-4 py-4 text-gray-400 text-xs">
+                      {new Date(demande.created_at).toLocaleDateString("fr-FR")}
                     </td>
                   </tr>
                 ))}
