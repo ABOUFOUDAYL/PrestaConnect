@@ -68,7 +68,7 @@ export default function ClientHeader() {
           🔔
         </Link>
 
-        <Link href="/profil" style={{
+        <Link href="/mon-profil" style={{
           width: "36px",
           height: "36px",
           borderRadius: "var(--radius-full)",
