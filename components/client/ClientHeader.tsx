@@ -1,12 +1,44 @@
 "use client"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function ClientHeader() {
-  const { authUser } = useAuth()
+  const { authUser, loading } = useAuth()
+  const [avatarLetter, setAvatarLetter] = useState("?")
 
-  const firstName = authUser?.profile?.prenom || authUser?.full_name?.split(" ")[0] || ""
-  const avatarLetter = firstName.charAt(0).toUpperCase() || "?"
+  useEffect(() => {
+    const getInitial = async () => {
+      // Si authUser est chargé, utiliser le prénom
+      if (authUser?.profile?.prenom) {
+        setAvatarLetter(authUser.profile.prenom.charAt(0).toUpperCase())
+        return
+      }
+      if (authUser?.full_name) {
+        setAvatarLetter(authUser.full_name.charAt(0).toUpperCase())
+        return
+      }
+
+      // Sinon charger directement depuis Supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("prenom, full_name")
+        .or(`user_id.eq.${user.id},id.eq.${user.id}`)
+        .single()
+
+      if (prof?.prenom) {
+        setAvatarLetter(prof.prenom.charAt(0).toUpperCase())
+      } else if (prof?.full_name) {
+        setAvatarLetter(prof.full_name.charAt(0).toUpperCase())
+      }
+    }
+
+    getInitial()
+  }, [authUser])
 
   return (
     <header style={{
