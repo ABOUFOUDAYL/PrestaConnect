@@ -48,7 +48,7 @@ export default function ClientSidebar() {
 
   return (
     <>
-      {/* Sidebar — desktop / tablette */}
+      {/* Sidebar — desktop */}
       <aside className="client-sidebar-desktop" style={{
         width: "260px",
         minHeight: "100vh",
@@ -58,7 +58,6 @@ export default function ClientSidebar() {
         flexDirection: "column",
         position: "sticky",
         top: 0,
-        display: "flex",
       }}>
         <div style={{
           padding: "0 var(--space-6) var(--space-6)",
@@ -87,7 +86,6 @@ export default function ClientSidebar() {
           })}
         </nav>
 
-        {/* Bas du sidebar — Paramètres + Déconnexion */}
         <div style={{
           padding: "var(--space-3)",
           borderTop: "1px solid var(--color-neutral-100)",
