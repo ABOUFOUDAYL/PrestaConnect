@@ -11,8 +11,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           flex: 1,
           minWidth: 0,
           paddingTop: "var(--space-8)",
-          paddingLeft: "var(--space-8)",
-          paddingRight: "var(--space-8)",
+          paddingLeft: "var(--space-4)",
+          paddingRight: "var(--space-4)",
         }}>
           {children}
         </main>
