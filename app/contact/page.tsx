@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, MapPin, MessageCircle, Send, Clock, Facebook } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Send, Clock } from "lucide-react";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ nom: "", contact: "", sujet: "", message: "" })
@@ -53,7 +53,8 @@ export default function ContactPage() {
             </a>
 
             <a href="https://web.facebook.com/profile.php?id=61591381834280" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-white text-sm font-bold transition hover:opacity-90" style={{ background: '#1877F2' }}>
-              <Facebook size={18} /> Suivez-nous sur Facebook
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54v-2.89h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562v1.875h2.773l-.443 2.89h-2.33v6.989C18.343 21.128 22 16.991 22 12z"/></svg>
+              Suivez-nous sur Facebook
             </a>
           </div>
 
