@@ -80,7 +80,6 @@ export default function ContactPage() {
               </div>
             ))}
 
-            {/* WhatsApp direct */}
             
               href="https://wa.me/2290140278943"
               target="_blank"
@@ -91,7 +90,6 @@ export default function ContactPage() {
               <MessageCircle size={18} /> Écrire sur WhatsApp
             </a>
 
-            {/* Facebook */}
             
               href="https://web.facebook.com/profile.php?id=61591381834280"
               target="_blank"
