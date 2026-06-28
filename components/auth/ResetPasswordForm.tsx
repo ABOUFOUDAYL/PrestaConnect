@@ -40,16 +40,14 @@ export default function ResetPasswordForm() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [sessionReady, setSessionReady] = useState(false)
 
   const strength = password.length > 0 ? getStrength(password) : null
   const config = strength ? strengthConfig[strength] : null
 
-  // Vérifie que la session de reset est bien active (token dans l'URL)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        setSessionReady(true)
+        // session prête
       }
     })
     return () => subscription.unsubscribe()
@@ -74,9 +72,7 @@ export default function ResetPasswordForm() {
     setLoading(true)
     setError(null)
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    })
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
       setError('Une erreur est survenue. Le lien est peut-être expiré.')
@@ -86,20 +82,15 @@ export default function ResetPasswordForm() {
 
     setSuccess(true)
     setLoading(false)
-
-    // Redirection automatique après 3 secondes
     setTimeout(() => router.push('/login'), 3000)
   }
 
-  // État succès
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-green-200 bg-green-50 px-6 py-10 text-center">
         <CheckCircle2 className="h-12 w-12 text-green-500" />
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Mot de passe mis à jour !
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-900">Mot de passe mis à jour !</h3>
           <p className="text-sm text-gray-500">
             Votre mot de passe a été réinitialisé avec succès.
             <br />
@@ -108,7 +99,7 @@ export default function ResetPasswordForm() {
         </div>
         <Link
           href="/login"
-          className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white text-center hover:bg-blue-700 transition"
+          className="w-full rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white text-center hover:bg-primary-700 transition"
         >
           Se connecter maintenant
         </Link>
@@ -119,7 +110,6 @@ export default function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
-      {/* Erreur globale */}
       {error && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -127,7 +117,6 @@ export default function ResetPasswordForm() {
         </div>
       )}
 
-      {/* Nouveau mot de passe */}
       <div className="space-y-1.5">
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Nouveau mot de passe *
@@ -141,7 +130,7 @@ export default function ResetPasswordForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={`w-full rounded-xl border px-4 py-2.5 pr-11 text-sm outline-none transition
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${fieldErrors.password
                 ? 'border-red-400 bg-red-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'}`}
@@ -158,14 +147,10 @@ export default function ResetPasswordForm() {
         {fieldErrors.password && (
           <p className="text-xs text-red-600">{fieldErrors.password}</p>
         )}
-
-        {/* Indicateur de force */}
         {password.length > 0 && config && (
           <div className="space-y-1 pt-1">
             <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${config.color} ${config.width}`}
-              />
+              <div className={`h-full rounded-full transition-all duration-300 ${config.color} ${config.width}`} />
             </div>
             <p className={`text-xs font-medium ${config.text}`}>
               Force du mot de passe : {config.label}
@@ -174,7 +159,6 @@ export default function ResetPasswordForm() {
         )}
       </div>
 
-      {/* Confirmer mot de passe */}
       <div className="space-y-1.5">
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
           Confirmer le mot de passe *
@@ -188,7 +172,7 @@ export default function ResetPasswordForm() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={`w-full rounded-xl border px-4 py-2.5 pr-11 text-sm outline-none transition
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${fieldErrors.confirmPassword
                 ? 'border-red-400 bg-red-50'
                 : confirmPassword.length > 0 && confirmPassword === password
@@ -214,20 +198,18 @@ export default function ResetPasswordForm() {
         )}
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {loading ? 'Mise à jour…' : 'Réinitialiser le mot de passe'}
       </button>
 
-      {/* Retour connexion */}
       <p className="text-center text-sm text-gray-500">
         Vous vous souvenez de votre mot de passe ?{' '}
-        <Link href="/login" className="font-semibold text-blue-600 hover:underline">
+        <Link href="/login" className="font-semibold text-primary-600 hover:underline">
           Se connecter
         </Link>
       </p>

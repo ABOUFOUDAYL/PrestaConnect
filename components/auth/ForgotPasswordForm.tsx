@@ -29,7 +29,7 @@ export default function ForgotPasswordForm() {
     setError(null)
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback`,
     })
 
     if (resetError) {
@@ -42,7 +42,6 @@ export default function ForgotPasswordForm() {
     setLoading(false)
   }
 
-  // État succès
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center gap-5 rounded-2xl border border-green-200 bg-green-50 px-6 py-10 text-center">
@@ -68,7 +67,7 @@ export default function ForgotPasswordForm() {
           </button>
           <Link
             href="/login"
-            className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white text-center hover:bg-blue-700 transition"
+            className="w-full rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white text-center hover:bg-primary-700 transition"
           >
             Retour à la connexion
           </Link>
@@ -80,7 +79,6 @@ export default function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
-      {/* Erreur globale */}
       {error && (
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -88,7 +86,6 @@ export default function ForgotPasswordForm() {
         </div>
       )}
 
-      {/* Email */}
       <div className="space-y-1.5">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Adresse email
@@ -103,7 +100,7 @@ export default function ForgotPasswordForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={`w-full rounded-xl border px-4 py-2.5 pl-10 text-sm outline-none transition
-              focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
+              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${emailError
                 ? 'border-red-400 bg-red-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'}`}
@@ -114,17 +111,15 @@ export default function ForgotPasswordForm() {
         )}
       </div>
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {loading ? 'Envoi en cours…' : 'Envoyer le lien'}
       </button>
 
-      {/* Retour connexion */}
       <Link
         href="/login"
         className="flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition"
