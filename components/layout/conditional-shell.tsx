@@ -13,7 +13,12 @@ const DASHBOARD_ROUTES = [
   '/admin',
   '/artisan',
   '/ambassadeur',
-  '/admin-ambassadeur'
+  '/admin-ambassadeur',
+  '/demandes',
+  '/favoris',
+  '/notifications',
+  '/mon-profil',
+  '/parametres-client',
 ]
 
 export function ConditionalShell({
