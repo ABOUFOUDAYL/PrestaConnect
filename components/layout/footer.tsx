@@ -24,7 +24,7 @@ export function Footer() {
           {[
             { title: "Plateforme", links: [{ label: "Explorer", href: "/explore" }, { label: "Comment ça marche", href: "/solutions" }] },
             { title: "Artisans", links: [{ label: "S'inscrire", href: "/register/provider" }, { label: "Tarifs", href: "/tarifs" }] },
-            { title: "Aide", links: [{ label: "Contact", href: "/contact" }, { label: "FAQ", href: "/about" }] },
+            { title: "Aide", links: [{ label: "Contact", href: "/contact" }, { label: "FAQ", href: "/faq" }] },
           ].map((col) => (
             <div key={col.title}>
               <div style={{ fontWeight: 700, fontSize: 12, color: "#E2E8F0", marginBottom: 12, letterSpacing: "0.06em", textTransform: "uppercase" as const, fontFamily: "Sora, sans-serif" }}>{col.title}</div>
