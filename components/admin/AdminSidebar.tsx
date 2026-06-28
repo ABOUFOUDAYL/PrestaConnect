@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: "🏠" },
-  { href: "/admin/verifications", label: "Vérifications", icon: "📋" },
-  { href: "/admin/artisans", label: "Gestion artisans", icon: "🔨" },
-  { href: "/admin/clients", label: "Gestion clients", icon: "👥" },
-  { href: "/admin/ambassadeurs", label: "Ambassadeurs", icon: "🌟" },
-  { href: "/admin/parametres", label: "Paramètres", icon: "⚙️" },
+  { href: "/admin/dashboard", label: "Dashboard", icon: "🏠", mobileLabel: "Home" },
+  { href: "/admin/verifications", label: "Vérifications", icon: "📋", mobileLabel: "Vérif." },
+  { href: "/admin/artisans", label: "Gestion artisans", icon: "🔨", mobileLabel: "Artisans" },
+  { href: "/admin/clients", label: "Gestion clients", icon: "👥", mobileLabel: "Clients" },
+  { href: "/admin/ambassadeurs", label: "Ambassadeurs", icon: "🌟", mobileLabel: "Ambass." },
+  { href: "/admin/parametres", label: "Paramètres", icon: "⚙️", mobileLabel: "Config" },
 ];
 
 export default function AdminSidebar({ mobile = false }: { mobile?: boolean }) {
@@ -17,21 +17,19 @@ export default function AdminSidebar({ mobile = false }: { mobile?: boolean }) {
 
   if (mobile) {
     return (
-      <nav className="bg-white border-t border-gray-200 flex justify-around items-center h-16 px-2">
+      <nav className="bg-white border-t border-gray-200 flex justify-around items-center h-16 px-1">
         {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            className={`flex flex-col items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+            className={`flex flex-col items-center gap-0.5 text-xs px-1 py-1 rounded-lg transition-colors ${
               pathname === link.href
                 ? "text-orange-500 font-semibold"
                 : "text-gray-400"
             }`}
           >
-            <span className="text-xl">{link.icon}</span>
-            <span className="truncate max-w-[60px] text-center leading-tight">
-              {link.label.split(" ")[0]}
-            </span>
+            <span className="text-lg">{link.icon}</span>
+            <span className="text-[10px] text-center leading-tight">{link.mobileLabel}</span>
           </Link>
         ))}
       </nav>
