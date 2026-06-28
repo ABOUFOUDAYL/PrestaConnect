@@ -66,7 +66,6 @@ export async function middleware(request: NextRequest) {
     '/admin-ambassadeur',
     '/factures',
     '/artisan',
-    '/parametres',
     '/portefeuille',
     '/documents',
     '/messages',
