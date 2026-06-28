@@ -60,7 +60,7 @@ export default function AdminParametres() {
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .neq("role", "admin")
+      .not("role", "in", '("admin","super_admin")')
       .order("nom", { ascending: true });
     setProfiles(data || []);
   }
