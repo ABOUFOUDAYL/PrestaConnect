@@ -589,6 +589,14 @@ export default function HomePage() {
               <div>
                 <div className="syne" style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 10 }}>Presta<span style={{ color: "#FB6B72" }}>Connect</span></div>
                 <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.75, maxWidth: 220 }}>La première plateforme artisanale du Bénin. Simple, rapide, local.</p>
+                <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+                  <a href="https://web.facebook.com/profile.php?id=61591381834280" target="_blank" rel="noopener noreferrer"
+                    style={{ width: 34, height: 34, borderRadius: "50%", background: "#1877F2", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>f</a>
+                  <a href="https://wa.me/2290140278943" target="_blank" rel="noopener noreferrer"
+                    style={{ width: 34, height: 34, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>w</a>
+                  <a href="mailto:sabirousayo@gmail.com"
+                    style={{ width: 34, height: 34, borderRadius: "50%", background: "#E63946", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>@</a>
+                </div>
               </div>
               {[
                 { title: "Plateforme", links: [{ label: "Explorer", href: "/explore" }, { label: "Comment ça marche", href: "/solutions" }] },
@@ -608,11 +616,11 @@ export default function HomePage() {
               ))}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, fontSize: 12, color: "#334155", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 20 }}>
-              <span>© 2026 PrestaConnect · Tous droits réservés</span>
+              <span>© {new Date().getFullYear()} PrestaConnect Bénin · Tous droits réservés</span>
               <div style={{ display: "flex", gap: 16 }}>
-                {["Mentions légales", "Confidentialité", "CGU"].map((l) => (
-                  <Link key={l} href="#" style={{ color: "#334155", textDecoration: "none" }}>{l}</Link>
-                ))}
+                <Link href="/mentions-legales" style={{ color: "#334155", textDecoration: "none" }}>Mentions légales</Link>
+                <Link href="/confidentialite" style={{ color: "#334155", textDecoration: "none" }}>Confidentialité</Link>
+                <Link href="/cgu" style={{ color: "#334155", textDecoration: "none" }}>CGU</Link>
               </div>
             </div>
           </div>

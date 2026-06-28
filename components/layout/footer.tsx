@@ -30,13 +30,19 @@ export function Footer() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm">
+            <a href="https://web.facebook.com/profile.php?id=61591381834280"
+              target="_blank" rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm font-bold">
               f
             </a>
-            <a href="https://wa.me/" target="_blank" rel="noopener noreferrer"
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm">
+            <a href="https://wa.me/2290140278943"
+              target="_blank" rel="noopener noreferrer"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-green-500 hover:text-white transition-colors text-muted-foreground text-sm font-bold">
               w
+            </a>
+            <a href="mailto:sabirousayo@gmail.com"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-muted hover:bg-primary hover:text-white transition-colors text-muted-foreground text-sm font-bold">
+              @
             </a>
           </div>
         </div>
