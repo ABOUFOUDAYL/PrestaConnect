@@ -100,7 +100,23 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protection route admin
+  // Protection route admin/parametres → super_admin uniquement
+  if (request.nextUrl.pathname.startsWith('/admin/parametres')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'super_admin') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+  }
+
+  // Protection route admin → admin ET super_admin
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
@@ -111,7 +127,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
@@ -130,6 +146,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webpo$).*)',
   ],
 }
