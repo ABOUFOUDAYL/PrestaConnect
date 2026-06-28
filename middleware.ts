@@ -34,7 +34,6 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ✅ Timeout de session : déconnexion après 30 min d'inactivité
   if (user) {
     const lastActivity = request.cookies.get('last_activity')?.value
     const now = Date.now()
@@ -44,7 +43,6 @@ export async function middleware(request: NextRequest) {
       const timeoutMs = SESSION_TIMEOUT_MINUTES * 60 * 1000
 
       if (diff > timeoutMs) {
-        // Session expirée → déconnexion et redirection login
         const loginUrl = new URL('/login', request.url)
         loginUrl.searchParams.set('redirect', request.nextUrl.pathname)
         loginUrl.searchParams.set('reason', 'timeout')
@@ -54,7 +52,6 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Mettre à jour le timestamp d'activité
     response.cookies.set('last_activity', now.toString(), {
       httpOnly: true,
       sameSite: 'lax',
@@ -87,8 +84,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Protection route admin
+  // Protection route admin-ambassadeur
   if (request.nextUrl.pathname.startsWith('/admin-ambassadeur')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'ambassadeur') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // Protection route admin
+  if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }

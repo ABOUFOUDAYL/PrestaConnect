@@ -8,36 +8,79 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+type Profile = {
+  id: string;
+  nom: string;
+  prenom: string;
+  role: string;
+};
+
 export default function AdminParametres() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalArtisans: 0,
     totalClients: 0,
     totalAmbassadeurs: 0,
+    totalAdmins: 0,
   });
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [recherche, setRecherche] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function fetchStats() {
-      const [
-        { count: totalUsers },
-        { count: totalArtisans },
-        { count: totalClients },
-        { count: totalAmbassadeurs },
-      ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "artisan"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "ambassadeur"),
-      ]);
-      setStats({
-        totalUsers: totalUsers || 0,
-        totalArtisans: totalArtisans || 0,
-        totalClients: totalClients || 0,
-        totalAmbassadeurs: totalAmbassadeurs || 0,
-      });
-    }
     fetchStats();
+    fetchProfiles();
   }, []);
+
+  async function fetchStats() {
+    const [
+      { count: totalUsers },
+      { count: totalArtisans },
+      { count: totalClients },
+      { count: totalAmbassadeurs },
+      { count: totalAdmins },
+    ] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "artisan"),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "client"),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "ambassadeur"),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "admin"),
+    ]);
+    setStats({
+      totalUsers: totalUsers || 0,
+      totalArtisans: totalArtisans || 0,
+      totalClients: totalClients || 0,
+      totalAmbassadeurs: totalAmbassadeurs || 0,
+      totalAdmins: totalAdmins || 0,
+    });
+  }
+
+  async function fetchProfiles() {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .neq("role", "admin")
+      .order("nom", { ascending: true });
+    setProfiles(data || []);
+  }
+
+  async function promouvoirAdmin(id: string) {
+    if (!confirm("Promouvoir cet utilisateur en administrateur ?")) return;
+    setLoading(true);
+    await supabase.from("profiles").update({ role: "admin" }).eq("id", id);
+    setMessage("✅ Utilisateur promu administrateur !");
+    fetchStats();
+    fetchProfiles();
+    setLoading(false);
+    setTimeout(() => setMessage(""), 3000);
+  }
+
+  const filtres = profiles.filter(
+    (p) =>
+      p.nom?.toLowerCase().includes(recherche.toLowerCase()) ||
+      p.prenom?.toLowerCase().includes(recherche.toLowerCase())
+  );
 
   return (
     <div>
@@ -56,6 +99,7 @@ export default function AdminParametres() {
               { label: "Artisans", value: stats.totalArtisans },
               { label: "Clients", value: stats.totalClients },
               { label: "Ambassadeurs", value: stats.totalAmbassadeurs },
+              { label: "Admins", value: stats.totalAdmins },
             ].map((s) => (
               <div key={s.label} className="flex justify-between items-center py-2 border-b last:border-0">
                 <span className="text-sm text-gray-600">{s.label}</span>
@@ -89,6 +133,62 @@ export default function AdminParametres() {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm p-6">
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Promouvoir un administrateur</h2>
+        {message && (
+          <div className="mb-4 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm">
+            {message}
+          </div>
+        )}
+        <input
+          type="text"
+          placeholder="Rechercher un utilisateur..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-orange-400"
+        />
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-500 border-b">
+              <th className="pb-3">Nom</th>
+              <th className="pb-3">Prénom</th>
+              <th className="pb-3">Rôle actuel</th>
+              <th className="pb-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtres.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-6 text-center text-gray-400">
+                  Aucun utilisateur trouvé
+                </td>
+              </tr>
+            ) : (
+              filtres.map((p) => (
+                <tr key={p.id} className="border-b last:border-0">
+                  <td className="py-3 font-medium text-gray-800">{p.nom}</td>
+                  <td className="py-3 text-gray-600">{p.prenom}</td>
+                  <td className="py-3">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      {p.role}
+                    </span>
+                  </td>
+                  <td className="py-3">
+                    <button
+                      onClick={() => promouvoirAdmin(p.id)}
+                      disabled={loading}
+                      className="px-3 py-1 bg-orange-500 text-white rounded-lg text-xs font-medium hover:bg-orange-600 disabled:opacity-50"
+                    >
+                      Promouvoir admin
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
