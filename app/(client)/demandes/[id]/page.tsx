@@ -65,15 +65,15 @@ export default function DemandeDetailPage() {
     if (!demandeData) { setLoading(false); return }
     setDemande(demandeData)
 
-    // Charger le solde wallet
+    // Charger le solde wallet ✅
     const { data: wallet } = await supabase
       .from('wallet')
       .select('solde')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},artisan_id.eq.${user.id}`)
       .single()
     setSolde(wallet?.solde || 0)
 
-    // Charger les prestataires qui correspondent au métier + ville
+    // Charger les prestataires qui correspondent à la ville
     const { data: presta } = await supabase
       .from('prestataires')
       .select('*')
@@ -113,11 +113,11 @@ export default function DemandeDetailPage() {
     setDeblocageLoading(prestataire.user_id)
     setError(null)
 
-    // 1. Déduire du wallet
+    // 1. Déduire du wallet ✅
     const { error: walletError } = await supabase
       .from('wallet')
       .update({ solde: solde - COUT_DEBLOCAGE })
-      .eq('user_id', userId)
+      .or(`user_id.eq.${userId},artisan_id.eq.${userId}`)
 
     if (walletError) {
       setError('Erreur lors du déblocage.')
