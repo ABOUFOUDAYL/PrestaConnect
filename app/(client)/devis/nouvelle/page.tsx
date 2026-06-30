@@ -16,7 +16,10 @@ const VILLES = [
   'Kandi', 'Lokossa', 'Ouidah', 'Abomey', 'Natitingou', 'Autre'
 ]
 
-const TYPES_INTERVENTION = ['À domicile', 'En atelier', 'Les deux']
+const TYPES_INTERVENTION = [
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'grand_projet', label: 'Grand projet' },
+]
 
 export default function NouvelleDevisPage() {
   const router = useRouter()
@@ -30,7 +33,7 @@ export default function NouvelleDevisPage() {
     ville: '',
     quartier: '',
     telephone: '',
-    type_intervention: 'À domicile',
+    type_intervention: 'urgent',
   })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -52,10 +55,7 @@ export default function NouvelleDevisPage() {
     setLoading(true)
     setError(null)
 
-    // ✅ getSession au lieu de getUser, plus fiable côté client
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-    console.log('🔍 Session:', sessionData?.session?.user?.email, sessionError)
-
+    const { data: sessionData } = await supabase.auth.getSession()
     const user = sessionData?.session?.user
 
     if (!user) {
@@ -213,15 +213,15 @@ export default function NouvelleDevisPage() {
           <div className="flex gap-3">
             {TYPES_INTERVENTION.map(type => (
               <button
-                key={type}
+                key={type.value}
                 type="button"
-                onClick={() => setForm(f => ({ ...f, type_intervention: type }))}
+                onClick={() => setForm(f => ({ ...f, type_intervention: type.value }))}
                 className={`flex-1 py-2 rounded-xl text-sm font-medium border transition
-                  ${form.type_intervention === type
+                  ${form.type_intervention === type.value
                     ? 'bg-primary-600 text-white border-primary-600'
                     : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
               >
-                {type}
+                {type.label}
               </button>
             ))}
           </div>
