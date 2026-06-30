@@ -52,8 +52,17 @@ export default function NouvelleDevisPage() {
     setLoading(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    // ✅ getSession au lieu de getUser, plus fiable côté client
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    console.log('🔍 Session:', sessionData?.session?.user?.email, sessionError)
+
+    const user = sessionData?.session?.user
+
+    if (!user) {
+      setError('Session expirée. Veuillez vous reconnecter.')
+      setLoading(false)
+      return
+    }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -79,7 +88,8 @@ export default function NouvelleDevisPage() {
       })
 
     if (insertError) {
-      setError('Erreur lors de la création. Veuillez réessayer.')
+      console.error('❌ Erreur insertion demande:', insertError)
+      setError(`Erreur : ${insertError.message}`)
       setLoading(false)
       return
     }
@@ -114,7 +124,6 @@ export default function NouvelleDevisPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
 
-        {/* Titre */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Titre de la demande *</label>
           <input
@@ -129,7 +138,6 @@ export default function NouvelleDevisPage() {
           {fieldErrors.service_nom && <p className="text-xs text-red-600">{fieldErrors.service_nom}</p>}
         </div>
 
-        {/* Métier */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Type de métier *</label>
           <select
@@ -145,7 +153,6 @@ export default function NouvelleDevisPage() {
           {fieldErrors.metier_type && <p className="text-xs text-red-600">{fieldErrors.metier_type}</p>}
         </div>
 
-        {/* Description */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Description *</label>
           <textarea
@@ -160,7 +167,6 @@ export default function NouvelleDevisPage() {
           {fieldErrors.description && <p className="text-xs text-red-600">{fieldErrors.description}</p>}
         </div>
 
-        {/* Ville / Quartier */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-gray-700">Ville *</label>
@@ -188,7 +194,6 @@ export default function NouvelleDevisPage() {
           </div>
         </div>
 
-        {/* Téléphone */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Téléphone *</label>
           <input
@@ -203,7 +208,6 @@ export default function NouvelleDevisPage() {
           {fieldErrors.telephone && <p className="text-xs text-red-600">{fieldErrors.telephone}</p>}
         </div>
 
-        {/* Type intervention */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Type d'intervention</label>
           <div className="flex gap-3">
@@ -223,7 +227,6 @@ export default function NouvelleDevisPage() {
           </div>
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
