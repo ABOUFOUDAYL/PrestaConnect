@@ -4,6 +4,36 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
+const METIERS = [
+  'Plombier', 'Électricien', 'Maçon', 'Peintre en bâtiment', 'Menuisier bois',
+  'Menuisier métallique / Soudeur', 'Carreleur', 'Climatiseur / Frigoriste',
+  'Jardinier / Paysagiste', 'Informaticien / Réparateur', 'Mécanicien auto',
+  'Mécanicien moto', 'Coiffeur / Coiffeuse', 'Couturier / Couturière',
+  'Photographe', 'Vitrier', 'Plâtrier', 'Charpentier', 'Couvreur',
+  'Serrurier', 'Tapissier / Décorateur', 'Ferronnier', 'Forgeron',
+  'Cordonnier', 'Tailleur', 'Bijoutier / Orfèvre', 'Ébéniste',
+  'Mécanicien réfrigération', 'Électronicien', 'Plombier-chauffagiste',
+  'Maçon carreleur', 'Décorateur d\'intérieur', 'Tôlier / Carrossier',
+  'Vidangeur', 'Puisatier', 'Installateur solaire', 'Antenniste',
+  'Réparateur électroménager', 'Vulcanisateur', 'Teinturier',
+  'Tisserand', 'Sculpteur sur bois', 'Potier / Céramiste', 'Autre métier artisanal'
+]
+
+const VILLES = [
+  'Cotonou', 'Porto-Novo', 'Parakou', 'Djougou', 'Bohicon', 'Kandi',
+  'Lokossa', 'Ouidah', 'Abomey', 'Natitingou', 'Pobè', 'Abomey-Calavi',
+  'Comè', 'Sakété', 'Savalou', 'Savè', 'Aplahoué', 'Dassa-Zoumè',
+  'Ouèssè', 'Tchaourou', 'Banikoara', 'Kérou', 'Malanville', 'Nikki',
+  'Kouandé', 'Ségbana', 'Bembèrèkè', 'Gogounou', 'Kalalé', 'Karimama',
+  'Sinendé', 'Kétou', 'Adja-Ouèrè', 'Akpro-Missérété', 'Avrankou',
+  'Bonou', 'Dangbo', 'Ifangni', 'Allada', 'Kpomassè', 'Toffo', 'Tori-Bossito',
+  'Zè', 'Bopa', 'Athiémé', 'Grand-Popo', 'Houéyogbé', 'Lalo',
+  'Djakotomey', 'Klouékanmè', 'Toviklin', 'Agbangnizoun',
+  'Covè', 'Djidja', 'Ouinhi', 'Za-Kpota', 'Zangnanado', 'Zogbodomey',
+  'Glazoué', 'Bassila', 'Copargo', 'Cobly', 'Boukoumbé', 'Matéri',
+  'Péhunco', 'Toucountouna', 'N\'Dali', 'Pèrèrè', 'Autre ville/commune'
+]
+
 interface FormData {
   firstName: string
   lastName: string
@@ -73,6 +103,27 @@ export default function RegisterProviderForm() {
     setLoading(true)
     setError(null)
 
+    // Capturer la position GPS de l'artisan
+    let latitude: number | null = null
+    let longitude: number | null = null
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Géolocalisation non supportée'))
+          return
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 8000,
+        })
+      })
+      latitude = position.coords.latitude
+      longitude = position.coords.longitude
+    } catch (geoErr) {
+      console.warn('GPS non disponible:', geoErr)
+    }
+
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,6 +136,8 @@ export default function RegisterProviderForm() {
         telephone: form.phone,
         ville: form.ville,
         metier: form.metier,
+        latitude,
+        longitude,
       }),
     })
 
@@ -137,7 +190,6 @@ export default function RegisterProviderForm() {
         </div>
       )}
 
-      {/* Prénom / Nom */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Prénom *</label>
@@ -167,7 +219,6 @@ export default function RegisterProviderForm() {
         </div>
       </div>
 
-      {/* Email */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Adresse email *</label>
         <input
@@ -182,7 +233,6 @@ export default function RegisterProviderForm() {
         {fieldErrors.email && <p className="text-xs text-red-600">{fieldErrors.email}</p>}
       </div>
 
-      {/* Téléphone */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Téléphone *</label>
         <input
@@ -197,37 +247,37 @@ export default function RegisterProviderForm() {
         {fieldErrors.phone && <p className="text-xs text-red-600">{fieldErrors.phone}</p>}
       </div>
 
-      {/* Métier / Ville */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Métier *</label>
-          <input
-            type="text"
-            placeholder="Plombier, Électricien..."
+          <select
             value={form.metier}
             onChange={(e) => setForm((f) => ({ ...f, metier: e.target.value }))}
             className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
               focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${fieldErrors.metier ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-          />
+          >
+            <option value="">Sélectionner</option>
+            {METIERS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
           {fieldErrors.metier && <p className="text-xs text-red-600">{fieldErrors.metier}</p>}
         </div>
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Ville *</label>
-          <input
-            type="text"
-            placeholder="Cotonou, Porto-Novo..."
+          <select
             value={form.ville}
             onChange={(e) => setForm((f) => ({ ...f, ville: e.target.value }))}
             className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
               focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
               ${fieldErrors.ville ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-          />
+          >
+            <option value="">Sélectionner</option>
+            {VILLES.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
           {fieldErrors.ville && <p className="text-xs text-red-600">{fieldErrors.ville}</p>}
         </div>
       </div>
 
-      {/* Mot de passe */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Mot de passe *</label>
         <div className="relative">
@@ -248,7 +298,6 @@ export default function RegisterProviderForm() {
         {fieldErrors.password && <p className="text-xs text-red-600">{fieldErrors.password}</p>}
       </div>
 
-      {/* Confirmer mot de passe */}
       <div className="space-y-1.5">
         <label className="block text-sm font-medium text-gray-700">Confirmer le mot de passe *</label>
         <div className="relative">
@@ -269,7 +318,6 @@ export default function RegisterProviderForm() {
         {fieldErrors.confirmPassword && <p className="text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
       </div>
 
-      {/* CGU */}
       <div className="space-y-1">
         <label className="flex items-start gap-3 cursor-pointer">
           <input

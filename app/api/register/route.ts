@@ -15,10 +15,10 @@ export async function POST(req: Request) {
     const {
       email, password, role, first_name, last_name,
       telephone, ville, metier,
-      carte_identite_url, casier_judiciaire_url
+      carte_identite_url, casier_judiciaire_url,
+      latitude, longitude
     } = body;
 
-    // ✅ Validation des champs obligatoires
     if (!email || !password || !role || !first_name || !last_name) {
       return NextResponse.json(
         { error: "Champs obligatoires manquants" },
@@ -26,9 +26,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Normaliser le rôle
     const normalizedRole = role === 'prestataire' ? 'artisan' : role;
-    if (!['client', 'artisan', 'admin'].includes(normalizedRole)) {
+    if (!['client', 'artisan', 'admin', 'ambassadeur'].includes(normalizedRole)) {
       return NextResponse.json(
         { error: "Rôle invalide" },
         { status: 400 }
@@ -37,7 +36,6 @@ export async function POST(req: Request) {
 
     const full_name = `${first_name} ${last_name}`.trim();
 
-    // 1. Créer l'utilisateur Auth
     const { data: authData, error: authError } =
       await supabaseAdmin.auth.admin.createUser({
         email,
@@ -50,7 +48,6 @@ export async function POST(req: Request) {
     const userId = authData.user?.id;
     if (!userId) throw new Error("User non créé");
 
-    // 2. Créer le profil avec le bon rôle ✅
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .upsert({
@@ -69,21 +66,21 @@ export async function POST(req: Request) {
       }, { onConflict: "id" });
     if (profileError) throw profileError;
 
-    // 3. Insérer dans la bonne table selon le rôle
     if (normalizedRole === 'artisan') {
       const { error: prestaError } = await supabaseAdmin
         .from("prestataires")
         .insert({
           user_id: userId,
-          nom: full_name, // ✅ nom complet car pas de colonne prenom
+          nom: full_name,
           metier: metier || "Non renseigné",
           ville: ville || null,
           telephone: telephone || null,
           statut: "en_attente",
+          latitude: latitude || null,
+          longitude: longitude || null,
         });
       if (prestaError) throw prestaError;
 
-      // Email admin pour validation artisan
       try {
         await resend.emails.send({
           from: "PrestaConnect <onboarding@resend.dev>",
@@ -104,7 +101,6 @@ export async function POST(req: Request) {
           `,
         });
       } catch (emailError) {
-        // ✅ Ne pas bloquer l'inscription si l'email échoue
         console.error("Email admin error:", emailError);
       }
 
@@ -121,7 +117,6 @@ export async function POST(req: Request) {
       if (clientError) throw clientError;
     }
 
-    // 4. ✅ Email de confirmation à l'utilisateur (non bloquant)
     try {
       await resend.emails.send({
         from: "PrestaConnect <onboarding@resend.dev>",
