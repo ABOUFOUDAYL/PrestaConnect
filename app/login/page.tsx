@@ -8,11 +8,22 @@ export const metadata = {
   description: 'Connectez-vous à votre espace',
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>
+}) {
+  const params = await searchParams
+  const redirectTo = params?.redirect
+
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
+    if (redirectTo) {
+      redirect(redirectTo)
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

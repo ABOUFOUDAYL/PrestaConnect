@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
@@ -18,6 +18,9 @@ interface FieldErrors {
 
 export default function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect')
+
   const [form, setForm] = useState<FormData>({ email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -70,6 +73,13 @@ export default function LoginForm() {
       return
     }
 
+    router.refresh()
+
+    if (redirectTo) {
+      router.replace(redirectTo)
+      return
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -77,8 +87,6 @@ export default function LoginForm() {
       .single()
 
     const role = profile?.role
-
-    router.refresh()
 
     if (role === 'admin') {
       router.replace('/admin/dashboard')
