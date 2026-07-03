@@ -35,6 +35,21 @@ type Prestataire = {
   note_moyenne: number
   verifie: boolean
   statut: string
+  latitude: number | null
+  longitude: number | null
+}
+
+// Formule de Haversine : distance en km entre 2 points GPS
+function calculerDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
 }
 
 export default function ExplorePage() {
@@ -45,6 +60,8 @@ export default function ExplorePage() {
   const [metierFiltre, setMetierFiltre] = useState('Tous')
   const [categorieFiltre, setCategorieFiltre] = useState<'tous' | 'avec_diplome' | 'sans_diplome'>('tous')
   const [showFiltres, setShowFiltres] = useState(false)
+  const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null)
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'denied'>('idle')
 
   useEffect(() => {
     const fetchPrestataires = async () => {
@@ -52,11 +69,32 @@ export default function ExplorePage() {
       const { data, error } = await supabase
         .from('prestataires')
         .select('*')
-        .eq('statut', 'valide')
+        .eq('statut', 'approuve')
       if (!error) setPrestataires(data || [])
       setLoading(false)
     }
     fetchPrestataires()
+  }, [])
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGeoStatus('denied')
+      return
+    }
+    setGeoStatus('loading')
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserPosition({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        })
+        setGeoStatus('success')
+      },
+      () => {
+        setGeoStatus('denied')
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    )
   }, [])
 
   const metiersFiltres = categorieFiltre === 'avec_diplome'
@@ -65,24 +103,38 @@ export default function ExplorePage() {
     ? ['Tous', ...METIERS_SANS_DIPLOME]
     : ['Tous', ...METIERS_AVEC_DIPLOME, ...METIERS_SANS_DIPLOME]
 
-  const prestatairesAffiches = prestataires.filter((p) => {
-    const nom = `${p.prenom || ''} ${p.nom || ''}`.toLowerCase()
-    const matchRecherche =
-      nom.includes(recherche.toLowerCase()) ||
-      p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
-      p.ville?.toLowerCase().includes(recherche.toLowerCase())
-    const matchMetier = metierFiltre === 'Tous' || p.metier === metierFiltre
-    const matchCategorie =
-      categorieFiltre === 'tous' ||
-      (categorieFiltre === 'avec_diplome' && METIERS_AVEC_DIPLOME.includes(p.metier)) ||
-      (categorieFiltre === 'sans_diplome' && METIERS_SANS_DIPLOME.includes(p.metier))
-    return matchRecherche && matchMetier && matchCategorie
+  const prestatairesAvecDistance = prestataires.map((p) => {
+    let distanceKm: number | null = null
+    if (userPosition && p.latitude != null && p.longitude != null) {
+      distanceKm = calculerDistanceKm(userPosition.lat, userPosition.lon, p.latitude, p.longitude)
+    }
+    return { ...p, distanceKm }
   })
+
+  const prestatairesAffiches = prestatairesAvecDistance
+    .filter((p) => {
+      const nom = `${p.prenom || ''} ${p.nom || ''}`.toLowerCase()
+      const matchRecherche =
+        nom.includes(recherche.toLowerCase()) ||
+        p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
+        p.ville?.toLowerCase().includes(recherche.toLowerCase())
+      const matchMetier = metierFiltre === 'Tous' || p.metier === metierFiltre
+      const matchCategorie =
+        categorieFiltre === 'tous' ||
+        (categorieFiltre === 'avec_diplome' && METIERS_AVEC_DIPLOME.includes(p.metier)) ||
+        (categorieFiltre === 'sans_diplome' && METIERS_SANS_DIPLOME.includes(p.metier))
+      return matchRecherche && matchMetier && matchCategorie
+    })
+    .sort((a, b) => {
+      if (a.distanceKm == null && b.distanceKm == null) return 0
+      if (a.distanceKm == null) return 1
+      if (b.distanceKm == null) return -1
+      return a.distanceKm - b.distanceKm
+    })
 
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Header hero — rouge */}
       <div style={{ background: 'linear-gradient(135deg, #e63946, #c1121f)' }} className="px-4 pt-10 pb-16">
         <div className="max-w-2xl mx-auto text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-black text-white mb-2">
@@ -91,6 +143,11 @@ export default function ExplorePage() {
           <p className="text-red-100 text-sm sm:text-base">
             Professionnels vérifiés et certifiés partout au Bénin 🇧🇯
           </p>
+          {geoStatus === 'success' && (
+            <p className="text-red-100 text-xs mt-2 flex items-center justify-center gap-1">
+              <MapPin size={12} /> Triés par proximité avec votre position
+            </p>
+          )}
         </div>
 
         <div className="max-w-2xl mx-auto">
@@ -115,7 +172,6 @@ export default function ExplorePage() {
 
       <div className="max-w-5xl mx-auto px-4 -mt-6">
 
-        {/* Filtres */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
           <div className="flex gap-2 flex-wrap">
             {([
@@ -172,7 +228,6 @@ export default function ExplorePage() {
           )}
         </div>
 
-        {/* Résultats */}
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm text-gray-500 font-medium">
             {loading ? 'Chargement...' : `${prestatairesAffiches.length} artisan${prestatairesAffiches.length > 1 ? 's' : ''} trouvé${prestatairesAffiches.length > 1 ? 's' : ''}`}
@@ -209,7 +264,6 @@ export default function ExplorePage() {
                 <div key={p.id}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md hover:-translate-y-1 transition-all duration-200">
 
-                  {/* En-tête */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg flex-shrink-0"
@@ -232,15 +286,20 @@ export default function ExplorePage() {
                     </div>
                   </div>
 
-                  {/* Localisation */}
                   <div className="flex items-center gap-1.5 text-gray-400 text-xs mb-4">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate">
                       {p.quartier ? `${p.quartier}, ` : ''}{p.ville || 'Bénin'}
                     </span>
+                    {p.distanceKm != null && (
+                      <span className="ml-1 font-semibold flex-shrink-0" style={{ color: '#e63946' }}>
+                        · {p.distanceKm < 1
+                          ? `${Math.round(p.distanceKm * 1000)} m`
+                          : `${p.distanceKm.toFixed(1)} km`}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Badge */}
                   <div className="mb-4">
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide"
                       style={{
@@ -251,7 +310,6 @@ export default function ExplorePage() {
                     </span>
                   </div>
 
-                  {/* Bouton contacter */}
                   <button
                     onClick={() => router.push(`/login?redirect=/messages`)}
                     className="w-full py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
