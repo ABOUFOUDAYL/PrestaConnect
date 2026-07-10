@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useConversations, getOrCreateConversation } from '@/hooks/useMessages'
 import ConversationList from '@/components/messages/ConversationList'
 import ChatWindow from '@/components/messages/ChatWindow'
 
-export default function MessagesPage() {
+function MessagesContent() {
   const { conversations, loading, refetch } = useConversations()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const searchParams = useSearchParams()
@@ -41,5 +41,13 @@ export default function MessagesPage() {
         onMessageSent={refetch}
       />
     </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Chargement...</div>}>
+      <MessagesContent />
+    </Suspense>
   )
 }
