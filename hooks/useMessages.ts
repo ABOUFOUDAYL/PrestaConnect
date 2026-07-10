@@ -19,11 +19,7 @@ export function useConversations() {
 
     const { data, error } = await supabase
       .from('conversations')
-      .select(`
-        *,
-        client:client_id ( id, full_name, avatar_url ),
-        artisan:artisan_id ( id, full_name, avatar_url )
-      `)
+      .select('*')
       .or(`client_id.eq.${user.id},artisan_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
 
@@ -33,9 +29,36 @@ export function useConversations() {
       return
     }
 
+    // auth.users n'est pas accessible via jointure PostgREST,
+    // on récupère les profils séparément depuis public.profiles
+    const otherUserIds = (data || []).map((conv) =>
+      conv.client_id === user.id ? conv.artisan_id : conv.client_id
+    )
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('user_id, nom, prenom, photo_url')
+      .in('user_id', otherUserIds)
+
+    const profilesMap = new Map(
+      (profiles || []).map((p) => [
+        p.user_id,
+        {
+          id: p.user_id,
+          nom: p.nom,
+          prenom: p.prenom,
+          full_name: `${p.prenom || ''} ${p.nom || ''}`.trim() || 'Utilisateur',
+          photo_url: p.photo_url,
+          avatar_url: p.photo_url,
+        },
+      ])
+    )
+
     const enriched = await Promise.all(
       (data || []).map(async (conv) => {
-        const other = conv.client_id === user.id ? conv.artisan : conv.client
+        const otherUserId = conv.client_id === user.id ? conv.artisan_id : conv.client_id
+        const other = profilesMap.get(otherUserId) || null
+
         const { count } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
