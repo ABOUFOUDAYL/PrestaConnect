@@ -26,15 +26,39 @@ function MessagesContent() {
       if (!user) { setIsLoading(false); return }
       setUserId(user.id)
 
-      const { data: convs } = await supabase
+      const { data: convs, error } = await supabase
         .from('conversations')
-        .select('*, clients(*)')
+        .select('*')
         .eq('artisan_id', user.id)
         .order('last_message_at', { ascending: false })
 
-      setConversations(convs || [])
-      if (!initialConv && convs && convs.length > 0) {
-        setSelectedId(convs[0].id)
+      if (error) {
+        console.error('Erreur chargement conversations:', error)
+        setIsLoading(false)
+        return
+      }
+
+      // Jointure manuelle : conversations.client_id -> auth.users.id -> clients.user_id
+      const clientIds = (convs || []).map((c) => c.client_id)
+
+      let clientsMap = new Map<string, any>()
+      if (clientIds.length > 0) {
+        const { data: clientsData } = await supabase
+          .from('clients')
+          .select('*')
+          .in('user_id', clientIds)
+
+        clientsMap = new Map((clientsData || []).map((c) => [c.user_id, c]))
+      }
+
+      const enriched = (convs || []).map((c) => ({
+        ...c,
+        clients: clientsMap.get(c.client_id) || null,
+      }))
+
+      setConversations(enriched)
+      if (!initialConv && enriched.length > 0) {
+        setSelectedId(enriched[0].id)
       }
       setIsLoading(false)
     }

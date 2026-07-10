@@ -34,7 +34,6 @@ export default function RechargePage() {
       return
     }
 
-    // ✅ Récupérer l'user au moment du clic
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (!currentUser) {
       router.push('/login')
