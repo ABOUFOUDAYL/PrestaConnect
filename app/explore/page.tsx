@@ -27,6 +27,7 @@ const METIERS_SANS_DIPLOME = [
 
 type Prestataire = {
   id: string
+  user_id: string
   nom: string
   prenom: string
   metier: string
@@ -311,7 +312,7 @@ export default function ExplorePage() {
                   </div>
 
                   <button
-                    onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/messages?with=${p.id}`)}`)}
+                    onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/messages?with=${p.user_id}`)}`)}
                     className="w-full py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #e63946, #c1121f)' }}>
                     <MessageCircle size={15} /> Contacter
