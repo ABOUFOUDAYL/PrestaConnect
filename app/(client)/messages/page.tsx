@@ -1,13 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { useConversations } from '@/hooks/useMessages'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useConversations, getOrCreateConversation } from '@/hooks/useMessages'
 import ConversationList from '@/components/messages/ConversationList'
 import ChatWindow from '@/components/messages/ChatWindow'
 
 export default function MessagesPage() {
   const { conversations, loading, refetch } = useConversations()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const artisanId = searchParams.get('with')
+
+  useEffect(() => {
+    if (!artisanId) return
+
+    const openConversation = async () => {
+      const conversationId = await getOrCreateConversation(artisanId)
+      if (conversationId) {
+        await refetch()
+        setSelectedId(conversationId)
+      }
+    }
+
+    openConversation()
+  }, [artisanId])
 
   const selectedConversation = conversations.find(c => c.id === selectedId) || null
 
