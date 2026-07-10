@@ -113,7 +113,19 @@ export function useMessages(conversationId: string | null) {
       lu: false,
     })
 
-    if (error) console.error(error)
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    // Mettre à jour la conversation pour que la liste affiche le dernier message
+    await supabase
+      .from('conversations')
+      .update({
+        last_message: content.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId)
   }, [conversationId])
 
   const markAsRead = useCallback(async () => {
