@@ -69,10 +69,10 @@ export default function DetailDemandePage() {
 
       const { data: wallet } = await supabase
         .from('wallet')
-        .select('credits')
+        .select('solde')
         .eq('user_id', user.id)
         .single()
-      setSolde(wallet?.credits || 0)
+      setSolde(wallet?.solde || 0)
 
       const { data: existingDeblocage } = await supabase
         .from('deblocages_demandes')
@@ -100,7 +100,6 @@ export default function DetailDemandePage() {
 
     setUnlocking(true)
 
-    // 1. Enregistrer le déblocage
     const { error: deblocError } = await supabase
       .from('deblocages_demandes')
       .insert({
@@ -117,13 +116,11 @@ export default function DetailDemandePage() {
       return
     }
 
-    // 2. Déduire le solde du portefeuille
     await supabase
       .from('wallet')
-      .update({ credits: solde - tarif })
+      .update({ solde: solde - tarif })
       .eq('user_id', userId)
 
-    // 3. Enregistrer la transaction dans l'historique
     if (profileId) {
       await supabase.from('wallet_transactions').insert({
         profile_id: profileId,

@@ -18,22 +18,19 @@ export default function ArtisanPortefeuillePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsLoading(false); return }
 
-      // Profil (id différent possible de user_id, comme dans le dashboard)
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
         .single()
 
-      // Solde depuis wallet
       const { data: wallet } = await supabase
         .from('wallet')
-        .select('credits')
+        .select('solde')
         .eq('user_id', user.id)
         .single()
-      setSolde(wallet?.credits || 0)
+      setSolde(wallet?.solde || 0)
 
-      // Historique des transactions
       if (profile) {
         const { data: txs } = await supabase
           .from('wallet_transactions')
@@ -68,7 +65,6 @@ export default function ArtisanPortefeuillePage() {
         <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>Gérez vos crédits et consultez votre historique</p>
       </div>
 
-      {/* Carte solde */}
       <div style={{
         borderRadius: '16px',
         background: 'linear-gradient(135deg, #f97316, #ea580c)',
@@ -110,7 +106,6 @@ export default function ArtisanPortefeuillePage() {
         </button>
       </div>
 
-      {/* Historique */}
       <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
         <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Receipt size={16} color="#94a3b8" /> Historique des transactions
