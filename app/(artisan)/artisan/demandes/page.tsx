@@ -14,7 +14,6 @@ const STATUT_COLORS: Record<string, { color: string; bg: string }> = {
   'Refusée': { color: '#dc2626', bg: '#fef2f2' },
 }
 
-// Formule Haversine pour calculer distance en km entre 2 points GPS
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -39,7 +38,6 @@ export default function ArtisanDemandesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsLoading(false); return }
 
-      // Charger le profil prestataire avec GPS
       const { data: presta } = await supabase
         .from('prestataires')
         .select('*')
@@ -49,28 +47,24 @@ export default function ArtisanDemandesPage() {
       setPrestataire(presta)
 
       if (presta) {
-        // Charger toutes les demandes ouvertes
+        // Demandes encore ouvertes (visibles par tous) OU déjà assignées à cet artisan (tous statuts)
         const { data: list } = await supabase
           .from('demandes')
           .select('*')
-          .eq('status', 'Ouvert')
+          .or(`status.eq.Ouvert,artisan_id.eq.${user.id}`)
           .order('created_at', { ascending: false })
 
         if (list) {
-          // Trier par : urgence d'abord, puis proximité GPS si disponible
           const sorted = list.sort((a, b) => {
-            // 1. Urgences en premier
             if (a.type_intervention === 'urgent' && b.type_intervention !== 'urgent') return -1
             if (b.type_intervention === 'urgent' && a.type_intervention !== 'urgent') return 1
 
-            // 2. Proximité GPS si les deux ont des coordonnées
             if (presta.latitude && presta.longitude && a.latitude && b.latitude) {
               const distA = haversine(presta.latitude, presta.longitude, a.latitude, a.longitude)
               const distB = haversine(presta.latitude, presta.longitude, b.latitude, b.longitude)
               return distA - distB
             }
 
-            // 3. Même ville en priorité
             if (a.ville === presta.ville && b.ville !== presta.ville) return -1
             if (b.ville === presta.ville && a.ville !== presta.ville) return 1
 
@@ -104,7 +98,6 @@ export default function ArtisanDemandesPage() {
   return (
     <div className="max-w-3xl mx-auto">
 
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Demandes disponibles</h1>
         <p className="text-sm text-gray-500 mt-1">
@@ -113,7 +106,6 @@ export default function ArtisanDemandesPage() {
         </p>
       </div>
 
-      {/* Filtres statut */}
       <div className="flex gap-2 flex-wrap mb-3">
         {STATUTS.map(s => (
           <button
@@ -129,7 +121,6 @@ export default function ArtisanDemandesPage() {
         ))}
       </div>
 
-      {/* Filtres type intervention */}
       <div className="flex gap-2 mb-6">
         {['Tous', 'urgent', 'grand_projet'].map(t => (
           <button
@@ -147,7 +138,6 @@ export default function ArtisanDemandesPage() {
         ))}
       </div>
 
-      {/* Liste */}
       {filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <FileText size={32} className="text-gray-300 mx-auto mb-3" />
@@ -165,7 +155,6 @@ export default function ArtisanDemandesPage() {
             return (
               <div key={d.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
 
-                {/* Top */}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -190,7 +179,6 @@ export default function ArtisanDemandesPage() {
                   </div>
                 </div>
 
-                {/* Infos */}
                 <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" />
@@ -212,10 +200,8 @@ export default function ArtisanDemandesPage() {
                   )}
                 </div>
 
-                {/* Description */}
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{d.description}</p>
 
-                {/* Action */}
                 <Link
                   href={`/artisan/demandes/${d.id}`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition"
