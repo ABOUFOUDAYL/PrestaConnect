@@ -294,7 +294,9 @@ function MessagesContent() {
                       {c.isUnlocked ? `${client?.prenom || ''} ${client?.nom || ''}` : 'Contact verrouillé'}
                     </p>
                     <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.isUnlocked ? (c.last_message || 'Nouvelle conversation') : 'Débloquez pour voir le message'}
+                      {c.isUnlocked
+                        ? (c.last_message || 'Nouvelle conversation')
+                        : (c.last_message ? `${c.last_message.slice(0, 28)}...` : 'Nouveau contact')}
                     </p>
                   </div>
                 </div>
@@ -328,9 +330,28 @@ function MessagesContent() {
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
                 Contact verrouillé
               </p>
-              <p style={{ fontSize: '13px', color: '#78716c', margin: '0 0 20px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '13px', color: '#78716c', margin: '0 0 16px', lineHeight: 1.5 }}>
                 Débloquez ce contact pour voir son nom et pouvoir échanger des messages avec lui.
               </p>
+
+              {selectedConv.last_message && (
+                <div style={{
+                  background: 'white', border: '1px solid #fed7aa', borderRadius: '10px',
+                  padding: '12px 14px', marginBottom: '16px', textAlign: 'left',
+                }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#ea580c', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Aperçu du message
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#44403c', margin: 0, lineHeight: 1.5 }}>
+                    "{selectedConv.last_message.slice(0, 35)}
+                    {selectedConv.last_message.length > 35 && (
+                      <span style={{ filter: 'blur(3.5px)', userSelect: 'none' }}>
+                        {selectedConv.last_message.slice(35, 90)}
+                      </span>
+                    )}"
+                  </p>
+                </div>
+              )}
 
               {unlockError && (
                 <p style={{ fontSize: '12px', color: '#dc2626', marginBottom: '12px' }}>{unlockError}</p>
