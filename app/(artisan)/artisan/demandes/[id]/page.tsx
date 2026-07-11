@@ -32,7 +32,6 @@ export default function DetailDemandePage() {
   const [demande, setDemande] = useState<any>(null)
   const [prestataire, setPrestataire] = useState<any>(null)
   const [solde, setSolde] = useState(0)
-  const [profileId, setProfileId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [unlocking, setUnlocking] = useState(false)
@@ -60,13 +59,6 @@ export default function DetailDemandePage() {
         .single()
       setPrestataire(presta)
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
-      if (profile) setProfileId(profile.id)
-
       const { data: wallet } = await supabase
         .from('wallet')
         .select('solde')
@@ -92,45 +84,34 @@ export default function DetailDemandePage() {
   const handleDebloquer = async () => {
     if (!demande || !userId) return
     setErrorMsg(null)
-
-    if (solde < tarif) {
-      setErrorMsg('Solde insuffisant. Rechargez votre portefeuille pour débloquer cette demande.')
-      return
-    }
-
     setUnlocking(true)
 
-    const { error: deblocError } = await supabase
-      .from('deblocages_demandes')
-      .insert({
-        demande_id: demande.id,
-        artisan_id: userId,
-        client_id: demande.client_id,
-        montant_paye: tarif,
-      })
+    const { data, error } = await supabase.rpc('debloquer_demande', {
+      p_demande_id: demande.id,
+      p_artisan_id: userId,
+      p_client_id: demande.client_id,
+      p_montant: tarif,
+      p_description: `Déblocage demande · ${demande.service_nom || demande.metier_type || 'Demande'}`,
+    })
 
-    if (deblocError) {
-      console.error(deblocError)
+    if (error) {
+      console.error(error)
       setErrorMsg("Erreur lors du déblocage. Réessayez.")
       setUnlocking(false)
       return
     }
 
-    await supabase
-      .from('wallet')
-      .update({ solde: solde - tarif })
-      .eq('user_id', userId)
-
-    if (profileId) {
-      await supabase.from('wallet_transactions').insert({
-        profile_id: profileId,
-        montant: -tarif,
-        type: 'deblocage_demande',
-        description: `Déblocage demande · ${demande.service_nom || demande.metier_type || 'Demande'}`,
-      })
+    if (!data?.success) {
+      if (data?.error === 'solde_insuffisant') {
+        setErrorMsg('Solde insuffisant. Rechargez votre portefeuille pour débloquer cette demande.')
+      } else {
+        setErrorMsg("Erreur lors du déblocage. Réessayez.")
+      }
+      setUnlocking(false)
+      return
     }
 
-    setSolde((s) => s - tarif)
+    setSolde(data.nouveau_solde)
     setIsUnlocked(true)
     setUnlocking(false)
   }
