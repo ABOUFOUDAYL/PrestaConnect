@@ -25,7 +25,6 @@ export default function ArtisanDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsLoading(false); return }
 
-      // Charger profil
       const { data: prof } = await supabase
         .from('profiles')
         .select('*')
@@ -33,7 +32,6 @@ export default function ArtisanDashboardPage() {
         .single()
       setProfile(prof)
 
-      // Charger prestataire
       const { data: presta } = await supabase
         .from('prestataires')
         .select('*')
@@ -42,13 +40,31 @@ export default function ArtisanDashboardPage() {
       setPrestataire(presta)
 
       if (presta) {
-        // Charger stats en parallèle
-        const [demandesRes, devisRes, missionsRes, messagesRes] = await Promise.all([
-          supabase.from('demandes').select('*', { count: 'exact', head: true }).eq('prestataire_id', presta.id),
-          supabase.from('devis').select('*', { count: 'exact', head: true }).eq('prestataire_id', presta.id),
-          supabase.from('demandes').select('*', { count: 'exact', head: true }).eq('prestataire_id', presta.id).eq('statut', 'En cours'),
-          supabase.from('messages').select('*').eq('receiver_id', user.id).order('created_at', { ascending: false }).limit(3),
-        ])
+        // Demandes ouvertes correspondant au métier de l'artisan
+        const { data: demandesOuvertes, count: demandesCount } = await supabase
+          .from('demandes')
+          .select('*', { count: 'exact' })
+          .eq('status', 'Ouvert')
+          .eq('metier_type', presta.metier)
+          .order('created_at', { ascending: false })
+
+        // Missions en cours = demandes débloquées par cet artisan, encore "En cours"
+        const { data: deblocages } = await supabase
+          .from('deblocages_demandes')
+          .select('demande_id')
+          .eq('artisan_id', user.id)
+
+        const demandeIdsDebloquees = (deblocages || []).map((d) => d.demande_id)
+
+        let missionsCount = 0
+        if (demandeIdsDebloquees.length > 0) {
+          const { count } = await supabase
+            .from('demandes')
+            .select('*', { count: 'exact', head: true })
+            .in('id', demandeIdsDebloquees)
+            .eq('status', 'En cours')
+          missionsCount = count || 0
+        }
 
         // Crédits depuis wallet
         const { data: wallet } = await supabase
@@ -57,23 +73,36 @@ export default function ArtisanDashboardPage() {
           .eq('user_id', user.id)
           .single()
 
-        // Demandes récentes
-        const { data: demandes } = await supabase
-          .from('demandes')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(3)
+        // Messages récents : via les conversations où l'artisan est impliqué
+        const { data: convs } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('artisan_id', user.id)
+
+        const convIds = (convs || []).map((c) => c.id)
+
+        let messages: any[] = []
+        if (convIds.length > 0) {
+          const { data: msgs } = await supabase
+            .from('messages')
+            .select('*')
+            .in('conversation_id', convIds)
+            .neq('auteur_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(3)
+          messages = msgs || []
+        }
 
         setStats({
-          demandes: demandesRes.count || 0,
-          devis: devisRes.count || 0,
-          missions: missionsRes.count || 0,
+          demandes: demandesCount || 0,
+          devis: 0,
+          missions: missionsCount,
           credits: wallet?.credits || 0,
           note: presta.note_moyenne || 0,
         })
 
-        setRecentDemandes(demandes || [])
-        setRecentMessages(messagesRes.data || [])
+        setRecentDemandes((demandesOuvertes || []).slice(0, 3))
+        setRecentMessages(messages)
       }
 
       setIsLoading(false)
@@ -104,7 +133,7 @@ export default function ArtisanDashboardPage() {
 
   const statCards = [
     { label: 'Demandes reçues', value: stats.demandes, icon: <FileText size={22} />, color: '#e63946', bg: '#fff1f2' },
-    { label: 'Devis envoyés', value: stats.devis, icon: <Send size={22} />, color: '#f97316', bg: '#fff7ed' },
+    { label: 'Devis envoyés', value: stats.devis, icon: <Send size={22} />, color: '#f97316', bg: '#fff7ed', note: 'Bientôt disponible' },
     { label: 'Missions en cours', value: stats.missions, icon: <Wrench size={22} />, color: '#16a34a', bg: '#f0fdf4' },
     { label: 'Crédits disponibles', value: stats.credits, icon: <CreditCard size={22} />, color: '#2563eb', bg: '#eff6ff' },
     { label: 'Note moyenne', value: stats.note > 0 ? stats.note.toFixed(1) : 'N/A', icon: <Star size={22} />, color: '#ca8a04', bg: '#fefce8' },
@@ -113,7 +142,6 @@ export default function ArtisanDashboardPage() {
   return (
     <div style={{ padding: '0' }}>
 
-      {/* Bandeau de bienvenue */}
       <div style={{ borderRadius: '16px', background: 'linear-gradient(135deg, #f97316, #ea580c)', padding: '24px', marginBottom: '24px', color: 'white' }}>
         <p style={{ fontSize: '14px', opacity: 0.9, margin: '0 0 4px' }}>{getGreeting()} 👋</p>
         <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px' }}>{firstName}</h1>
@@ -122,13 +150,13 @@ export default function ArtisanDashboardPage() {
         </p>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        {statCards.map((s) => (
+        {statCards.map((s: any) => (
           <div key={s.label} style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 4px', fontWeight: 500 }}>{s.label}</p>
               <p style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: 0 }}>{s.value}</p>
+              {s.note && <p style={{ fontSize: '10px', color: '#cbd5e1', margin: '2px 0 0' }}>{s.note}</p>}
             </div>
             <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color }}>
               {s.icon}
@@ -137,10 +165,8 @@ export default function ArtisanDashboardPage() {
         ))}
       </div>
 
-      {/* Activité récente */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
 
-        {/* Demandes récentes */}
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Clock size={16} color="#94a3b8" /> Demandes récentes
@@ -151,7 +177,7 @@ export default function ArtisanDashboardPage() {
             recentDemandes.map((d) => (
               <div key={d.id} style={{ padding: '10px 0', borderBottom: '1px solid #f8fafc' }}>
                 <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: '0 0 2px' }}>
-                  {d.titre || d.description?.slice(0, 40) || 'Demande'}
+                  {d.service_nom || d.description?.slice(0, 40) || 'Demande'}
                 </p>
                 <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
                   {d.ville} · {new Date(d.created_at).toLocaleDateString('fr-FR')}
@@ -161,7 +187,6 @@ export default function ArtisanDashboardPage() {
           )}
         </div>
 
-        {/* Messages récents */}
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '20px' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Clock size={16} color="#94a3b8" /> Messages récents
@@ -172,7 +197,7 @@ export default function ArtisanDashboardPage() {
             recentMessages.map((m) => (
               <div key={m.id} style={{ padding: '10px 0', borderBottom: '1px solid #f8fafc' }}>
                 <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: '0 0 2px' }}>
-                  {m.texte?.slice(0, 50) || 'Message'}
+                  {(m.texte || m.content)?.slice(0, 50) || 'Message'}
                 </p>
                 <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
                   {new Date(m.created_at).toLocaleDateString('fr-FR')}
