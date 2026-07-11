@@ -3,7 +3,9 @@
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Send, MessageCircle, Search } from 'lucide-react'
+import { Send, MessageCircle, Search, Lock, Wallet } from 'lucide-react'
+
+const TARIF_CONTACT_DIRECT = 300
 
 function MessagesContent() {
   const searchParams = useSearchParams()
@@ -17,7 +19,50 @@ function MessagesContent() {
   const [query, setQuery] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [solde, setSolde] = useState(0)
+  const [unlocking, setUnlocking] = useState(false)
+  const [unlockError, setUnlockError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  const loadConversations = async (uid: string) => {
+    const { data: convs, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('artisan_id', uid)
+      .order('last_message_at', { ascending: false })
+
+    if (error) {
+      console.error('Erreur chargement conversations:', error)
+      return []
+    }
+
+    const clientIds = (convs || []).map((c) => c.client_id)
+
+    let clientsMap = new Map<string, any>()
+    if (clientIds.length > 0) {
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('*')
+        .in('user_id', clientIds)
+      clientsMap = new Map((clientsData || []).map((c) => [c.user_id, c]))
+    }
+
+    let unlockedSet = new Set<string>()
+    if (clientIds.length > 0) {
+      const { data: deblocages } = await supabase
+        .from('deblocages_contacts')
+        .select('client_id')
+        .eq('artisan_id', uid)
+        .in('client_id', clientIds)
+      unlockedSet = new Set((deblocages || []).map((d) => d.client_id))
+    }
+
+    return (convs || []).map((c) => ({
+      ...c,
+      clients: clientsMap.get(c.client_id) || null,
+      isUnlocked: unlockedSet.has(c.client_id),
+    }))
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -26,40 +71,19 @@ function MessagesContent() {
       if (!user) { setIsLoading(false); return }
       setUserId(user.id)
 
-      const { data: convs, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('artisan_id', user.id)
-        .order('last_message_at', { ascending: false })
-
-      if (error) {
-        console.error('Erreur chargement conversations:', error)
-        setIsLoading(false)
-        return
-      }
-
-      // Jointure manuelle : conversations.client_id -> auth.users.id -> clients.user_id
-      const clientIds = (convs || []).map((c) => c.client_id)
-
-      let clientsMap = new Map<string, any>()
-      if (clientIds.length > 0) {
-        const { data: clientsData } = await supabase
-          .from('clients')
-          .select('*')
-          .in('user_id', clientIds)
-
-        clientsMap = new Map((clientsData || []).map((c) => [c.user_id, c]))
-      }
-
-      const enriched = (convs || []).map((c) => ({
-        ...c,
-        clients: clientsMap.get(c.client_id) || null,
-      }))
-
+      const enriched = await loadConversations(user.id)
       setConversations(enriched)
       if (!initialConv && enriched.length > 0) {
         setSelectedId(enriched[0].id)
       }
+
+      const { data: wallet } = await supabase
+        .from('wallet')
+        .select('solde')
+        .eq('user_id', user.id)
+        .single()
+      setSolde(wallet?.solde || 0)
+
       setIsLoading(false)
     }
     load()
@@ -67,6 +91,12 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!selectedId) return
+
+    const selectedConv = conversations.find((c) => c.id === selectedId)
+    if (!selectedConv?.isUnlocked) {
+      setMessages([])
+      return
+    }
 
     const loadMessages = async () => {
       const { data: msgs } = await supabase
@@ -99,7 +129,7 @@ function MessagesContent() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [selectedId, userId])
+  }, [selectedId, userId, conversations])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -135,6 +165,45 @@ function MessagesContent() {
     }
 
     setSending(false)
+  }
+
+  const handleDebloquer = async () => {
+    if (!selectedId || !userId) return
+    const selectedConv = conversations.find((c) => c.id === selectedId)
+    if (!selectedConv) return
+
+    setUnlockError(null)
+    setUnlocking(true)
+
+    const { data, error } = await supabase.rpc('debloquer_contact_direct', {
+      p_artisan_id: userId,
+      p_client_id: selectedConv.client_id,
+      p_montant: TARIF_CONTACT_DIRECT,
+      p_description: `Déblocage contact · ${selectedConv.clients?.prenom || 'Client'}`,
+    })
+
+    if (error) {
+      console.error(error)
+      setUnlockError("Erreur lors du déblocage. Réessayez.")
+      setUnlocking(false)
+      return
+    }
+
+    if (!data?.success) {
+      if (data?.error === 'solde_insuffisant') {
+        setUnlockError('Solde insuffisant. Rechargez votre portefeuille pour débloquer ce contact.')
+      } else {
+        setUnlockError("Erreur lors du déblocage. Réessayez.")
+      }
+      setUnlocking(false)
+      return
+    }
+
+    setSolde(data.nouveau_solde)
+    setConversations((prev) =>
+      prev.map((c) => c.id === selectedId ? { ...c, isUnlocked: true } : c)
+    )
+    setUnlocking(false)
   }
 
   const filtered = conversations.filter((c) => {
@@ -207,15 +276,25 @@ function MessagesContent() {
                     background: 'linear-gradient(135deg, #f97316, #ea580c)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'white', fontWeight: 700, fontSize: '14px', flexShrink: 0,
+                    position: 'relative',
                   }}>
                     {initiale}
+                    {!c.isUnlocked && (
+                      <div style={{
+                        position: 'absolute', bottom: -2, right: -2, width: '16px', height: '16px',
+                        borderRadius: '50%', background: '#f97316', border: '2px solid white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Lock size={8} color="white" />
+                      </div>
+                    )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: '0 0 2px' }}>
-                      {client?.prenom} {client?.nom}
+                      {c.isUnlocked ? `${client?.prenom || ''} ${client?.nom || ''}` : 'Contact verrouillé'}
                     </p>
                     <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.last_message || 'Nouvelle conversation'}
+                      {c.isUnlocked ? (c.last_message || 'Nouvelle conversation') : 'Débloquez pour voir le message'}
                     </p>
                   </div>
                 </div>
@@ -233,6 +312,53 @@ function MessagesContent() {
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px' }}>
             <MessageCircle size={32} color="#cbd5e1" />
             <p style={{ color: '#94a3b8', fontSize: '14px' }}>Selectionnez une conversation</p>
+          </div>
+        ) : !selectedConv.isUnlocked ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <div style={{
+              maxWidth: '360px', textAlign: 'center', background: '#fff7ed',
+              border: '1px solid #fed7aa', borderRadius: '16px', padding: '32px 24px',
+            }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%', background: '#fed7aa',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+              }}>
+                <Lock size={22} color="#ea580c" />
+              </div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
+                Contact verrouillé
+              </p>
+              <p style={{ fontSize: '13px', color: '#78716c', margin: '0 0 20px', lineHeight: 1.5 }}>
+                Débloquez ce contact pour voir son nom et pouvoir échanger des messages avec lui.
+              </p>
+
+              {unlockError && (
+                <p style={{ fontSize: '12px', color: '#dc2626', marginBottom: '12px' }}>{unlockError}</p>
+              )}
+
+              <p style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
+                <Wallet size={13} /> Solde : {solde.toLocaleString('fr-FR')} FCFA
+              </p>
+
+              <button
+                onClick={handleDebloquer}
+                disabled={unlocking}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
+                  background: unlocking ? '#fdba74' : 'linear-gradient(135deg, #f97316, #ea580c)',
+                  color: 'white', fontWeight: 700, fontSize: '14px',
+                  cursor: unlocking ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {unlocking ? 'Déblocage...' : `Débloquer pour ${TARIF_CONTACT_DIRECT} FCFA`}
+              </button>
+
+              {solde < TARIF_CONTACT_DIRECT && (
+                <a href="/artisan/recharge" style={{ display: 'block', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#ea580c', marginTop: '12px', textDecoration: 'none' }}>
+                  Recharger mon portefeuille →
+                </a>
+              )}
+            </div>
           </div>
         ) : (
           <>
