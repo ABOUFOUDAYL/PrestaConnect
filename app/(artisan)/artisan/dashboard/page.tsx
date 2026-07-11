@@ -40,7 +40,6 @@ export default function ArtisanDashboardPage() {
       setPrestataire(presta)
 
       if (presta) {
-        // Demandes ouvertes correspondant au métier de l'artisan
         const { data: demandesOuvertes, count: demandesCount } = await supabase
           .from('demandes')
           .select('*', { count: 'exact' })
@@ -48,7 +47,6 @@ export default function ArtisanDashboardPage() {
           .eq('metier_type', presta.metier)
           .order('created_at', { ascending: false })
 
-        // Missions en cours = demandes débloquées par cet artisan, encore "En cours"
         const { data: deblocages } = await supabase
           .from('deblocages_demandes')
           .select('demande_id')
@@ -66,14 +64,12 @@ export default function ArtisanDashboardPage() {
           missionsCount = count || 0
         }
 
-        // Crédits depuis wallet
         const { data: wallet } = await supabase
           .from('wallet')
-          .select('credits')
+          .select('solde')
           .eq('user_id', user.id)
           .single()
 
-        // Messages récents : via les conversations où l'artisan est impliqué
         const { data: convs } = await supabase
           .from('conversations')
           .select('id')
@@ -97,7 +93,7 @@ export default function ArtisanDashboardPage() {
           demandes: demandesCount || 0,
           devis: 0,
           missions: missionsCount,
-          credits: wallet?.credits || 0,
+          credits: wallet?.solde || 0,
           note: presta.note_moyenne || 0,
         })
 
