@@ -118,7 +118,7 @@ export default function ArtisanPortefeuillePage() {
         ) : (
           <div>
             {transactions.map((t) => {
-              const isCredit = t.montant >= 0
+              const isCredit = t.type === 'depot'
               return (
                 <div
                   key={t.id}
@@ -156,7 +156,7 @@ export default function ArtisanPortefeuillePage() {
                     fontSize: '14px', fontWeight: 700, margin: 0, whiteSpace: 'nowrap',
                     color: isCredit ? '#16a34a' : '#dc2626',
                   }}>
-                    {isCredit ? '+' : ''}{t.montant.toLocaleString('fr-FR')}
+                    {isCredit ? '+' : '-'}{t.montant.toLocaleString('fr-FR')}
                   </p>
                 </div>
               )
