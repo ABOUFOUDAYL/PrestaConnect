@@ -47,32 +47,34 @@ export default function ArtisanDemandesPage() {
       setPrestataire(presta)
 
       if (presta) {
-        // Demandes encore ouvertes (visibles par tous) OU déjà assignées à cet artisan (tous statuts)
-        const { data: list } = await supabase
-          .from('demandes')
-          .select('*')
-          .or(`status.eq.Ouvert,artisan_id.eq.${user.id}`)
-          .order('created_at', { ascending: false })
+        const [ouvertesRes, assigneesRes] = await Promise.all([
+          supabase.from('demandes').select('*').eq('status', 'Ouvert'),
+          supabase.from('demandes').select('*').eq('artisan_id', user.id),
+        ])
 
-        if (list) {
-          const sorted = list.sort((a, b) => {
-            if (a.type_intervention === 'urgent' && b.type_intervention !== 'urgent') return -1
-            if (b.type_intervention === 'urgent' && a.type_intervention !== 'urgent') return 1
+        const combinedMap = new Map()
+        ;[...(ouvertesRes.data || []), ...(assigneesRes.data || [])].forEach((d) => {
+          combinedMap.set(d.id, d)
+        })
+        const list = Array.from(combinedMap.values())
 
-            if (presta.latitude && presta.longitude && a.latitude && b.latitude) {
-              const distA = haversine(presta.latitude, presta.longitude, a.latitude, a.longitude)
-              const distB = haversine(presta.latitude, presta.longitude, b.latitude, b.longitude)
-              return distA - distB
-            }
+        const sorted = list.sort((a, b) => {
+          if (a.type_intervention === 'urgent' && b.type_intervention !== 'urgent') return -1
+          if (b.type_intervention === 'urgent' && a.type_intervention !== 'urgent') return 1
 
-            if (a.ville === presta.ville && b.ville !== presta.ville) return -1
-            if (b.ville === presta.ville && a.ville !== presta.ville) return 1
+          if (presta.latitude && presta.longitude && a.latitude && b.latitude) {
+            const distA = haversine(presta.latitude, presta.longitude, a.latitude, a.longitude)
+            const distB = haversine(presta.latitude, presta.longitude, b.latitude, b.longitude)
+            return distA - distB
+          }
 
-            return 0
-          })
+          if (a.ville === presta.ville && b.ville !== presta.ville) return -1
+          if (b.ville === presta.ville && a.ville !== presta.ville) return 1
 
-          setDemandes(sorted)
-        }
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+
+        setDemandes(sorted)
       }
 
       setIsLoading(false)
