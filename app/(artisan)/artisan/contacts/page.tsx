@@ -18,15 +18,30 @@ export default function ArtisanContactsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsLoading(false); return }
 
-      // ⚠️ Si vide alors qu'il devrait y avoir des contacts, remplace
-      // user.id par prestataire.id ici (voir note ci-dessus)
       const { data: conversations } = await supabase
         .from('conversations')
-        .select('*, clients(*)')
+        .select('*')
         .eq('artisan_id', user.id)
         .order('last_message_at', { ascending: false })
 
-      setContacts(conversations || [])
+      const clientIds = (conversations || []).map((c) => c.client_id)
+
+      let clientsMap = new Map<string, any>()
+      if (clientIds.length > 0) {
+        const { data: clientsData } = await supabase
+          .from('clients')
+          .select('*')
+          .in('user_id', clientIds)
+
+        clientsMap = new Map((clientsData || []).map((c) => [c.user_id, c]))
+      }
+
+      const enriched = (conversations || []).map((c) => ({
+        ...c,
+        clients: clientsMap.get(c.client_id) || null,
+      }))
+
+      setContacts(enriched)
       setIsLoading(false)
     }
 
@@ -70,7 +85,6 @@ export default function ArtisanContactsPage() {
         </p>
       </div>
 
-      {/* Recherche */}
       <div style={{ position: 'relative', marginBottom: '20px' }}>
         <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
         <input
@@ -89,7 +103,6 @@ export default function ArtisanContactsPage() {
         />
       </div>
 
-      {/* Liste */}
       {filtered.length === 0 ? (
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9', padding: '40px', textAlign: 'center' }}>
           <Users size={32} color="#cbd5e1" style={{ marginBottom: '12px' }} />
@@ -118,7 +131,6 @@ export default function ArtisanContactsPage() {
                   cursor: 'pointer',
                 }}
               >
-                {/* Avatar */}
                 <div style={{
                   width: '46px', height: '46px', borderRadius: '50%',
                   background: 'linear-gradient(135deg, #f97316, #ea580c)',
@@ -128,7 +140,6 @@ export default function ArtisanContactsPage() {
                   {initiale}
                 </div>
 
-                {/* Infos */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
                     <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
