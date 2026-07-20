@@ -6,22 +6,22 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 const METIERS_AVEC_DIPLOME = [
-  "Electricien", "Plombier", "Macon / Technicien en batiment",
-  "Menuisier / Ebeniste", "Mecanicien automobile", "Soudeur",
-  "Carreleur", "Peintre en batiment", "Technicien en froid et climatisation",
-  "Technicien en electronique", "Coiffeur / Barbier (diplome)",
-  "Estheticien(ne)", "Photographe professionnel", "Cuisinier / Chef cuisinier",
-  "Patissier / Boulanger", "Tailleur / Couturier (diplome)",
-  "Informaticien / Technicien PC", "Agent de securite",
-  "Chauffeur professionnel (permis D/E)", "Technicien en energies renouvelables",
+  "Électricien", "Plombier", "Maçon / Technicien en bâtiment",
+  "Menuisier / Ébéniste", "Mécanicien automobile", "Soudeur",
+  "Carreleur", "Peintre en bâtiment", "Technicien en froid et climatisation",
+  "Technicien en électronique", "Coiffeur / Barbier (diplômé)",
+  "Esthéticien(ne)", "Photographe professionnel", "Cuisinier / Chef cuisinier",
+  "Pâtissier / Boulanger", "Tailleur / Couturier (diplômé)",
+  "Informaticien / Technicien PC", "Agent de sécurité",
+  "Chauffeur professionnel (permis D/E)", "Technicien en énergies renouvelables",
 ]
 
 const METIERS_SANS_DIPLOME = [
-  "Coiffeur / Barbier", "Tailleur / Couturier", "Cordonnier",
-  "Tisserand", "Potier / Ceramiste", "Forgeron",
-  "Jardinier / Paysagiste", "Laveur de vehicules",
-  "Reparateur de motos", "Reparateur d'appareils electromenagers",
-  "Cuisinier traditionnel / Traiteur", "Decorateur d'evenements",
+  "Coiffeur / Barbier", "Coiffeur / Coiffeuse", "Tailleur / Couturier", "Cordonnier",
+  "Tisserand", "Potier / Céramiste", "Forgeron",
+  "Jardinier / Paysagiste", "Laveur de véhicules",
+  "Réparateur de motos", "Réparateur d'appareils électroménagers",
+  "Cuisinier traditionnel / Traiteur", "Décorateur d'événements",
   "Tresseur / Tresseuse de cheveux", "Fabricant de savon artisanal",
 ]
 
@@ -62,7 +62,6 @@ export default function ExplorePage() {
   const [showFiltres, setShowFiltres] = useState(false)
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null)
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'success' | 'denied'>('idle')
-  const [contactingId, setContactingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchPrestataires = async () => {
@@ -97,18 +96,6 @@ export default function ExplorePage() {
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
     )
   }, [])
-
-  const handleContacter = async (userId: string) => {
-    setContactingId(userId)
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      router.push(`/login?redirect=${encodeURIComponent(`/messages?with=${userId}`)}`)
-      return
-    }
-
-    router.push(`/messages?with=${userId}`)
-  }
 
   const metiersFiltres = categorieFiltre === 'avec_diplome'
     ? ['Tous', ...METIERS_AVEC_DIPLOME]
@@ -154,11 +141,11 @@ export default function ExplorePage() {
             Trouver un artisan
           </h1>
           <p className="text-red-100 text-sm sm:text-base">
-            Professionnels verifies et certifies partout au Benin
+            Professionnels vérifiés et certifiés partout au Bénin 🇧🇯
           </p>
           {geoStatus === 'success' && (
             <p className="text-red-100 text-xs mt-2 flex items-center justify-center gap-1">
-              <MapPin size={12} /> Tries par proximite avec votre position
+              <MapPin size={12} /> Triés par proximité avec votre position
             </p>
           )}
         </div>
@@ -188,9 +175,9 @@ export default function ExplorePage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
           <div className="flex gap-2 flex-wrap">
             {([
-              { key: 'tous', label: 'Tous', count: prestataires.length },
-              { key: 'avec_diplome', label: 'Diplomes', count: prestataires.filter(p => METIERS_AVEC_DIPLOME.includes(p.metier)).length },
-              { key: 'sans_diplome', label: 'Experimentes', count: prestataires.filter(p => METIERS_SANS_DIPLOME.includes(p.metier)).length },
+              { key: 'tous', label: '🔍 Tous', count: prestataires.length },
+              { key: 'avec_diplome', label: '🎓 Diplômés', count: prestataires.filter(p => METIERS_AVEC_DIPLOME.includes(p.metier)).length },
+              { key: 'sans_diplome', label: '🛠️ Expérimentés', count: prestataires.filter(p => METIERS_SANS_DIPLOME.includes(p.metier)).length },
             ] as const).map((cat) => (
               <button key={cat.key}
                 onClick={() => { setCategorieFiltre(cat.key); setMetierFiltre('Tous') }}
@@ -217,7 +204,7 @@ export default function ExplorePage() {
                 border: showFiltres ? '1px solid #fecaca' : '1px solid #e2e8f0',
               }}
               className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all">
-              <Filter size={15} /> Metier
+              <Filter size={15} /> Métier
               {metierFiltre !== 'Tous' && <span className="w-2 h-2 bg-red-500 rounded-full" />}
             </button>
           </div>
@@ -243,7 +230,7 @@ export default function ExplorePage() {
 
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm text-gray-500 font-medium">
-            {loading ? 'Chargement...' : `${prestatairesAffiches.length} artisan${prestatairesAffiches.length > 1 ? 's' : ''} trouve${prestatairesAffiches.length > 1 ? 's' : ''}`}
+            {loading ? 'Chargement...' : `${prestatairesAffiches.length} artisan${prestatairesAffiches.length > 1 ? 's' : ''} trouvé${prestatairesAffiches.length > 1 ? 's' : ''}`}
           </p>
           {metierFiltre !== 'Tous' && (
             <button onClick={() => setMetierFiltre('Tous')}
@@ -264,7 +251,7 @@ export default function ExplorePage() {
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 mb-8">
             <ShieldCheck className="w-14 h-14 mx-auto mb-4 text-gray-200" />
             <p className="text-lg font-bold text-gray-700">Aucun artisan disponible</p>
-            <p className="text-sm text-gray-400 mt-1">Revenez bientot ou modifiez votre recherche.</p>
+            <p className="text-sm text-gray-400 mt-1">Revenez bientôt ou modifiez votre recherche.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
@@ -302,13 +289,13 @@ export default function ExplorePage() {
                   <div className="flex items-center gap-1.5 text-gray-400 text-xs mb-4">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate">
-                      {p.quartier ? `${p.quartier}, ` : ''}{p.ville || 'Benin'}
+                      {p.quartier ? `${p.quartier}, ` : ''}{p.ville || 'Bénin'}
                     </span>
                     {p.distanceKm != null && (
                       <span className="ml-1 font-semibold flex-shrink-0" style={{ color: '#e63946' }}>
-                        {p.distanceKm < 1
-                          ? ` - ${Math.round(p.distanceKm * 1000)} m`
-                          : ` - ${p.distanceKm.toFixed(1)} km`}
+                        · {p.distanceKm < 1
+                          ? `${Math.round(p.distanceKm * 1000)} m`
+                          : `${p.distanceKm.toFixed(1)} km`}
                       </span>
                     )}
                   </div>
@@ -319,17 +306,15 @@ export default function ExplorePage() {
                         background: hasDiplome ? '#fff1f2' : '#f0fdf4',
                         color: hasDiplome ? '#e63946' : '#16a34a',
                       }}>
-                      {hasDiplome ? 'DIPLOME' : 'EXPERIMENTE'}
+                      {hasDiplome ? '🎓 DIPLÔMÉ' : '🛠️ EXPÉRIMENTÉ'}
                     </span>
                   </div>
 
                   <button
-                    onClick={() => handleContacter(p.user_id)}
-                    disabled={contactingId === p.user_id}
-                    className="w-full py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
+                    onClick={() => router.push(`/login?redirect=${encodeURIComponent(`/messages?with=${p.user_id}`)}`)}
+                    className="w-full py-2.5 text-sm font-bold text-white rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #e63946, #c1121f)' }}>
-                    <MessageCircle size={15} />
-                    {contactingId === p.user_id ? 'Chargement...' : 'Contacter'}
+                    <MessageCircle size={15} /> Contacter
                   </button>
                 </div>
               )

@@ -9,7 +9,7 @@ import ChatWindow from '@/components/messages/ChatWindow'
 import { Lock } from 'lucide-react'
 
 const METIERS_SANS_DIPLOME = [
-  "Coiffeur / Barbier", "Tailleur / Couturier", "Cordonnier",
+  "Coiffeur / Barbier", "Coiffeur / Coiffeuse", "Tailleur / Couturier", "Cordonnier",
   "Tisserand", "Potier / Céramiste", "Forgeron",
   "Jardinier / Paysagiste", "Laveur de véhicules",
   "Réparateur de motos", "Réparateur d'appareils électroménagers",
