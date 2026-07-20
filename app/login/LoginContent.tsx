@@ -32,7 +32,7 @@ export default function LoginContent() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
 
       if (profile?.role === 'admin' || profile?.role === 'super_admin') {
