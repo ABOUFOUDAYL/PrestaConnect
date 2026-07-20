@@ -88,7 +88,7 @@ export default function LoginForm() {
 
     const role = profile?.role
 
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'super_admin') {
       router.replace('/admin/dashboard')
     } else if (role === 'ambassadeur') {
       router.replace('/ambassadeur/dashboard')

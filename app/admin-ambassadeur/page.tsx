@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,7 @@ export default function SuperAdminCockpitPage() {
         if (authError || !user) { router.replace('/login'); return; }
         const { data: profile, error: dbError } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (dbError) throw new Error('Erreur Base de donnees: ' + dbError.message);
-        if (!profile || profile.role !== 'admin') throw new Error("Acces refuse : Interface reservee a l'Administration Principale.");
+        if (!profile || profile.role !== 'super_admin') throw new Error("Acces refuse : Interface reservee a l'Administration Principale.");
         await fetchPlatformData();
       } catch (err: any) {
         setErrorMessage(err.message);
@@ -183,7 +183,7 @@ export default function SuperAdminCockpitPage() {
                 <div className="grid grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 text-xs">
                   <div><span className="block text-slate-500 font-bold mb-1">Telephone</span><span className="text-slate-200">{selectedProfile.telephone || selectedProfile.phone}</span></div>
                   <div><span className="block text-slate-500 font-bold mb-1">Ville</span><span className="text-slate-200">{selectedProfile.city || selectedProfile.ville}</span></div>
-                  <div><span className="block text-slate-500 font-bold mb-1">Metier</span><span className="text-slate-200">{selectedProfile.metier || '—'}</span></div>
+                  <div><span className="block text-slate-500 font-bold mb-1">Metier</span><span className="text-slate-200">{selectedProfile.metier || 'Non renseigne'}</span></div>
                   <div><span className="block text-slate-500 font-bold mb-1">Statut</span><span className="text-amber-400 font-bold">{selectedProfile.statut_verification}</span></div>
                 </div>
                 <div className="bg-slate-900/30 border border-slate-700 p-5 rounded-xl">

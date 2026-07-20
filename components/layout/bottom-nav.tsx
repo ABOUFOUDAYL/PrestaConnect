@@ -1,4 +1,4 @@
-ï»¿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,10 +15,10 @@ import {
 
 const defaultNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/bookings", label: "RÃ©servations", icon: CalendarCheck },
+  { href: "/bookings", label: "Réservations", icon: CalendarCheck },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/payments", label: "Paiements", icon: CreditCard },
-  { href: "/settings", label: "ParamÃ¨tres", icon: Settings },
+  { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
 const adminNav = [
@@ -26,7 +26,7 @@ const adminNav = [
   { href: "/admin-ambassadeur", label: "Cockpit", icon: ShieldCheck },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/payments", label: "Paiements", icon: CreditCard },
-  { href: "/settings", label: "ParamÃ¨tres", icon: Settings },
+  { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
 export function BottomNav() {
@@ -35,7 +35,7 @@ export function BottomNav() {
   const { impersonated } = useImpersonation();
 
   const activeRole = impersonated?.role ?? authUser?.role;
-  const nav = activeRole === 'admin' ? adminNav : defaultNav;
+  const nav = (activeRole === 'admin' || activeRole === 'super_admin') ? adminNav : defaultNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border md:hidden">

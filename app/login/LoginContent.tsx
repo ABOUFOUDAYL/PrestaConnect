@@ -35,7 +35,7 @@ export default function LoginContent() {
         .eq('id', userId)
         .single();
 
-      if (profile?.role === 'admin') {
+      if (profile?.role === 'admin' || profile?.role === 'super_admin') {
         router.push('/admin-ambassadeur');
         return;
       }
