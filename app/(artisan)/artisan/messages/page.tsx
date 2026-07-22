@@ -143,7 +143,6 @@ function MessagesContent() {
     const { error } = await supabase.from('messages').insert({
       conversation_id: selectedId,
       sender_id: userId,
-      auteur_id: userId,
       content: text,
       texte: text,
       lu: false,

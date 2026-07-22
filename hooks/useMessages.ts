@@ -29,58 +29,7 @@ export function useConversations() {
       return
     }
 
-    let filteredData = data || []
-
-    // Si l'utilisateur connecté est artisan sur au moins une conversation,
-    // on vérifie que le client a bien été débloqué avant d'afficher la conversation
-    const asArtisanConvs = filteredData.filter((conv) => conv.artisan_id === user.id)
-
-    if (asArtisanConvs.length > 0) {
-      // Récupérer l'id interne prestataire correspondant à l'utilisateur connecté
-      const { data: monPrestataire } = await supabase
-        .from('prestataires')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (monPrestataire) {
-        const clientUserIds = asArtisanConvs.map((c) => c.client_id)
-
-        // Récupérer les ids internes clients correspondant aux user_id
-        const { data: clientsRows } = await supabase
-          .from('clients')
-          .select('id, user_id')
-          .in('user_id', clientUserIds)
-
-        const clientIdByUserId = new Map(
-          (clientsRows || []).map((c) => [c.user_id, c.id])
-        )
-
-        // Récupérer tous les déblocages de ce prestataire
-        const { data: deblocagesRows } = await supabase
-          .from('deblocages')
-          .select('client_id')
-          .eq('prestataire_id', monPrestataire.id)
-
-        const deblockedClientIds = new Set(
-          (deblocagesRows || []).map((d) => d.client_id)
-        )
-
-        // Filtrer : ne garder que les conversations où le client est débloqué
-        filteredData = filteredData.filter((conv) => {
-          if (conv.artisan_id !== user.id) return true // conversation où l'utilisateur est client : toujours visible
-          const clientInternalId = clientIdByUserId.get(conv.client_id)
-          return clientInternalId ? deblockedClientIds.has(clientInternalId) : false
-        })
-      } else {
-        // Pas de profil prestataire trouvé : aucune conversation artisan visible
-        filteredData = filteredData.filter((conv) => conv.artisan_id !== user.id)
-      }
-    }
-
-    // auth.users n'est pas accessible via jointure PostgREST,
-    // on récupère les profils séparément depuis public.profiles
-    const otherUserIds = filteredData.map((conv) =>
+    const otherUserIds = (data || []).map((conv) =>
       conv.client_id === user.id ? conv.artisan_id : conv.client_id
     )
 
@@ -104,7 +53,7 @@ export function useConversations() {
     )
 
     const enriched = await Promise.all(
-      filteredData.map(async (conv) => {
+      (data || []).map(async (conv) => {
         const otherUserId = conv.client_id === user.id ? conv.artisan_id : conv.client_id
         const other = profilesMap.get(otherUserId) || null
 
@@ -113,7 +62,7 @@ export function useConversations() {
           .select('*', { count: 'exact', head: true })
           .eq('conversation_id', conv.id)
           .eq('lu', false)
-          .neq('auteur_id', user.id)
+          .neq('sender_id', user.id)
 
         return { ...conv, other_user: other, unread_count: count || 0 }
       })
@@ -155,7 +104,6 @@ export function useMessages(conversationId: string | null) {
 
     const { error } = await supabase.from('messages').insert({
       conversation_id: conversationId,
-      auteur_id: user.id,
       sender_id: user.id,
       texte: content.trim(),
       content: content.trim(),
@@ -167,7 +115,6 @@ export function useMessages(conversationId: string | null) {
       return
     }
 
-    // Mettre à jour la conversation pour que la liste affiche le dernier message
     await supabase
       .from('conversations')
       .update({
@@ -187,7 +134,7 @@ export function useMessages(conversationId: string | null) {
       .update({ lu: true })
       .eq('conversation_id', conversationId)
       .eq('lu', false)
-      .neq('auteur_id', user.id)
+      .neq('sender_id', user.id)
   }, [conversationId])
 
   useEffect(() => {
