@@ -23,7 +23,7 @@ export default function ArtisanTopbar({ onMenuClick }: ArtisanTopbarProps) {
           .from('profiles')
           .select('prenom, nom')
           .eq('user_id', data.user.id)
-          .single()
+          .maybeSingle()
           .then(({ data: profile }) => {
             if (profile) {
               setUserName(`${profile.prenom || ''} ${profile.nom || ''}`.trim())
