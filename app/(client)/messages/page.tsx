@@ -158,6 +158,7 @@ function MessagesContent() {
       <ChatWindow
         conversation={selectedConversation}
         onMessageSent={refetch}
+        onBack={() => setSelectedId(null)}
       />
     </div>
   )

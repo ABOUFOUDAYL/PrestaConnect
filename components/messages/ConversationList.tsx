@@ -12,7 +12,9 @@ interface Props {
 
 export default function ConversationList({ conversations, loading, selectedId, onSelect }: Props) {
   return (
-    <div className="w-80 flex-shrink-0 border-r border-gray-200 flex flex-col">
+    <div className={`w-full md:w-80 flex-shrink-0 border-r border-gray-200 flex-col ${
+      selectedId ? 'hidden md:flex' : 'flex'
+    }`}>
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
       </div>

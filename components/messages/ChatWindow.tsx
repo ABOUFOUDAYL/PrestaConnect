@@ -5,13 +5,15 @@ import { useMessages } from '@/hooks/useMessages'
 import type { Conversation } from '@/types/messages'
 import MessageBubble from '@/components/messages/MessageBubble'
 import MessageInput from '@/components/messages/MessageInput'
+import { ArrowLeft } from 'lucide-react'
 
 interface Props {
   conversation: Conversation | null
   onMessageSent: () => void
+  onBack?: () => void
 }
 
-export default function ChatWindow({ conversation, onMessageSent }: Props) {
+export default function ChatWindow({ conversation, onMessageSent, onBack }: Props) {
   const { messages, loading, sendMessage, markAsRead } = useMessages(conversation?.id || null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -30,7 +32,7 @@ export default function ChatWindow({ conversation, onMessageSent }: Props) {
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center text-gray-400">
         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
           <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -43,8 +45,15 @@ export default function ChatWindow({ conversation, onMessageSent }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex flex-1 flex-col min-w-0 w-full">
       <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-white">
+        <button
+          onClick={onBack}
+          className="md:hidden -ml-1 p-1 text-gray-500 hover:text-gray-700"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
         {conversation.other_user?.avatar_url ? (
           <img
             src={conversation.other_user.avatar_url}
