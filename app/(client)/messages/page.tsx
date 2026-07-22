@@ -39,11 +39,15 @@ function MessagesContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setCheckingAccess(false); return }
 
-      const { data: presta } = await supabase
+      const { data: presta, error: prestaError } = await supabase
         .from('prestataires')
-        .select('id, metier, nom, prenom')
+        .select('id, metier, nom')
         .eq('user_id', artisanId)
         .single()
+
+      if (prestaError) {
+        console.error('Erreur chargement prestataire:', prestaError)
+      }
 
       const isSansDiplome = presta && METIERS_SANS_DIPLOME.includes(presta.metier)
 
@@ -59,7 +63,7 @@ function MessagesContent() {
           setPaywall({
             prestataireId: presta.id,
             prestataireUserId: artisanId,
-            nom: `${presta.prenom || ''} ${presta.nom || ''}`.trim() || 'Cet artisan',
+            nom: presta.nom || 'Cet artisan',
           })
           setCheckingAccess(false)
           return
