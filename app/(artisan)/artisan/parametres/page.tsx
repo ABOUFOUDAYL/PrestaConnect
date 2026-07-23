@@ -55,13 +55,13 @@ export default function ArtisanParametresPage() {
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
+        .maybeSingle()
 
       const { data: presta } = await supabase
         .from('prestataires')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       setNom(profile?.nom || presta?.nom || '')
       setPrenom(profile?.prenom || '')
