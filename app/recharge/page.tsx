@@ -22,7 +22,7 @@ export default function RechargePage() {
         .from('wallet')
         .select('solde')
         .eq('artisan_id', user.id)
-        .single()
+        .maybeSingle()
       if (wallet) setSolde(wallet.solde)
     }
     getUser()
