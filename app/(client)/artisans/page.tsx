@@ -22,7 +22,7 @@ export default function ArtisansPage() {
       setIsLoading(true)
       const { data, error } = await supabase
         .from("prestataires")
-        .select("id, nom, metier, user_id, statut, note_moyenne, nombre_avis, description")
+        .select("id, nom, metier, ville, statut, verifie, note, nb_avis, description, image")
         .eq("statut", "approuve")
 
       if (error) {
@@ -31,31 +31,19 @@ export default function ArtisansPage() {
         return
       }
 
-      const userIds = (data || []).map((p: any) => p.user_id)
-
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("user_id, ville, photo_url")
-        .in("user_id", userIds)
-
-      const profilesMap = new Map((profilesData || []).map((p: any) => [p.user_id, p]))
-
       if (data) {
-        const formatted: Artisan[] = data.map((p: any) => {
-          const profil = profilesMap.get(p.user_id)
-          return {
-            id: p.id,
-            name: p.nom || "Artisan",
-            metier: p.metier || "Non renseigné",
-            ville: profil?.ville || "Non renseignée",
-            note: p.note_moyenne || 0,
-            avis: p.nombre_avis || 0,
-            verifie: p.statut === "approuve",
-            description: p.description || "",
-            categories: p.metier ? [p.metier] : [],
-            photo_url: profil?.photo_url || null,
-          }
-        })
+        const formatted: Artisan[] = data.map((p: any) => ({
+          id: p.id,
+          name: p.nom || "Artisan",
+          metier: p.metier || "Non renseigné",
+          ville: p.ville || "Non renseignée",
+          note: p.note || 0,
+          avis: p.nb_avis || 0,
+          verifie: p.verifie || false,
+          description: p.description || "",
+          categories: p.metier ? [p.metier] : [],
+          photo_url: p.image || null,
+        }))
         setArtisans(formatted)
       }
       setIsLoading(false)
