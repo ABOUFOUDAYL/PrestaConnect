@@ -1,233 +1,283 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
 
-const METIERS = [
-  'Plombier', 'Électricien', 'Maçon', 'Peintre', 'Menuisier',
-  'Carreleur', 'Soudeur', 'Climatiseur', 'Jardinier', 'Informaticien',
-  'Mécanicien', 'Coiffeur', 'Couturier', 'Photographe', 'Autre'
-]
+interface DemandeDetail {
+  id: string
+  service_nom: string | null
+  description: string | null
+  ville: string | null
+  quartier: string | null
+  metier_type: string | null
+  status: string | null
+  created_at: string
+}
 
-const VILLES = [
-  'Cotonou', 'Porto-Novo', 'Parakou', 'Djougou', 'Bohicon',
-  'Kandi', 'Lokossa', 'Ouidah', 'Abomey', 'Natitingou', 'Autre'
-]
+interface DevisArtisan {
+  nom: string | null
+  prenom: string | null
+  telephone: string | null
+  metier: string | null
+}
 
-const TYPES_INTERVENTION = ['À domicile', 'En atelier', 'Les deux']
+interface DevisDetail {
+  id: string
+  artisan_id: string
+  montant: number
+  message: string | null
+  statut: string
+  created_at: string
+  artisan: DevisArtisan | null
+}
 
-export default function NouvelleDevisPage() {
+const STATUT_LABELS: Record<string, string> = {
+  en_attente: 'En attente',
+  accepte: 'Accepté',
+  refuse: 'Refusé',
+}
+
+export default function DemandeDetailPage() {
+  const params = useParams()
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const demandeId = params?.id as string
+
+  const [demande, setDemande] = useState<DemandeDetail | null>(null)
+  const [devisList, setDevisList] = useState<DevisDetail[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    service_nom: '',
-    metier_type: '',
-    description: '',
-    ville: '',
-    quartier: '',
-    telephone: '',
-    type_intervention: 'À domicile',
-  })
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  function validate(): boolean {
-    const errors: Record<string, string> = {}
-    if (!form.service_nom.trim()) errors.service_nom = 'Titre requis'
-    if (!form.metier_type) errors.metier_type = 'Métier requis'
-    if (!form.description.trim()) errors.description = 'Description requise'
-    if (!form.ville) errors.ville = 'Ville requise'
-    if (!form.telephone.trim()) errors.telephone = 'Téléphone requis'
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!validate()) return
-
-    setLoading(true)
+  async function loadData() {
+    setIsLoading(true)
     setError(null)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nom, prenom')
-      .eq('user_id', user.id)
-      .single()
-
-    const clientName = `${profile?.prenom || ''} ${profile?.nom || ''}`.trim() || user.email
-
-    const { error: insertError } = await supabase
+    const { data: demandeData, error: demandeError } = await supabase
       .from('demandes')
-      .insert({
-        client_id: user.id,
-        client_name: clientName,
-        service_nom: form.service_nom,
-        metier_type: form.metier_type,
-        description: form.description,
-        ville: form.ville,
-        quartier: form.quartier || null,
-        telephone: form.telephone,
-        type_intervention: form.type_intervention,
-        status: 'Ouvert',
-      })
+      .select('id, service_nom, description, ville, quartier, metier_type, status, created_at')
+      .eq('id', demandeId)
+      .eq('client_id', user.id)
+      .maybeSingle()
 
-    if (insertError) {
-      console.error('Erreur insertion demande:', insertError)
-      setError(`Erreur : ${insertError.message}`)
-      setLoading(false)
+    if (demandeError) {
+      console.error('Erreur récupération demande:', demandeError)
+      setError("Impossible de charger cette demande.")
+      setIsLoading(false)
       return
     }
 
-    setSuccess(true)
-    setLoading(false)
-    setTimeout(() => router.push('/demandes'), 2000)
+    if (!demandeData) {
+      setError("Demande introuvable.")
+      setIsLoading(false)
+      return
+    }
+
+    setDemande(demandeData)
+
+    const { data: devisData, error: devisError } = await supabase
+      .from('devis')
+      .select('id, artisan_id, montant, message, statut, created_at')
+      .eq('demande_id', demandeId)
+      .order('created_at', { ascending: false })
+
+    if (devisError) {
+      console.error('Erreur récupération devis:', devisError)
+      setDevisList([])
+      setIsLoading(false)
+      return
+    }
+
+    const artisanIds = Array.from(new Set((devisData || []).map(d => d.artisan_id)))
+    let artisansMap: Record<string, DevisArtisan> = {}
+
+    if (artisanIds.length > 0) {
+      const { data: artisansData, error: artisansError } = await supabase
+        .from('profiles')
+        .select('user_id, nom, prenom, telephone, metier')
+        .in('user_id', artisanIds)
+
+      if (artisansError) {
+        console.error('Erreur récupération artisans:', artisansError)
+      } else if (artisansData) {
+        artisansMap = Object.fromEntries(
+          artisansData.map((a: any) => [a.user_id, { nom: a.nom, prenom: a.prenom, telephone: a.telephone, metier: a.metier }])
+        )
+      }
+    }
+
+    const combined: DevisDetail[] = (devisData || []).map((d: any) => ({
+      id: d.id,
+      artisan_id: d.artisan_id,
+      montant: d.montant,
+      message: d.message,
+      statut: d.statut,
+      created_at: d.created_at,
+      artisan: artisansMap[d.artisan_id] || null,
+    }))
+
+    setDevisList(combined)
+    setIsLoading(false)
   }
 
-  if (success) {
+  useEffect(() => {
+    if (demandeId) loadData()
+  }, [demandeId])
+
+  async function handleAccepter(devisId: string) {
+    setActionError(null)
+    setAcceptingId(devisId)
+
+    const { data, error: rpcError } = await supabase.rpc('accepter_devis', { p_devis_id: devisId })
+
+    if (rpcError) {
+      console.error('Erreur RPC accepter_devis:', rpcError)
+      setActionError("Une erreur est survenue lors de l'acceptation du devis.")
+      setAcceptingId(null)
+      return
+    }
+
+    if (data && data.success === false) {
+      const messages: Record<string, string> = {
+        devis_introuvable: "Ce devis n'existe plus.",
+        non_autorise: "Vous n'êtes pas autorisé à accepter ce devis.",
+        devis_deja_traite: "Ce devis a déjà été traité.",
+      }
+      setActionError(messages[data.error] || "Impossible d'accepter ce devis.")
+      setAcceptingId(null)
+      return
+    }
+
+    await loadData()
+    setAcceptingId(null)
+  }
+
+  if (isLoading) {
     return (
-      <div className="max-w-lg mx-auto flex flex-col items-center justify-center gap-4 rounded-2xl border border-green-200 bg-green-50 px-6 py-12 text-center mt-10">
-        <CheckCircle2 className="h-14 w-14 text-green-500" />
-        <h2 className="text-xl font-bold text-gray-900">Demande envoyée !</h2>
-        <p className="text-sm text-gray-500">Votre demande a été publiée. Les artisans disponibles vont vous contacter.</p>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '48px', height: '48px', border: '4px solid #e63946', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
+          <p style={{ color: 'var(--color-neutral-500)', marginTop: '16px' }}>Chargement...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !demande) {
+    return (
+      <div style={{ textAlign: 'center', padding: 'var(--space-16) 0', color: 'var(--color-neutral-400)' }}>
+        <p>{error || "Demande introuvable."}</p>
+        <Link href="/demandes" style={{ color: 'var(--color-primary-500)', fontSize: 'var(--text-sm)' }}>
+          ← Retour à mes demandes
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nouvelle demande</h1>
-        <p className="text-sm text-gray-500 mt-1">Décrivez votre besoin pour recevoir des propositions d'artisans</p>
+    <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+      <Link href="/demandes" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)',
+        color: 'var(--color-neutral-500)', fontSize: 'var(--text-sm)',
+        textDecoration: 'none', marginBottom: 'var(--space-5)',
+      }}>
+        <ArrowLeft className="h-4 w-4" /> Retour à mes demandes
+      </Link>
+
+      <div style={{
+        background: 'var(--color-neutral-0)', border: '1px solid var(--color-neutral-200)',
+        borderRadius: 'var(--radius-xl)', padding: 'var(--space-5)', marginBottom: 'var(--space-6)',
+      }}>
+        <h1 style={{ margin: '0 0 var(--space-2)', fontSize: 'var(--text-xl)', fontWeight: 'var(--font-bold)', color: 'var(--color-neutral-900)' }}>
+          {demande.service_nom || 'Demande sans titre'}
+        </h1>
+        <p style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-neutral-500)' }}>
+          📍 {demande.ville || 'Non renseignée'}{demande.quartier ? ` · ${demande.quartier}` : ''} · 🗂️ {demande.metier_type || 'Non renseigné'} · 📅 {new Date(demande.created_at).toLocaleDateString('fr-FR')}
+        </p>
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-neutral-700)', lineHeight: 'var(--leading-relaxed)' }}>
+          {demande.description}
+        </p>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-red-700 text-sm">
-          {error}
+      <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--color-neutral-900)', marginBottom: 'var(--space-4)' }}>
+        Devis reçus ({devisList.length})
+      </h2>
+
+      {actionError && (
+        <div style={{ background: 'var(--color-error-50)', border: '1px solid var(--color-error-200)', color: 'var(--color-error-700)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-3)', marginBottom: 'var(--space-4)', fontSize: 'var(--text-sm)' }}>
+          {actionError}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Titre de la demande *</label>
-          <input
-            type="text"
-            placeholder="Ex: Réparation fuite robinet cuisine"
-            value={form.service_nom}
-            onChange={e => setForm(f => ({ ...f, service_nom: e.target.value }))}
-            className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-              ${fieldErrors.service_nom ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
-          />
-          {fieldErrors.service_nom && <p className="text-xs text-red-600">{fieldErrors.service_nom}</p>}
+      {devisList.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 'var(--space-16) 0', color: 'var(--color-neutral-400)' }}>
+          <p style={{ fontSize: '3rem' }}>📄</p>
+          <p>Aucun devis reçu pour le moment</p>
         </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          {devisList.map((d) => (
+            <div key={d.id} style={{
+              background: 'var(--color-neutral-0)', border: '1px solid var(--color-neutral-200)',
+              borderRadius: 'var(--radius-xl)', padding: 'var(--space-5)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)' }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 'var(--font-semibold)', color: 'var(--color-neutral-900)' }}>
+                    {d.artisan ? `${d.artisan.prenom || ''} ${d.artisan.nom || ''}`.trim() || 'Artisan' : 'Artisan'}
+                  </p>
+                  {d.artisan?.metier && (
+                    <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-neutral-500)' }}>{d.artisan.metier}</p>
+                  )}
+                  {d.artisan?.telephone && (
+                    <p style={{ margin: 0, fontSize: 'var(--text-xs)', color: 'var(--color-neutral-500)' }}>📞 {d.artisan.telephone}</p>
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 'var(--text-xs)', padding: '3px 10px', borderRadius: 'var(--radius-full)',
+                  background: d.statut === 'accepte' ? 'var(--color-success-50)' : d.statut === 'refuse' ? 'var(--color-error-50)' : 'var(--color-primary-50)',
+                  color: d.statut === 'accepte' ? 'var(--color-success-700)' : d.statut === 'refuse' ? 'var(--color-error-700)' : 'var(--color-primary-700)',
+                }}>
+                  {STATUT_LABELS[d.statut] || d.statut}
+                </span>
+              </div>
 
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Type de métier *</label>
-          <select
-            value={form.metier_type}
-            onChange={e => setForm(f => ({ ...f, metier_type: e.target.value }))}
-            className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-              ${fieldErrors.metier_type ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
-          >
-            <option value="">Sélectionner un métier</option>
-            {METIERS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          {fieldErrors.metier_type && <p className="text-xs text-red-600">{fieldErrors.metier_type}</p>}
+              <p style={{ margin: '0 0 var(--space-3)', fontSize: 'var(--text-lg)', fontWeight: 'var(--font-bold)', color: 'var(--color-neutral-900)' }}>
+                {d.montant.toLocaleString('fr-FR')} FCFA
+              </p>
+
+              {d.message && (
+                <p style={{ margin: '0 0 var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-neutral-600)' }}>
+                  {d.message}
+                </p>
+              )}
+
+              {d.statut === 'en_attente' && (
+                <button
+                  onClick={() => handleAccepter(d.id)}
+                  disabled={acceptingId === d.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                    padding: 'var(--space-2) var(--space-4)', borderRadius: 'var(--radius-lg)',
+                    border: 'none', background: 'var(--color-primary-600)', color: 'white',
+                    fontSize: 'var(--text-sm)', fontWeight: 'var(--font-semibold)', cursor: 'pointer',
+                    opacity: acceptingId === d.id ? 0.6 : 1,
+                  }}
+                >
+                  {acceptingId === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {acceptingId === d.id ? 'Traitement...' : 'Accepter ce devis'}
+                </button>
+              )}
+            </div>
+          ))}
         </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Description *</label>
-          <textarea
-            rows={4}
-            placeholder="Décrivez votre problème en détail : symptômes, urgence, contraintes particulières..."
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition resize-vertical
-              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-              ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
-          />
-          {fieldErrors.description && <p className="text-xs text-red-600">{fieldErrors.description}</p>}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Ville *</label>
-            <select
-              value={form.ville}
-              onChange={e => setForm(f => ({ ...f, ville: e.target.value }))}
-              className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-                focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-                ${fieldErrors.ville ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
-            >
-              <option value="">Sélectionner</option>
-              {VILLES.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-            {fieldErrors.ville && <p className="text-xs text-red-600">{fieldErrors.ville}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-gray-700">Quartier <span className="text-gray-400">(optionnel)</span></label>
-            <input
-              type="text"
-              placeholder="Ex: Akpakpa"
-              value={form.quartier}
-              onChange={e => setForm(f => ({ ...f, quartier: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition hover:border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Téléphone *</label>
-          <input
-            type="tel"
-            placeholder="+229 97 00 00 00"
-            value={form.telephone}
-            onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
-            className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-              focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-              ${fieldErrors.telephone ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
-          />
-          {fieldErrors.telephone && <p className="text-xs text-red-600">{fieldErrors.telephone}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-gray-700">Type d'intervention</label>
-          <div className="flex gap-3">
-            {TYPES_INTERVENTION.map(type => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, type_intervention: type }))}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition
-                  ${form.type_intervention === type
-                    ? 'bg-primary-600 text-white border-primary-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60"
-        >
-          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? 'Publication en cours…' : 'Publier ma demande'}
-        </button>
-
-      </form>
+      )}
     </div>
   )
 }
