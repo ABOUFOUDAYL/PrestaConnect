@@ -22,13 +22,13 @@ export default function ArtisanPortefeuillePage() {
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
+        .maybeSingle()
 
       const { data: wallet } = await supabase
         .from('wallet')
         .select('solde')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       setSolde(wallet?.solde || 0)
 
       if (profile) {
