@@ -24,7 +24,7 @@ function RechargeSuccessContent() {
         .eq('type_transaction', 'recharge')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (transaction?.statut === 'reussi') {
         setStatut('success')
@@ -36,7 +36,7 @@ function RechargeSuccessContent() {
         .from('wallet')
         .select('solde')
         .eq('artisan_id', user.id)
-        .single()
+        .maybeSingle()
       if (wallet) setSolde(wallet.solde)
     }
 
