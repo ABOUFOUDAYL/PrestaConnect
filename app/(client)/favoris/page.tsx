@@ -15,44 +15,56 @@ export default function FavorisPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setIsLoading(false); return }
 
-      const { data, error } = await supabase
+      const { data: favData, error: favError } = await supabase
         .from("favoris")
-        .select(`
-          id,
-          prestataire_id,
-          prestataires (
-            id,
-            prenom,
-            nom,
-            metier,
-            statut,
-            profiles (
-              ville,
-              photo_url
-            )
-          )
-        `)
+        .select("id, prestataire_id")
         .eq("user_id", user.id)
 
-      if (!error && data) {
-        const formatted: Artisan[] = data
-          .filter((f: any) => f.prestataires)
-          .map((f: any) => ({
-            id: f.prestataires.id,
-            name: `${f.prestataires.prenom || ""} ${f.prestataires.nom || ""}`.trim(),
-            metier: f.prestataires.metier || "Non renseigné",
-            ville: f.prestataires.profiles?.ville || "Non renseignée",
-            note: f.prestataires.note_moyenne || 0,
-            avis: f.prestataires.nombre_avis || 0,
-            verifie: f.prestataires.statut === "valide",
-            description: f.prestataires.description || "",
-            categories: f.prestataires.metier ? [f.prestataires.metier] : [],
-            photo_url: f.prestataires.profiles?.photo_url || null,
-            favori_id: f.id,
-          }))
-        setFavoris(formatted)
+      if (favError || !favData || favData.length === 0) {
+        setFavoris([])
+        setIsLoading(false)
+        return
       }
 
+      const prestataireIds = favData.map((f) => f.prestataire_id)
+
+      const { data: prestatairesData } = await supabase
+        .from("prestataires")
+        .select("id, user_id, nom, metier, statut, note_moyenne, nombre_avis, description")
+        .in("id", prestataireIds)
+
+      const userIds = (prestatairesData || []).map((p) => p.user_id)
+
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, ville, photo_url")
+        .in("user_id", userIds)
+
+      const profilesMap = new Map((profilesData || []).map((p) => [p.user_id, p]))
+      const prestatairesMap = new Map((prestatairesData || []).map((p) => [p.id, p]))
+
+      const formatted: Artisan[] = favData
+        .filter((f) => prestatairesMap.has(f.prestataire_id))
+        .map((f) => {
+          const presta = prestatairesMap.get(f.prestataire_id)!
+          const profil = profilesMap.get(presta.user_id)
+
+          return {
+            id: presta.id,
+            name: presta.nom || "Artisan",
+            metier: presta.metier || "Non renseigné",
+            ville: profil?.ville || "Non renseignée",
+            note: presta.note_moyenne || 0,
+            avis: presta.nombre_avis || 0,
+            verifie: presta.statut === "approuve",
+            description: presta.description || "",
+            categories: presta.metier ? [presta.metier] : [],
+            photo_url: profil?.photo_url || null,
+            favori_id: f.id,
+          }
+        })
+
+      setFavoris(formatted)
       setIsLoading(false)
     }
 
