@@ -57,7 +57,7 @@ export default function ArtisanProfilPage() {
 
       if (prof) {
         setProfile({
-          nom: presta?.nom || prof.nom || '',
+          nom: prof.nom || presta?.nom || '',
           prenom: prof.prenom || '',
           metier: presta?.metier || '',
           ville: presta?.ville || prof.ville || '',
