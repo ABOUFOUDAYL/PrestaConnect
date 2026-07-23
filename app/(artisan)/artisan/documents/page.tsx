@@ -35,11 +35,16 @@ export default function ArtisanDocumentsPage() {
       if (!user) { setIsLoading(false); return }
       setUserId(user.id)
 
-      const { data: presta } = await supabase
+      const { data: presta, error: prestaError } = await supabase
         .from('prestataires')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
+
+      if (prestaError) {
+        console.error('Erreur chargement prestataire:', prestaError)
+        setError(`Erreur chargement profil: ${prestaError.message}`)
+      }
 
       if (presta) {
         setPrestataireId(presta.id)
