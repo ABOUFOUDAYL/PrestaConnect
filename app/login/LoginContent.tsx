@@ -33,7 +33,7 @@ export default function LoginContent() {
         .from('profiles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (profile?.role === 'admin' || profile?.role === 'super_admin') {
         router.push('/admin-ambassadeur');
@@ -44,7 +44,7 @@ export default function LoginContent() {
         .from('prestataires')
         .select('id, statut')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (prestataire) {
         if (prestataire.statut === 'en_attente') {
@@ -61,7 +61,7 @@ export default function LoginContent() {
         .from('clients')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (client) {
         router.push(redirect || '/dashboard');

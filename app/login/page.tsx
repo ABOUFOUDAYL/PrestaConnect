@@ -28,7 +28,7 @@ export default async function LoginPage({
       .from('profiles')
       .select('role')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     const role = profile?.role
 
