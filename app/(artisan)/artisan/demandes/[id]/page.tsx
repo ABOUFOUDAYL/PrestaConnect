@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { MapPin, Calendar, Zap, Building2, Lock, Phone, User, MessageCircle, Wallet } from 'lucide-react'
+import { MapPin, Calendar, Zap, Building2, Lock, Phone, User, MessageCircle, Wallet, FileText, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -23,6 +23,12 @@ const TARIFS: Record<string, number> = {
   contact_direct: 300,
 }
 
+const DEVIS_STATUT_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
+  en_attente: { label: 'Devis envoyé - en attente de réponse', icon: Clock, color: '#ca8a04', bg: '#fefce8', border: '#fde68a' },
+  accepte: { label: 'Devis accepté !', icon: CheckCircle2, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+  refuse: { label: 'Devis refusé', icon: XCircle, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+}
+
 export default function DetailDemandePage() {
   const params = useParams()
   const router = useRouter()
@@ -37,6 +43,12 @@ export default function DetailDemandePage() {
   const [unlocking, setUnlocking] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  const [devisExistant, setDevisExistant] = useState<any>(null)
+  const [devisMontant, setDevisMontant] = useState('')
+  const [devisMessage, setDevisMessage] = useState('')
+  const [sendingDevis, setSendingDevis] = useState(false)
+  const [devisError, setDevisError] = useState<string | null>(null)
+
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -45,25 +57,37 @@ export default function DetailDemandePage() {
       if (!user) { setIsLoading(false); return }
       setUserId(user.id)
 
-      const { data: d } = await supabase
+      const { data: d, error: demandeError } = await supabase
         .from('demandes')
         .select('*')
         .eq('id', demandeId)
-        .single()
+        .maybeSingle()
+
+      if (demandeError) {
+        console.error('Erreur chargement demande:', demandeError)
+      }
       setDemande(d)
 
-      const { data: presta } = await supabase
+      const { data: presta, error: prestaError } = await supabase
         .from('prestataires')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
+
+      if (prestaError) {
+        console.error('Erreur chargement prestataire:', prestaError)
+      }
       setPrestataire(presta)
 
-      const { data: wallet } = await supabase
+      const { data: wallet, error: walletError } = await supabase
         .from('wallet')
         .select('solde')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
+
+      if (walletError) {
+        console.error('Erreur chargement wallet:', walletError)
+      }
       setSolde(wallet?.solde || 0)
 
       const { data: existingDeblocage } = await supabase
@@ -74,6 +98,19 @@ export default function DetailDemandePage() {
         .maybeSingle()
 
       setIsUnlocked(!!existingDeblocage)
+
+      const { data: existingDevis, error: devisError } = await supabase
+        .from('devis')
+        .select('*')
+        .eq('demande_id', demandeId)
+        .eq('artisan_id', user.id)
+        .maybeSingle()
+
+      if (devisError) {
+        console.error('Erreur chargement devis:', devisError)
+      }
+      setDevisExistant(existingDevis)
+
       setIsLoading(false)
     }
     load()
@@ -142,6 +179,41 @@ export default function DetailDemandePage() {
     router.push(`/artisan/messages?conversation=${conversationId}`)
   }
 
+  const handleSendDevis = async () => {
+    if (!demande || !userId) return
+
+    const montantNum = parseFloat(devisMontant)
+    if (!devisMontant || isNaN(montantNum) || montantNum <= 0) {
+      setDevisError('Merci de saisir un montant valide.')
+      return
+    }
+
+    setDevisError(null)
+    setSendingDevis(true)
+
+    const { data, error } = await supabase
+      .from('devis')
+      .insert({
+        demande_id: demande.id,
+        artisan_id: userId,
+        client_id: demande.client_id,
+        montant: montantNum,
+        message: devisMessage.trim() || null,
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Erreur envoi devis:', error)
+      setDevisError("Erreur lors de l'envoi du devis. Réessayez.")
+      setSendingDevis(false)
+      return
+    }
+
+    setDevisExistant(data)
+    setSendingDevis(false)
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -165,6 +237,8 @@ export default function DetailDemandePage() {
   const distance = prestataire?.latitude && demande.latitude
     ? haversine(prestataire.latitude, prestataire.longitude, demande.latitude, demande.longitude)
     : null
+
+  const devisConfig = devisExistant ? DEVIS_STATUT_CONFIG[devisExistant.statut] : null
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -218,7 +292,7 @@ export default function DetailDemandePage() {
               <p className="font-semibold text-sm">Coordonnées du client verrouillées</p>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              Débloquez cette demande pour voir le nom et le numéro du client, et pouvoir lui écrire directement.
+              Débloquez cette demande pour voir le nom et le numéro du client, et pouvoir lui envoyer un devis.
             </p>
 
             {errorMsg && (
@@ -245,24 +319,84 @@ export default function DetailDemandePage() {
             )}
           </div>
         ) : (
-          <div className="bg-green-50 border border-green-100 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-3 text-green-700">
-              <User className="h-4 w-4" />
-              <p className="font-semibold text-sm">{demande.client_name}</p>
+          <>
+            <div className="bg-green-50 border border-green-100 rounded-xl p-5 mb-4">
+              <div className="flex items-center gap-2 mb-3 text-green-700">
+                <User className="h-4 w-4" />
+                <p className="font-semibold text-sm">{demande.client_name}</p>
+              </div>
+              {demande.telephone && (
+                <div className="flex items-center gap-2 mb-4 text-sm text-gray-700">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  {demande.telephone}
+                </div>
+              )}
+              <button
+                onClick={handleContacter}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition"
+              >
+                <MessageCircle className="h-4 w-4" /> Contacter le client
+              </button>
             </div>
-            {demande.telephone && (
-              <div className="flex items-center gap-2 mb-4 text-sm text-gray-700">
-                <Phone className="h-4 w-4 text-gray-400" />
-                {demande.telephone}
+
+            {/* Bloc devis */}
+            {devisExistant && devisConfig ? (
+              <div style={{ background: devisConfig.bg, border: `1px solid ${devisConfig.border}` }} className="rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-2" style={{ color: devisConfig.color }}>
+                  <devisConfig.icon className="h-4 w-4" />
+                  <p className="font-semibold text-sm">{devisConfig.label}</p>
+                </div>
+                <p className="text-sm text-gray-700 mb-1">
+                  Montant proposé : <span className="font-bold">{devisExistant.montant.toLocaleString('fr-FR')} FCFA</span>
+                </p>
+                {devisExistant.message && (
+                  <p className="text-xs text-gray-500 mt-2 leading-relaxed">{devisExistant.message}</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-3 text-gray-700">
+                  <FileText className="h-4 w-4" />
+                  <p className="font-semibold text-sm">Envoyer un devis</p>
+                </div>
+
+                {devisError && (
+                  <p className="text-xs text-red-600 mb-3">{devisError}</p>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Montant proposé (FCFA) *</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={devisMontant}
+                      onChange={(e) => setDevisMontant(e.target.value)}
+                      placeholder="Ex: 15000"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Message <span className="text-gray-400">(optionnel)</span></label>
+                    <textarea
+                      rows={3}
+                      value={devisMessage}
+                      onChange={(e) => setDevisMessage(e.target.value)}
+                      placeholder="Précisez votre offre : délai, matériel inclus, garantie..."
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none resize-vertical focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSendDevis}
+                    disabled={sendingDevis}
+                    className="w-full px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-bold rounded-xl transition"
+                  >
+                    {sendingDevis ? 'Envoi...' : 'Envoyer le devis'}
+                  </button>
+                </div>
               </div>
             )}
-            <button
-              onClick={handleContacter}
-              className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition"
-            >
-              <MessageCircle className="h-4 w-4" /> Contacter le client
-            </button>
-          </div>
+          </>
         )}
       </div>
     </div>
