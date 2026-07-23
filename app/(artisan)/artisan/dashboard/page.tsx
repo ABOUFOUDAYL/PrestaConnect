@@ -83,7 +83,7 @@ export default function ArtisanDashboardPage() {
             .from('messages')
             .select('*')
             .in('conversation_id', convIds)
-            .neq('auteur_id', user.id)
+            .neq('sender_id', user.id)
             .order('created_at', { ascending: false })
             .limit(3)
           messages = msgs || []
@@ -94,7 +94,7 @@ export default function ArtisanDashboardPage() {
           devis: 0,
           missions: missionsCount,
           credits: wallet?.solde || 0,
-          note: presta.note_moyenne || 0,
+          note: presta.note || 0,
         })
 
         setRecentDemandes((demandesOuvertes || []).slice(0, 3))
@@ -114,7 +114,7 @@ export default function ArtisanDashboardPage() {
     return 'Bonsoir'
   }
 
-  const firstName = profile?.prenom || prestataire?.prenom || 'Artisan'
+  const firstName = profile?.prenom || prestataire?.nom || 'Artisan'
 
   if (isLoading) {
     return (

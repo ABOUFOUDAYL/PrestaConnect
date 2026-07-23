@@ -24,7 +24,7 @@ const VILLES_BENIN = [
 export default function ArtisanProfilPage() {
   const [profile, setProfile] = useState({
     nom: '', prenom: '', metier: '', ville: '',
-    telephone: '', description: '', disponible: true, tarif_journalier: '',
+    telephone: '', description: '', disponible: true,
   })
   const [stats, setStats] = useState({ note: 0, avis: 0, missions: 0 })
   const [editing, setEditing] = useState(false)
@@ -57,19 +57,18 @@ export default function ArtisanProfilPage() {
 
       if (prof) {
         setProfile({
-          nom: prof.nom || '',
+          nom: presta?.nom || prof.nom || '',
           prenom: prof.prenom || '',
-          metier: presta?.metier || prof.metier || '',
-          ville: prof.ville || '',
-          telephone: prof.telephone || '',
-          description: presta?.description || prof.description || '',
+          metier: presta?.metier || '',
+          ville: presta?.ville || prof.ville || '',
+          telephone: presta?.telephone || prof.telephone || '',
+          description: presta?.description || '',
           disponible: prof.disponible ?? true,
-          tarif_journalier: presta?.tarif_journalier || '',
         })
         setStats({
-          note: presta?.note_moyenne || 0,
-          avis: presta?.nombre_avis || 0,
-          missions: presta?.missions_terminees || 0,
+          note: presta?.note || 0,
+          avis: presta?.nb_avis || 0,
+          missions: presta?.nb_missions || 0,
         })
       }
       setLoading(false)
@@ -86,7 +85,6 @@ export default function ArtisanProfilPage() {
 
     const [profUpdate, prestaUpdate] = await Promise.all([
       supabase.from('profiles').update({
-        nom: profile.nom,
         prenom: profile.prenom,
         ville: profile.ville,
         telephone: profile.telephone,
@@ -95,10 +93,10 @@ export default function ArtisanProfilPage() {
 
       supabase.from('prestataires').update({
         nom: profile.nom,
-        prenom: profile.prenom,
         metier: profile.metier,
+        ville: profile.ville,
+        telephone: profile.telephone,
         description: profile.description,
-        tarif_journalier: profile.tarif_journalier || null,
       }).eq('user_id', user.id),
     ])
 
@@ -126,7 +124,6 @@ export default function ArtisanProfilPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
 
-      {/* En-tête */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
         {!editing ? (
@@ -167,7 +164,6 @@ export default function ArtisanProfilPage() {
         </div>
       )}
 
-      {/* Carte identité */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/40">
@@ -189,7 +185,6 @@ export default function ArtisanProfilPage() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/20">
           <div className="text-center">
             <p className="text-xl font-bold">{stats.note > 0 ? stats.note.toFixed(1) : '—'}</p>
@@ -206,7 +201,6 @@ export default function ArtisanProfilPage() {
         </div>
       </div>
 
-      {/* Informations */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
         <h3 className="font-semibold text-gray-900 text-base border-b border-gray-100 pb-3">
           Informations personnelles
@@ -214,8 +208,8 @@ export default function ArtisanProfilPage() {
 
         <div className="grid grid-cols-2 gap-5">
           {[
-            { label: 'Prénom', key: 'prenom', icon: null },
-            { label: 'Nom', key: 'nom', icon: null },
+            { label: 'Prénom', key: 'prenom' },
+            { label: 'Nom', key: 'nom' },
           ].map(({ label, key }) => (
             <div key={key}>
               <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</label>
@@ -291,25 +285,6 @@ export default function ArtisanProfilPage() {
             />
           ) : (
             <p className="mt-1 font-medium text-gray-900">{profile.telephone || '—'}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-            Tarif journalier (FCFA)
-          </label>
-          {editing ? (
-            <input
-              type="number"
-              value={profile.tarif_journalier}
-              onChange={e => setProfile(p => ({ ...p, tarif_journalier: e.target.value }))}
-              placeholder="Ex: 15000"
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
-            />
-          ) : (
-            <p className="mt-1 font-medium text-gray-900">
-              {profile.tarif_journalier ? `${Number(profile.tarif_journalier).toLocaleString('fr-FR')} FCFA` : '—'}
-            </p>
           )}
         </div>
 

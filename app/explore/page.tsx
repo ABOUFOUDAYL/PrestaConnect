@@ -29,11 +29,11 @@ type Prestataire = {
   id: string
   user_id: string
   nom: string
-  prenom: string
   metier: string
   ville: string
   quartier: string
-  note_moyenne: number
+  note: number
+  nb_avis: number
   verifie: boolean
   statut: string
   latitude: number | null
@@ -113,7 +113,7 @@ export default function ExplorePage() {
 
   const prestatairesAffiches = prestatairesAvecDistance
     .filter((p) => {
-      const nom = `${p.prenom || ''} ${p.nom || ''}`.toLowerCase()
+      const nom = (p.nom || '').toLowerCase()
       const matchRecherche =
         nom.includes(recherche.toLowerCase()) ||
         p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -256,8 +256,13 @@ export default function ExplorePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
             {prestatairesAffiches.map((p) => {
-              const fullName = `${p.prenom || ''} ${p.nom || ''}`.trim() || 'Artisan'
-              const initials = `${p.prenom?.[0] || ''}${p.nom?.[0] || ''}`.toUpperCase() || '?'
+              const fullName = p.nom || 'Artisan'
+              const initials = fullName
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2) || '?'
               const hasDiplome = METIERS_AVEC_DIPLOME.includes(p.metier)
 
               return (
@@ -281,7 +286,7 @@ export default function ExplorePage() {
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                       <span className="text-xs font-bold text-gray-700">
-                        {p.note_moyenne > 0 ? p.note_moyenne.toFixed(1) : 'N/A'}
+                        {p.note > 0 ? p.note.toFixed(1) : 'N/A'}
                       </span>
                     </div>
                   </div>
