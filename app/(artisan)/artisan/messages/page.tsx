@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Send, MessageCircle, Search, Lock, Wallet } from 'lucide-react'
+import { Send, MessageCircle, Search, Lock, Wallet, ArrowLeft } from 'lucide-react'
 
 const TARIF_CONTACT_DIRECT = 300
+const MOBILE_BREAKPOINT = 768
 
 function MessagesContent() {
   const searchParams = useSearchParams()
@@ -22,7 +23,15 @@ function MessagesContent() {
   const [solde, setSolde] = useState(0)
   const [unlocking, setUnlocking] = useState(false)
   const [unlockError, setUnlockError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const loadConversations = async (uid: string) => {
     const { data: convs, error } = await supabase
@@ -233,229 +242,273 @@ function MessagesContent() {
     )
   }
 
-  return (
-    <div style={{ display: 'flex', gap: '16px', height: 'calc(100vh - 140px)', minHeight: '500px' }}>
+  // Sur mobile : afficher soit la liste, soit la conversation, jamais les deux
+  const showListOnMobile = isMobile && !selectedId
+  const showChatOnMobile = isMobile && !!selectedId
 
-      <div style={{
-        width: '320px', flexShrink: 0, background: 'white', borderRadius: '16px',
-        border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9' }}>
-          <h1 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Messages</h1>
-          <div style={{ position: 'relative' }}>
-            <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher..."
-              style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', boxSizing: 'border-box' }}
-            />
+  const sidebarVisible = !isMobile || showListOnMobile
+  const chatVisible = !isMobile || showChatOnMobile
+
+  return (
+    <div style={{
+      display: 'flex',
+      gap: isMobile ? 0 : '16px',
+      height: 'calc(100vh - 140px)',
+      minHeight: '500px',
+    }}>
+
+      {sidebarVisible && (
+        <div style={{
+          width: isMobile ? '100%' : '320px',
+          flexShrink: 0, background: 'white', borderRadius: '16px',
+          border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid #f1f5f9' }}>
+            <h1 style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Messages</h1>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Rechercher..."
+                style={{ width: '100%', padding: '8px 10px 8px 32px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '13px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {filtered.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', padding: '30px 16px' }}>
+                Aucune conversation
+              </p>
+            ) : (
+              filtered.map((c) => {
+                const client = c.clients
+                const initiale = (client?.prenom?.[0] || client?.nom?.[0] || '?').toUpperCase()
+                const isActive = c.id === selectedId
+
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedId(c.id)}
+                    style={{
+                      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px',
+                      cursor: 'pointer', background: isActive ? '#fff7ed' : 'transparent',
+                      borderBottom: '1px solid #f8fafc',
+                    }}
+                  >
+                    <div style={{
+                      width: '38px', height: '38px', borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: 'white', fontWeight: 700, fontSize: '14px', flexShrink: 0,
+                      position: 'relative',
+                    }}>
+                      {initiale}
+                      {!c.isUnlocked && (
+                        <div style={{
+                          position: 'absolute', bottom: -2, right: -2, width: '16px', height: '16px',
+                          borderRadius: '50%', background: '#f97316', border: '2px solid white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Lock size={8} color="white" />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: '0 0 2px' }}>
+                        {c.isUnlocked ? `${client?.prenom || ''} ${client?.nom || ''}` : 'Contact verrouillé'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {c.isUnlocked
+                          ? (c.last_message || 'Nouvelle conversation')
+                          : (c.last_message ? `${c.last_message.slice(0, 28)}...` : 'Nouveau contact')}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
+      )}
 
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {filtered.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', padding: '30px 16px' }}>
-              Aucune conversation
-            </p>
-          ) : (
-            filtered.map((c) => {
-              const client = c.clients
-              const initiale = (client?.prenom?.[0] || client?.nom?.[0] || '?').toUpperCase()
-              const isActive = c.id === selectedId
-
-              return (
-                <div
-                  key={c.id}
-                  onClick={() => setSelectedId(c.id)}
+      {chatVisible && (
+        <div style={{
+          flex: 1, background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          width: isMobile ? '100%' : 'auto',
+        }}>
+          {!selectedConv ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px' }}>
+              <MessageCircle size={32} color="#cbd5e1" />
+              <p style={{ color: '#94a3b8', fontSize: '14px' }}>Selectionnez une conversation</p>
+            </div>
+          ) : !selectedConv.isUnlocked ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {isMobile && (
+                <button
+                  onClick={() => setSelectedId(null)}
                   style={{
-                    padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px',
-                    cursor: 'pointer', background: isActive ? '#fff7ed' : 'transparent',
-                    borderBottom: '1px solid #f8fafc',
+                    display: 'flex', alignItems: 'center', gap: '6px', padding: '14px 16px',
+                    border: 'none', borderBottom: '1px solid #f1f5f9', background: 'white',
+                    fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer',
                   }}
                 >
+                  <ArrowLeft size={16} /> Retour
+                </button>
+              )}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                <div style={{
+                  maxWidth: '360px', textAlign: 'center', background: '#fff7ed',
+                  border: '1px solid #fed7aa', borderRadius: '16px', padding: '32px 24px',
+                }}>
                   <div style={{
-                    width: '38px', height: '38px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontWeight: 700, fontSize: '14px', flexShrink: 0,
-                    position: 'relative',
+                    width: '48px', height: '48px', borderRadius: '50%', background: '#fed7aa',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
                   }}>
-                    {initiale}
-                    {!c.isUnlocked && (
-                      <div style={{
-                        position: 'absolute', bottom: -2, right: -2, width: '16px', height: '16px',
-                        borderRadius: '50%', background: '#f97316', border: '2px solid white',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Lock size={8} color="white" />
-                      </div>
-                    )}
+                    <Lock size={22} color="#ea580c" />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: '0 0 2px' }}>
-                      {c.isUnlocked ? `${client?.prenom || ''} ${client?.nom || ''}` : 'Contact verrouillé'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {c.isUnlocked
-                        ? (c.last_message || 'Nouvelle conversation')
-                        : (c.last_message ? `${c.last_message.slice(0, 28)}...` : 'Nouveau contact')}
-                    </p>
-                  </div>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
+                    Contact verrouillé
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#78716c', margin: '0 0 16px', lineHeight: 1.5 }}>
+                    Débloquez ce contact pour voir son nom et pouvoir échanger des messages avec lui.
+                  </p>
+
+                  {selectedConv.last_message && (
+                    <div style={{
+                      background: 'white', border: '1px solid #fed7aa', borderRadius: '10px',
+                      padding: '12px 14px', marginBottom: '16px', textAlign: 'left',
+                    }}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#ea580c', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        Aperçu du message
+                      </p>
+                      <p style={{ fontSize: '13px', color: '#44403c', margin: 0, lineHeight: 1.5 }}>
+                        "{selectedConv.last_message.slice(0, 35)}
+                        {selectedConv.last_message.length > 35 && (
+                          <span style={{ filter: 'blur(3.5px)', userSelect: 'none' }}>
+                            {selectedConv.last_message.slice(35, 90)}
+                          </span>
+                        )}"
+                      </p>
+                    </div>
+                  )}
+
+                  {unlockError && (
+                    <p style={{ fontSize: '12px', color: '#dc2626', marginBottom: '12px' }}>{unlockError}</p>
+                  )}
+
+                  <p style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
+                    <Wallet size={13} /> Solde : {solde.toLocaleString('fr-FR')} FCFA
+                  </p>
+
+                  <button
+                    onClick={handleDebloquer}
+                    disabled={unlocking}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
+                      background: unlocking ? '#fdba74' : 'linear-gradient(135deg, #f97316, #ea580c)',
+                      color: 'white', fontWeight: 700, fontSize: '14px',
+                      cursor: unlocking ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {unlocking ? 'Déblocage...' : `Débloquer pour ${TARIF_CONTACT_DIRECT} FCFA`}
+                  </button>
+
+                  {solde < TARIF_CONTACT_DIRECT && (
+                    <a href="/artisan/recharge" style={{ display: 'block', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#ea580c', marginTop: '12px', textDecoration: 'none' }}>
+                      Recharger mon portefeuille →
+                    </a>
+                  )}
                 </div>
-              )
-            })
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {isMobile && (
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      padding: '4px', marginRight: '2px', flexShrink: 0,
+                    }}
+                  >
+                    <ArrowLeft size={18} color="#475569" />
+                  </button>
+                )}
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'white', fontWeight: 700, fontSize: '13px', flexShrink: 0,
+                }}>
+                  {(selectedClient?.prenom?.[0] || '?').toUpperCase()}
+                </div>
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {selectedClient?.prenom} {selectedClient?.nom}
+                  </p>
+                  {selectedClient?.ville && (
+                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>{selectedClient.ville}</p>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {messages.length === 0 ? (
+                  <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', margin: 'auto' }}>
+                    Aucun message, demarrez la conversation
+                  </p>
+                ) : (
+                  messages.map((m) => {
+                    const isMine = (m.sender_id || m.auteur_id) === userId
+                    return (
+                      <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
+                        <div style={{
+                          maxWidth: '70%', padding: '10px 14px', borderRadius: '14px',
+                          background: isMine ? 'linear-gradient(135deg, #f97316, #ea580c)' : '#f1f5f9',
+                          color: isMine ? 'white' : '#0f172a',
+                        }}>
+                          <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.5 }}>{m.content || m.texte}</p>
+                          <p style={{ fontSize: '10px', margin: '4px 0 0', opacity: 0.7, textAlign: 'right' }}>
+                            {formatTime(m.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+                <div ref={bottomRef} />
+              </div>
+
+              <div style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' }}>
+                <input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+                  placeholder="Ecrire un message..."
+                  style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!newMessage.trim() || sending}
+                  style={{
+                    width: '44px', height: '44px', borderRadius: '10px', border: 'none',
+                    background: !newMessage.trim() || sending ? '#cbd5e1' : 'linear-gradient(135deg, #f97316, #ea580c)',
+                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: !newMessage.trim() || sending ? 'not-allowed' : 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            </>
           )}
         </div>
-      </div>
-
-      <div style={{
-        flex: 1, background: 'white', borderRadius: '16px', border: '1px solid #f1f5f9',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
-        {!selectedConv ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '10px' }}>
-            <MessageCircle size={32} color="#cbd5e1" />
-            <p style={{ color: '#94a3b8', fontSize: '14px' }}>Selectionnez une conversation</p>
-          </div>
-        ) : !selectedConv.isUnlocked ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div style={{
-              maxWidth: '360px', textAlign: 'center', background: '#fff7ed',
-              border: '1px solid #fed7aa', borderRadius: '16px', padding: '32px 24px',
-            }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '50%', background: '#fed7aa',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
-              }}>
-                <Lock size={22} color="#ea580c" />
-              </div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>
-                Contact verrouillé
-              </p>
-              <p style={{ fontSize: '13px', color: '#78716c', margin: '0 0 16px', lineHeight: 1.5 }}>
-                Débloquez ce contact pour voir son nom et pouvoir échanger des messages avec lui.
-              </p>
-
-              {selectedConv.last_message && (
-                <div style={{
-                  background: 'white', border: '1px solid #fed7aa', borderRadius: '10px',
-                  padding: '12px 14px', marginBottom: '16px', textAlign: 'left',
-                }}>
-                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#ea580c', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                    Aperçu du message
-                  </p>
-                  <p style={{ fontSize: '13px', color: '#44403c', margin: 0, lineHeight: 1.5 }}>
-                    "{selectedConv.last_message.slice(0, 35)}
-                    {selectedConv.last_message.length > 35 && (
-                      <span style={{ filter: 'blur(3.5px)', userSelect: 'none' }}>
-                        {selectedConv.last_message.slice(35, 90)}
-                      </span>
-                    )}"
-                  </p>
-                </div>
-              )}
-
-              {unlockError && (
-                <p style={{ fontSize: '12px', color: '#dc2626', marginBottom: '12px' }}>{unlockError}</p>
-              )}
-
-              <p style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
-                <Wallet size={13} /> Solde : {solde.toLocaleString('fr-FR')} FCFA
-              </p>
-
-              <button
-                onClick={handleDebloquer}
-                disabled={unlocking}
-                style={{
-                  width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
-                  background: unlocking ? '#fdba74' : 'linear-gradient(135deg, #f97316, #ea580c)',
-                  color: 'white', fontWeight: 700, fontSize: '14px',
-                  cursor: unlocking ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {unlocking ? 'Déblocage...' : `Débloquer pour ${TARIF_CONTACT_DIRECT} FCFA`}
-              </button>
-
-              {solde < TARIF_CONTACT_DIRECT && (
-                <a href="/artisan/recharge" style={{ display: 'block', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#ea580c', marginTop: '12px', textDecoration: 'none' }}>
-                  Recharger mon portefeuille →
-                </a>
-              )}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #f97316, #ea580c)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', fontWeight: 700, fontSize: '13px',
-              }}>
-                {(selectedClient?.prenom?.[0] || '?').toUpperCase()}
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  {selectedClient?.prenom} {selectedClient?.nom}
-                </p>
-                {selectedClient?.ville && (
-                  <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>{selectedClient.ville}</p>
-                )}
-              </div>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {messages.length === 0 ? (
-                <p style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', margin: 'auto' }}>
-                  Aucun message, demarrez la conversation
-                </p>
-              ) : (
-                messages.map((m) => {
-                  const isMine = (m.sender_id || m.auteur_id) === userId
-                  return (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start' }}>
-                      <div style={{
-                        maxWidth: '70%', padding: '10px 14px', borderRadius: '14px',
-                        background: isMine ? 'linear-gradient(135deg, #f97316, #ea580c)' : '#f1f5f9',
-                        color: isMine ? 'white' : '#0f172a',
-                      }}>
-                        <p style={{ fontSize: '13px', margin: 0, lineHeight: 1.5 }}>{m.content || m.texte}</p>
-                        <p style={{ fontSize: '10px', margin: '4px 0 0', opacity: 0.7, textAlign: 'right' }}>
-                          {formatTime(m.created_at)}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' }}>
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
-                placeholder="Ecrire un message..."
-                style={{ flex: 1, padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px' }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={!newMessage.trim() || sending}
-                style={{
-                  width: '44px', height: '44px', borderRadius: '10px', border: 'none',
-                  background: !newMessage.trim() || sending ? '#cbd5e1' : 'linear-gradient(135deg, #f97316, #ea580c)',
-                  color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: !newMessage.trim() || sending ? 'not-allowed' : 'pointer', flexShrink: 0,
-                }}
-              >
-                <Send size={18} />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+      )}
     </div>
   )
 }
