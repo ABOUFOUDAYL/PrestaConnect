@@ -242,7 +242,6 @@ function MessagesContent() {
     )
   }
 
-  // Sur mobile : afficher soit la liste, soit la conversation, jamais les deux
   const showListOnMobile = isMobile && !selectedId
   const showChatOnMobile = isMobile && !!selectedId
 
@@ -417,7 +416,7 @@ function MessagesContent() {
                   </button>
 
                   {solde < TARIF_CONTACT_DIRECT && (
-                    <a href="/artisan/recharge" style={{ display: 'block', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#ea580c', marginTop: '12px', textDecoration: 'none' }}>
+                    <a href="/recharge" style={{ display: 'block', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: '#ea580c', marginTop: '12px', textDecoration: 'none' }}>
                       Recharger mon portefeuille →
                     </a>
                   )}
