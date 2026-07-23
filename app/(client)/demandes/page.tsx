@@ -47,9 +47,9 @@ export default function DemandesPage() {
           id: d.id,
           titre: d.titre || d.description?.slice(0, 50) || "Demande sans titre",
           description: d.description || "",
-          categorie: d.categorie || d.metier || "Non renseigné",
+          categorie: d.metier_type || "Non renseigné",
           ville: d.ville || "Non renseignée",
-          statut: d.statut || "Ouvert",
+          statut: d.status || "Ouvert",
           dateCreation: new Date(d.created_at).toLocaleDateString("fr-FR"),
           devisCount: devisCounts[d.id] || 0,
         }))
@@ -65,11 +65,13 @@ export default function DemandesPage() {
   const handleAnnuler = async (id: string) => {
     const { error } = await supabase
       .from("demandes")
-      .update({ statut: "Annulé" })
+      .update({ status: "Annulé" })
       .eq("id", id)
 
     if (!error) {
       setDemandes((prev) => prev.map((d) => d.id === id ? { ...d, statut: "Annulé" as const } : d))
+    } else {
+      console.error("Erreur annulation demande:", error)
     }
   }
 
