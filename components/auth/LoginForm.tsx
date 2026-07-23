@@ -80,11 +80,15 @@ export default function LoginForm() {
       return
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('user_id', data.user.id)
-      .single()
+      .maybeSingle()
+
+    if (profileError) {
+      console.error('Erreur récupération profil:', profileError)
+    }
 
     const role = profile?.role
 
