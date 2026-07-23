@@ -29,14 +29,14 @@ export default function ArtisanDashboardPage() {
         .from('profiles')
         .select('*')
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
+        .maybeSingle()
       setProfile(prof)
 
       const { data: presta } = await supabase
         .from('prestataires')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       setPrestataire(presta)
 
       if (presta) {
@@ -68,7 +68,7 @@ export default function ArtisanDashboardPage() {
           .from('wallet')
           .select('solde')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
 
         const { data: convs } = await supabase
           .from('conversations')
