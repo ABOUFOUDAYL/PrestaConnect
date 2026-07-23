@@ -28,7 +28,7 @@ export default function ProfilClientPage() {
         .from("profiles")
         .select("*")
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
+        .maybeSingle()
 
       if (prof) {
         setProfile({ ...prof, email: user.email })
@@ -60,7 +60,6 @@ export default function ProfilClientPage() {
 
   const formatPhone = (tel: string) => {
     if (!tel) return "Non renseigné"
-    // Nettoyer et formater
     const clean = tel.replace(/\D/g, "")
     if (clean.startsWith("229") && clean.length >= 11) {
       return `+229 ${clean.slice(3, 5)} ${clean.slice(5, 7)} ${clean.slice(7, 9)} ${clean.slice(9)}`
@@ -118,7 +117,6 @@ export default function ProfilClientPage() {
   return (
     <div style={{ maxWidth: "640px", margin: "0 auto" }}>
 
-      {/* En-tête */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
         <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#0f172a", margin: 0 }}>Mon profil</h1>
         {!editing ? (
@@ -153,7 +151,6 @@ export default function ProfilClientPage() {
         </div>
       )}
 
-      {/* Carte identité — gradient rouge */}
       <div style={{ background: "linear-gradient(135deg, #e63946, #c1121f)", borderRadius: "20px", padding: "24px", marginBottom: "20px", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
           <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "26px", fontWeight: 700, flexShrink: 0 }}>
@@ -172,7 +169,6 @@ export default function ProfilClientPage() {
           </div>
         </div>
 
-        {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
           {[
             { icon: <FileText size={16} />, label: "Demandes", value: stats.demandes },
@@ -189,7 +185,6 @@ export default function ProfilClientPage() {
         </div>
       </div>
 
-      {/* Informations */}
       <div style={{ background: "white", borderRadius: "16px", border: "1px solid #f1f5f9" }}>
         {editing ? (
           <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
