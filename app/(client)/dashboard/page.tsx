@@ -40,11 +40,15 @@ export default function DashboardPage() {
       const userId = currentUser.id;
 
       // Charger le profil
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from("profiles")
         .select("*")
         .or(`user_id.eq.${userId},id.eq.${userId}`)
-        .single();
+        .maybeSingle();
+
+      if (profError) {
+        console.error("Erreur chargement profil:", profError);
+      }
       setProfile(prof);
 
       // Charger les stats en parallèle
