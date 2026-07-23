@@ -24,6 +24,25 @@ export default function DemandesPage() {
         .order("created_at", { ascending: false })
 
       if (!error && data) {
+        const demandeIds = data.map((d: any) => d.id)
+
+        // Comptage des devis par demande (devis_count n'existe pas sur demandes)
+        const devisCounts: Record<string, number> = {}
+        if (demandeIds.length > 0) {
+          const { data: devisData, error: devisError } = await supabase
+            .from("devis")
+            .select("demande_id")
+            .in("demande_id", demandeIds)
+
+          if (devisError) {
+            console.error("Erreur récupération devis:", devisError)
+          } else if (devisData) {
+            for (const row of devisData) {
+              devisCounts[row.demande_id] = (devisCounts[row.demande_id] || 0) + 1
+            }
+          }
+        }
+
         const formatted: Demande[] = data.map((d: any) => ({
           id: d.id,
           titre: d.titre || d.description?.slice(0, 50) || "Demande sans titre",
@@ -32,7 +51,7 @@ export default function DemandesPage() {
           ville: d.ville || "Non renseignée",
           statut: d.statut || "Ouvert",
           dateCreation: new Date(d.created_at).toLocaleDateString("fr-FR"),
-          devisCount: d.devis_count || 0,
+          devisCount: devisCounts[d.id] || 0,
         }))
         setDemandes(formatted)
       }
