@@ -30,36 +30,27 @@ export default function FavorisPage() {
 
       const { data: prestatairesData } = await supabase
         .from("prestataires")
-        .select("id, user_id, nom, metier, statut, note_moyenne, nombre_avis, description")
+        .select("id, user_id, nom, metier, ville, statut, verifie, note, nb_avis, description, image")
         .in("id", prestataireIds)
 
-      const userIds = (prestatairesData || []).map((p) => p.user_id)
-
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("user_id, ville, photo_url")
-        .in("user_id", userIds)
-
-      const profilesMap = new Map((profilesData || []).map((p) => [p.user_id, p]))
       const prestatairesMap = new Map((prestatairesData || []).map((p) => [p.id, p]))
 
       const formatted: Artisan[] = favData
         .filter((f) => prestatairesMap.has(f.prestataire_id))
         .map((f) => {
           const presta = prestatairesMap.get(f.prestataire_id)!
-          const profil = profilesMap.get(presta.user_id)
 
           return {
             id: presta.id,
             name: presta.nom || "Artisan",
             metier: presta.metier || "Non renseigné",
-            ville: profil?.ville || "Non renseignée",
-            note: presta.note_moyenne || 0,
-            avis: presta.nombre_avis || 0,
-            verifie: presta.statut === "approuve",
+            ville: presta.ville || "Non renseignée",
+            note: presta.note || 0,
+            avis: presta.nb_avis || 0,
+            verifie: presta.verifie || false,
             description: presta.description || "",
             categories: presta.metier ? [presta.metier] : [],
-            photo_url: profil?.photo_url || null,
+            photo_url: presta.image || null,
             favori_id: f.id,
           }
         })
