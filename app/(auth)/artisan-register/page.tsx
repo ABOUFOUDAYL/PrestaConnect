@@ -20,7 +20,8 @@ export default function ArtisanRegisterPage() {
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
-    full_name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     password: '',
@@ -56,30 +57,40 @@ export default function ArtisanRegisterPage() {
     setLoading(true)
     setError('')
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: {
-          full_name: form.full_name,
-          phone: form.phone,
-          role: 'artisan',
-          metier: form.metier,
-          ville: form.ville,
-        }
-      }
+    // Passe par la même route API que l'inscription client,
+    // pour que profiles / prestataires soient créés de façon cohérente.
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        role: 'artisan',
+        first_name: form.first_name,
+        last_name: form.last_name,
+        telephone: form.phone || null,
+        ville: form.ville || null,
+        metier: form.metier || null,
+      }),
     })
 
-    if (signUpError) {
-      setError(signUpError.message)
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(
+        data.error?.includes('already registered') || data.error?.includes('already been registered')
+          ? 'Un compte existe déjà avec cet email.'
+          : (data.error || 'Une erreur est survenue. Veuillez réessayer.')
+      )
       setLoading(false)
       return
     }
 
-    if (data.user) {
+    const userId = data.userId
+    if (userId) {
       for (const [type, file] of Object.entries(documents)) {
         if (file) {
-          const path = `documents/${data.user.id}/${type}/${file.name}`
+          const path = `documents/${userId}/${type}/${file.name}`
           await supabase.storage.from('artisan-documents').upload(path, file)
         }
       }
@@ -109,11 +120,19 @@ export default function ArtisanRegisterPage() {
 
         {step === 1 && (
           <form onSubmit={handleStep1} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom complet</label>
-              <input name="full_name" value={form.full_name} onChange={handleChange} required
-                placeholder="Jean Dupont"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
+                <input name="first_name" value={form.first_name} onChange={handleChange} required
+                  placeholder="Jean"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
+                <input name="last_name" value={form.last_name} onChange={handleChange} required
+                  placeholder="Dupont"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
