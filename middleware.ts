@@ -74,7 +74,7 @@ export async function middleware(request: NextRequest) {
   ]
 
   const isProtected = protectedPaths.some(p =>
-    request.nextUrl.pathname.startsWith(p)
+    request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(p + '/')
   )
 
   if (isProtected && !user) {
