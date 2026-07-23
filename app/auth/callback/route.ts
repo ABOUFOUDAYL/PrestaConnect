@@ -13,11 +13,15 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
+
+        if (profileError) {
+          console.error('Erreur récupération profil (auth callback):', profileError)
+        }
 
         const role = profile?.role
 
