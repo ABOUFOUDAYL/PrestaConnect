@@ -47,13 +47,13 @@ export default function ArtisanProfilPage() {
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       const { data: presta } = await supabase
         .from('prestataires')
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (prof) {
         setProfile({
