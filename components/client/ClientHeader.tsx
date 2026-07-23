@@ -22,11 +22,16 @@ export default function ClientHeader() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from("profiles")
         .select("prenom, full_name")
         .or(`user_id.eq.${user.id},id.eq.${user.id}`)
-        .single()
+        .maybeSingle()
+
+      if (profError) {
+        console.error("Erreur récupération profil (ClientHeader):", profError)
+        return
+      }
 
       if (prof?.prenom) {
         setAvatarLetter(prof.prenom.charAt(0).toUpperCase())
