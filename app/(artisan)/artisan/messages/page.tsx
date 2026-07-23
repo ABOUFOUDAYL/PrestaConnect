@@ -77,11 +77,15 @@ function MessagesContent() {
         setSelectedId(enriched[0].id)
       }
 
-      const { data: wallet } = await supabase
+      const { data: wallet, error: walletError } = await supabase
         .from('wallet')
         .select('solde')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
+
+      if (walletError) {
+        console.error('Erreur chargement wallet:', walletError)
+      }
       setSolde(wallet?.solde || 0)
 
       setIsLoading(false)
