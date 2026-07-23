@@ -91,7 +91,7 @@ export default function ArtisanRegisterPage() {
       for (const [type, file] of Object.entries(documents)) {
         if (file) {
           const path = `documents/${userId}/${type}/${file.name}`
-          await supabase.storage.from('artisan-documents').upload(path, file)
+          await supabase.storage.from('Documents').upload(path, file)
         }
       }
     }
