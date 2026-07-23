@@ -43,7 +43,7 @@ function MessagesContent() {
         .from('prestataires')
         .select('id, metier, nom')
         .eq('user_id', artisanId)
-        .single()
+        .maybeSingle()
 
       if (prestaError) {
         console.error('Erreur chargement prestataire:', prestaError)
