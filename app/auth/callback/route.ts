@@ -5,6 +5,11 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
+  // Gestion robuste de l'hôte pour la production (Vercel / Domaines personnalisés)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const baseHost = isDevelopment ? origin : forwardedHost ? `https://${forwardedHost}` : origin
+
   if (code) {
     const supabase = await createSupabaseServerClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -25,13 +30,13 @@ export async function GET(request: Request) {
 
         const role = profile?.role
 
-        if (role === 'admin' || role === 'super_admin') return NextResponse.redirect(`${origin}/admin/dashboard`)
-        if (role === 'ambassadeur') return NextResponse.redirect(`${origin}/ambassadeur/dashboard`)
-        if (role === 'artisan') return NextResponse.redirect(`${origin}/artisan/dashboard`)
-        return NextResponse.redirect(`${origin}/dashboard`)
+        if (role === 'admin' || role === 'super_admin') return NextResponse.redirect(`${baseHost}/admin/dashboard`)
+        if (role === 'ambassadeur') return NextResponse.redirect(`${baseHost}/ambassadeur/dashboard`)
+        if (role === 'artisan') return NextResponse.redirect(`${baseHost}/artisan/dashboard`)
+        return NextResponse.redirect(`${baseHost}/dashboard`)
       }
     }
   }
 
-  return NextResponse.redirect(`${origin}/login`)
+  return NextResponse.redirect(`${baseHost}/login`)
 }
