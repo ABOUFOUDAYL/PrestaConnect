@@ -1,30 +1,44 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { Loader2, CheckCircle2, MapPin, Phone, Briefcase, Star, Edit2, Save, X } from 'lucide-react'
+import { Loader2, CheckCircle2, MapPin, Phone, Briefcase, Star, Edit2, Save, X, FileBadge } from 'lucide-react'
 
-const METIERS_BENIN = [
-  "Plombier", "Électricien", "Maçon", "Menuisier", "Charpentier", "Peintre",
-  "Carreleur", "Climatiseur", "Soudeur", "Mécanicien", "Serrurier", "Vitrier",
-  "Couvreur", "Jardinier", "Électroménagiste", "Ferrailleur", "Poseur de faux plafond",
-  "Technicien en informatique", "Plâtrier", "Électricien automobile", "Carrossier",
-  "Vulcanisateur", "Tapissier", "Cuisiniste", "Installateur de panneaux solaires",
-  "Fontainier", "Paysagiste", "Décorateur d'intérieur", "Réparateur d'électroménager",
-  "Tôlier", "Poseur de parquet", "Technicien en alarme et sécurité", "Réparateur de téléphones",
+// Séparation des métiers selon les exigences de la plateforme
+const METIERS_AVEC_DIPLOME = [
+  "Électricien", "Électricien automobile", "Technicien en informatique", 
+  "Climatiseur", "Installateur de panneaux solaires", "Technicien en alarme et sécurité"
 ]
+
+const METIERS_SANS_DIPLOME = [
+  "Plombier", "Maçon", "Menuisier", "Charpentier", "Peintre", "Carreleur", 
+  "Soudeur", "Mécanicien", "Serrurier", "Vitrier", "Couvreur", "Jardinier", 
+  "Électroménagiste", "Ferrailleur", "Poseur de faux plafond", "Plâtrier", 
+  "Carrossier", "Vulcanisateur", "Tapissier", "Cuisiniste", "Fontainier", 
+  "Paysagiste", "Décorateur d'intérieur", "Réparateur d'électroménager", 
+  "Tôlier", "Poseur de parquet", "Réparateur de téléphones"
+]
+
+const TOUS_LES_METIERS = [...METIERS_AVEC_DIPLOME, ...METIERS_SANS_DIPLOME].sort()
 
 const VILLES_BENIN = [
   "Cotonou", "Porto-Novo", "Parakou", "Abomey-Calavi", "Bohicon", "Natitingou",
   "Abomey", "Kandi", "Lokossa", "Ouidah", "Djougou", "Savalou", "Nikki",
   "Malanville", "Banikoara", "Tchaourou", "Dassa-Zoumé", "Comè", "Pobè",
   "Aplahoué", "Dogbo", "Sèmè-Podji", "Allada", "Grand-Popo",
-]
+].sort()
+
+// Initialisation hors du composant pour éviter les recréations à chaque rendu
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function ArtisanProfilPage() {
   const [profile, setProfile] = useState({
     nom: '', prenom: '', metier: '', ville: '',
     telephone: '', description: '', disponible: true,
+    diplome_verifie: false // Nouveau champ pour le statut
   })
   const [stats, setStats] = useState({ note: 0, avis: 0, missions: 0 })
   const [editing, setEditing] = useState(false)
@@ -33,10 +47,10 @@ export default function ArtisanProfilPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  // Vérifie dynamiquement si le métier sélectionné requiert un diplôme
+  const requiresDiploma = useMemo(() => 
+    METIERS_AVEC_DIPLOME.includes(profile.metier), 
+  [profile.metier])
 
   useEffect(() => {
     async function loadProfile() {
@@ -64,6 +78,7 @@ export default function ArtisanProfilPage() {
           telephone: presta?.telephone || prof.telephone || '',
           description: presta?.description || '',
           disponible: prof.disponible ?? true,
+          diplome_verifie: presta?.diplome_verifie ?? false,
         })
         setStats({
           note: presta?.note || 0,
@@ -77,11 +92,19 @@ export default function ArtisanProfilPage() {
   }, [])
 
   async function handleSave() {
+    if (!profile.nom || !profile.prenom || !profile.metier) {
+      setError("Veuillez remplir les champs obligatoires (Nom, Prénom, Métier).")
+      return
+    }
+
     setSaving(true)
     setError(null)
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setSaving(false)
+      return
+    }
 
     const [profUpdate, prestaUpdate] = await Promise.all([
       supabase.from('profiles').update({
@@ -101,7 +124,7 @@ export default function ArtisanProfilPage() {
     ])
 
     if (profUpdate.error || prestaUpdate.error) {
-      setError('Erreur lors de la sauvegarde.')
+      setError('Erreur lors de la sauvegarde. Veuillez réessayer.')
     } else {
       setEditing(false)
       setSaved(true)
@@ -122,8 +145,7 @@ export default function ArtisanProfilPage() {
   const initials = `${profile.prenom?.[0] || ''}${profile.nom?.[0] || ''}`.toUpperCase()
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-
+    <div className="max-w-3xl mx-auto space-y-6 p-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
         {!editing ? (
@@ -164,39 +186,49 @@ export default function ArtisanProfilPage() {
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-md">
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/40">
+          <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/40 shrink-0">
             {initials || '?'}
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold">{fullName || 'Nom non renseigné'}</h2>
-            <p className="text-orange-100 text-sm mt-0.5">{profile.metier || 'Métier non renseigné'}</p>
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-orange-100 text-sm font-medium">{profile.metier || 'Métier non renseigné'}</p>
+              {requiresDiploma && (
+                <span className={`flex items-center gap-1 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${profile.diplome_verifie ? 'bg-green-400/30 text-green-100' : 'bg-red-400/30 text-red-100'}`}>
+                  <FileBadge className="h-3 w-3" />
+                  {profile.diplome_verifie ? 'Diplôme vérifié' : 'Diplôme requis'}
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3 mt-3">
               {profile.ville && (
-                <span className="flex items-center gap-1 text-xs text-orange-100">
+                <span className="flex items-center gap-1 text-xs text-orange-100 bg-black/10 px-2 py-1 rounded-lg">
                   <MapPin className="h-3 w-3" /> {profile.ville}
                 </span>
               )}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${profile.disponible ? 'bg-green-400/30 text-green-100' : 'bg-gray-400/30 text-gray-100'}`}>
-                {profile.disponible ? '● Disponible' : '● Indisponible'}
+              <span className={`text-xs px-2 py-1 rounded-lg font-medium flex items-center gap-1 ${profile.disponible ? 'bg-green-400/30 text-green-100' : 'bg-gray-400/30 text-gray-100'}`}>
+                <div className={`w-1.5 h-1.5 rounded-full ${profile.disponible ? 'bg-green-300' : 'bg-gray-300'}`} />
+                {profile.disponible ? 'Disponible' : 'Indisponible'}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-white/20">
+        <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-white/20">
           <div className="text-center">
-            <p className="text-xl font-bold">{stats.note > 0 ? stats.note.toFixed(1) : '—'}</p>
-            <p className="text-xs text-orange-100 flex items-center justify-center gap-1"><Star className="h-3 w-3" /> Note</p>
+            <p className="text-2xl font-bold">{stats.note > 0 ? stats.note.toFixed(1) : '—'}</p>
+            <p className="text-xs text-orange-100 flex items-center justify-center gap-1 mt-1"><Star className="h-3 w-3" /> Note</p>
+          </div>
+          <div className="text-center border-x border-white/20">
+            <p className="text-2xl font-bold">{stats.avis}</p>
+            <p className="text-xs text-orange-100 mt-1">Avis clients</p>
           </div>
           <div className="text-center">
-            <p className="text-xl font-bold">{stats.avis}</p>
-            <p className="text-xs text-orange-100">Avis clients</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold">{stats.missions}</p>
-            <p className="text-xs text-orange-100">Missions</p>
+            <p className="text-2xl font-bold">{stats.missions}</p>
+            <p className="text-xs text-orange-100 mt-1">Missions</p>
           </div>
         </div>
       </div>
@@ -206,70 +238,85 @@ export default function ArtisanProfilPage() {
           Informations personnelles
         </h3>
 
-        <div className="grid grid-cols-2 gap-5">
-          {[
-            { label: 'Prénom', key: 'prenom' },
-            { label: 'Nom', key: 'nom' },
-          ].map(({ label, key }) => (
-            <div key={key}>
-              <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">{label}</label>
-              {editing ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Prénom *</label>
+            {editing ? (
+              <input
+                value={profile.prenom}
+                onChange={e => setProfile(p => ({ ...p, prenom: e.target.value }))}
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+              />
+            ) : (
+              <p className="mt-1 font-medium text-gray-900">{profile.prenom || '—'}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Nom *</label>
+            {editing ? (
+              <input
+                value={profile.nom}
+                onChange={e => setProfile(p => ({ ...p, nom: e.target.value }))}
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+              />
+            ) : (
+              <p className="mt-1 font-medium text-gray-900">{profile.nom || '—'}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
+              <Briefcase className="h-3 w-3" /> Métier *
+            </label>
+            {editing ? (
+              <div className="mt-1">
                 <input
-                  value={profile[key as keyof typeof profile] as string}
-                  onChange={e => setProfile(p => ({ ...p, [key]: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+                  type="text"
+                  list="metiers-profil"
+                  value={profile.metier}
+                  onChange={e => setProfile(p => ({ ...p, metier: e.target.value }))}
+                  placeholder="Ex: Plombier, Électricien..."
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
                 />
-              ) : (
-                <p className="mt-1 font-medium text-gray-900">{profile[key as keyof typeof profile] as string || '—'}</p>
-              )}
-            </div>
-          ))}
-        </div>
+                <datalist id="metiers-profil">
+                  {TOUS_LES_METIERS.map(m => <option key={m} value={m} />)}
+                </datalist>
+                {requiresDiploma && (
+                   <p className="text-[11px] text-orange-600 mt-1 flex items-center gap-1">
+                     <FileBadge className="h-3 w-3" /> Ce métier nécessite de fournir un diplôme/certificat.
+                   </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-1 font-medium text-gray-900">{profile.metier || '—'}</p>
+            )}
+          </div>
 
-        <div>
-          <label className="text-xs text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
-            <Briefcase className="h-3 w-3" /> Métier
-          </label>
-          {editing ? (
-            <div className="mt-1">
-              <input
-                type="text"
-                list="metiers-profil"
-                value={profile.metier}
-                onChange={e => setProfile(p => ({ ...p, metier: e.target.value }))}
-                placeholder="Ex: Plombier, Électricien..."
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
-              />
-              <datalist id="metiers-profil">
-                {METIERS_BENIN.map(m => <option key={m} value={m} />)}
-              </datalist>
-            </div>
-          ) : (
-            <p className="mt-1 font-medium text-gray-900">{profile.metier || '—'}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> Ville
-          </label>
-          {editing ? (
-            <div className="mt-1">
-              <input
-                type="text"
-                list="villes-profil"
-                value={profile.ville}
-                onChange={e => setProfile(p => ({ ...p, ville: e.target.value }))}
-                placeholder="Ex: Cotonou"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
-              />
-              <datalist id="villes-profil">
-                {VILLES_BENIN.map(v => <option key={v} value={v} />)}
-              </datalist>
-            </div>
-          ) : (
-            <p className="mt-1 font-medium text-gray-900">{profile.ville || '—'}</p>
-          )}
+          <div>
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1">
+              <MapPin className="h-3 w-3" /> Ville
+            </label>
+            {editing ? (
+              <div className="mt-1">
+                <input
+                  type="text"
+                  list="villes-profil"
+                  value={profile.ville}
+                  onChange={e => setProfile(p => ({ ...p, ville: e.target.value }))}
+                  placeholder="Ex: Cotonou"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+                />
+                <datalist id="villes-profil">
+                  {VILLES_BENIN.map(v => <option key={v} value={v} />)}
+                </datalist>
+              </div>
+            ) : (
+              <p className="mt-1 font-medium text-gray-900">{profile.ville || '—'}</p>
+            )}
+          </div>
         </div>
 
         <div>
@@ -281,7 +328,7 @@ export default function ArtisanProfilPage() {
               value={profile.telephone}
               onChange={e => setProfile(p => ({ ...p, telephone: e.target.value }))}
               placeholder="+229 97 00 00 00"
-              className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
+              className="mt-1 w-full md:w-1/2 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20"
             />
           ) : (
             <p className="mt-1 font-medium text-gray-900">{profile.telephone || '—'}</p>
@@ -299,20 +346,22 @@ export default function ArtisanProfilPage() {
               className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 resize-none"
             />
           ) : (
-            <p className="mt-1 text-gray-700 text-sm leading-relaxed">{profile.description || 'Aucune description renseignée.'}</p>
+            <p className="mt-1 text-gray-700 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">{profile.description || 'Aucune description renseignée.'}</p>
           )}
         </div>
 
         {editing && (
-          <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-            <label className="text-sm text-gray-600 font-medium">Disponibilité</label>
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div>
+              <label className="text-sm text-gray-900 font-medium block">Statut de disponibilité</label>
+              <span className="text-xs text-gray-500">Apparaître dans les résultats de recherche clients</span>
+            </div>
             <button
               onClick={() => setProfile(p => ({ ...p, disponible: !p.disponible }))}
-              className={`relative w-11 h-6 rounded-full transition-colors ${profile.disponible ? 'bg-green-500' : 'bg-gray-300'}`}
+              className={`relative w-12 h-6 rounded-full transition-colors ${profile.disponible ? 'bg-green-500' : 'bg-gray-300'}`}
             >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${profile.disponible ? 'translate-x-5' : 'translate-x-0'}`} />
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${profile.disponible ? 'translate-x-6' : 'translate-x-0'}`} />
             </button>
-            <span className="text-sm text-gray-600">{profile.disponible ? 'Disponible' : 'Indisponible'}</span>
           </div>
         )}
       </div>
