@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck, Clock } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 
 interface FieldErrors {
@@ -17,7 +17,6 @@ export default function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
 
-  // Étapes : 'credentials' (Email+Mdp) -> 'otp_verify' (Saisie du code 6 chiffres)
   const [authStep, setAuthStep] = useState<'credentials' | 'otp_verify'>('credentials')
   
   const [email, setEmail] = useState('')
@@ -27,11 +26,32 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  
+  // Gestion du temps (120 secondes = 2 minutes)
+  const [timeLeft, setTimeLeft] = useState(120)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  // Effet pour gérer le compte à rebours
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (authStep === 'otp_verify' && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(timer)
+  }, [authStep, timeLeft])
+
+  // Formatage du temps en MM:SS
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+    const s = (seconds % 60).toString().padStart(2, '0')
+    return `${m}:${s}`
+  }
 
   function validateCredentials(): boolean {
     const errors: FieldErrors = {}
@@ -76,7 +96,6 @@ export default function LoginForm() {
     }
   }
 
-  // ÉTAPE 1 : Vérification du mot de passe + Envoi du code OTP
   async function handleCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validateCredentials()) return
@@ -84,7 +103,6 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
-    // 1. On vérifie d'abord si l'email et le mot de passe sont corrects
     const { error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: password,
@@ -103,7 +121,6 @@ export default function LoginForm() {
       return
     }
 
-    // 2. Si les identifiants sont bons, on génère un code OTP envoyé par email
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
     })
@@ -114,14 +131,20 @@ export default function LoginForm() {
       return
     }
 
-    // 3. On passe à l'écran de saisie du code sans rediriger l'utilisateur
+    // Réinitialisation du chrono et passage à l'étape suivante
+    setTimeLeft(120)
     setAuthStep('otp_verify')
     setLoading(false)
   }
 
-  // ÉTAPE 2 : Vérification du code OTP à 6 chiffres
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault()
+    
+    if (timeLeft === 0) {
+      setError('Le code a expiré. Veuillez recommencer la procédure de connexion.')
+      return
+    }
+
     if (!token || token.length !== 6) {
       setFieldErrors({ token: 'Veuillez entrer un code valide à 6 chiffres' })
       return
@@ -142,7 +165,6 @@ export default function LoginForm() {
       return
     }
 
-    // Redirection finale uniquement si le code est validé
     await handlePostLoginRedirect(data.user.id)
   }
 
@@ -155,7 +177,6 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* ÉTAPE 1 : IDENTIFIANTS */}
       {authStep === 'credentials' && (
         <form onSubmit={handleCredentialsSubmit} noValidate className="space-y-5">
           <div className="space-y-1.5">
@@ -220,13 +241,13 @@ export default function LoginForm() {
         </form>
       )}
 
-      {/* ÉTAPE 2 : CODE OTP */}
       {authStep === 'otp_verify' && (
         <form onSubmit={handleVerifyOtp} noValidate className="space-y-5">
           <div className="rounded-xl bg-primary-50 p-4 flex flex-col items-center text-center gap-2">
             <ShieldCheck className="h-8 w-8 text-primary-600" />
-            <p className="text-sm text-primary-800">
-              Par mesure de sécurité, un code à 6 chiffres a été envoyé à <span className="font-semibold">{email}</span>.
+            <p className="text-sm text-primary-900">
+              Par mesure de sécurité, un code à 6 chiffres a été envoyé à <br />
+              <span className="font-semibold">{email}</span>.
             </p>
           </div>
 
@@ -241,14 +262,23 @@ export default function LoginForm() {
               placeholder="123456"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              disabled={timeLeft === 0 || loading}
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 disabled:bg-gray-50"
             />
             {fieldErrors.token && <p className="text-xs text-red-600 text-center">{fieldErrors.token}</p>}
+            
+            {/* Affichage du chronomètre */}
+            <div className="flex justify-center items-center gap-2 mt-2">
+              <Clock className={`h-4 w-4 ${timeLeft > 0 ? 'text-gray-500' : 'text-red-500'}`} />
+              <span className={`text-sm font-medium ${timeLeft > 0 ? 'text-gray-600' : 'text-red-600'}`}>
+                {timeLeft > 0 ? `Code valide pendant : ${formatTime(timeLeft)}` : 'Le code a expiré'}
+              </span>
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || timeLeft === 0}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -261,7 +291,7 @@ export default function LoginForm() {
               onClick={() => { setAuthStep('credentials'); setToken(''); setError(null); }}
               className="text-sm font-medium text-gray-500 hover:text-gray-700 underline"
             >
-              Annuler et revenir en arrière
+              {timeLeft === 0 ? 'Renvoyer un nouveau code' : 'Annuler et revenir en arrière'}
             </button>
           </div>
         </form>
