@@ -1,138 +1,164 @@
 "use client"
-import { useState, useMemo, useEffect } from "react"
-import Link from "next/link"
-import DemandeCard, { Demande } from "@/components/demandes/DemandeCard"
-import DemandeFilters, { DemandeFilterState } from "@/components/demandes/DemandeFilters"
-import { supabase } from "@/lib/supabase"
 
-export default function DemandesPage() {
-  const [demandes, setDemandes] = useState<Demande[]>([])
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import DevisList from "@/components/devis/DevisList"
+import { Loader2, ArrowLeft, MapPin, Calendar, Tag, CheckCircle } from "lucide-react"
+
+interface DemandeDetails {
+  id: string
+  titre: string
+  description: string
+  categorie: string
+  ville: string
+  quartier?: string
+  telephone: string
+  type_intervention: string
+  statut: string
+  dateCreation: string
+}
+
+export default function DetailDemandePage() {
+  const params = useParams()
+  const router = useRouter()
+  const demandeId = params?.id as string
+
+  const [demande, setDemande] = useState<DemandeDetails | null>(null)
+  const [devisList, setDevisList] = useState<any[]>([])
+  const [clientId, setClientId] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
-  const [filters, setFilters] = useState<DemandeFilterState>({ statut: "Tous", categorie: "Toutes" })
 
   useEffect(() => {
-    const loadDemandes = async () => {
+    const fetchDemandeDetails = async () => {
+      if (!demandeId) return
       setIsLoading(true)
 
+      // 1. Récupérer l'utilisateur connecté
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setIsLoading(false); return }
+      if (!user) {
+        router.push("/login")
+        return
+      }
+      setClientId(user.id)
 
-      const { data, error } = await supabase
+      // 2. Récupérer les détails de la demande
+      const { data: demandeData, error: demandeError } = await supabase
         .from("demandes")
         .select("*")
-        .eq("client_id", user.id)
-        .order("created_at", { ascending: false })
+        .eq("id", demandeId)
+        .single()
 
-      if (!error && data) {
-        const demandeIds = data.map((d: any) => d.id)
+      if (demandeError || !demandeData) {
+        console.error("Erreur récupération demande:", demandeError)
+        setIsLoading(false)
+        return
+      }
 
-        // Comptage des devis par demande (devis_count n'existe pas sur demandes)
-        const devisCounts: Record<string, number> = {}
-        if (demandeIds.length > 0) {
-          const { data: devisData, error: devisError } = await supabase
-            .from("devis")
-            .select("demande_id")
-            .in("demande_id", demandeIds)
+      setDemande({
+        id: demandeData.id,
+        titre: demandeData.titre || demandeData.description?.slice(0, 50) || "Demande sans titre",
+        description: demandeData.description || "",
+        categorie: demandeData.metier_type || "Non renseigné",
+        ville: demandeData.ville || "Non renseignée",
+        quartier: demandeData.quartier,
+        telephone: demandeData.telephone,
+        type_intervention: demandeData.type_intervention || "urgent",
+        statut: demandeData.status || "Ouvert",
+        dateCreation: new Date(demandeData.created_at).toLocaleDateString("fr-FR"),
+      })
 
-          if (devisError) {
-            console.error("Erreur récupération devis:", devisError)
-          } else if (devisData) {
-            for (const row of devisData) {
-              devisCounts[row.demande_id] = (devisCounts[row.demande_id] || 0) + 1
-            }
-          }
-        }
+      // 3. Récupérer les devis associés avec le profil de l'artisan
+      const { data: devisData, error: devisError } = await supabase
+        .from("devis")
+        .select(`
+          *,
+          profiles:artisan_id (nom, prenom, specialite)
+        `)
+        .eq("demande_id", demandeId)
 
-        const formatted: Demande[] = data.map((d: any) => ({
-          id: d.id,
-          titre: d.titre || d.description?.slice(0, 50) || "Demande sans titre",
-          description: d.description || "",
-          categorie: d.metier_type || "Non renseigné",
-          ville: d.ville || "Non renseignée",
-          statut: d.status || "Ouvert",
-          dateCreation: new Date(d.created_at).toLocaleDateString("fr-FR"),
-          devisCount: devisCounts[d.id] || 0,
-        }))
-        setDemandes(formatted)
+      if (!devisError && devisData) {
+        setDevisList(devisData)
       }
 
       setIsLoading(false)
     }
 
-    loadDemandes()
-  }, [])
-
-  const handleAnnuler = async (id: string) => {
-    const { error } = await supabase
-      .from("demandes")
-      .update({ status: "Annulé" })
-      .eq("id", id)
-
-    if (!error) {
-      setDemandes((prev) => prev.map((d) => d.id === id ? { ...d, statut: "Annulé" as const } : d))
-    } else {
-      console.error("Erreur annulation demande:", error)
-    }
-  }
-
-  const filtered = useMemo(() => demandes.filter((d) => {
-    if (filters.statut !== "Tous" && d.statut !== filters.statut) return false
-    if (filters.categorie !== "Toutes" && d.categorie !== filters.categorie) return false
-    return true
-  }), [demandes, filters])
+    fetchDemandeDetails()
+  }, [demandeId, router])
 
   if (isLoading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "40vh" }}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "48px", height: "48px", border: "4px solid #e63946", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto" }} />
-          <p style={{ color: "var(--color-neutral-500)", marginTop: "16px" }}>Chargement...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary-500" />
+          <p style={{ color: "var(--color-neutral-500)", marginTop: "16px" }}>Chargement des détails...</p>
         </div>
       </div>
     )
   }
 
+  if (!demande) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-gray-500">Demande introuvable.</p>
+        <button onClick={() => router.back()} className="mt-4 text-primary-600 font-semibold">
+          ← Retour à mes demandes
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-6)" }}>
-        <div>
-          <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--font-bold)", fontFamily: "var(--font-display)", color: "var(--color-neutral-900)", margin: "0 0 var(--space-1)" }}>
-            Mes demandes
-          </h1>
-          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-neutral-500)" }}>
-            {filtered.length} demande{filtered.length > 1 ? "s" : ""}
-          </p>
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Bouton de retour */}
+      <button 
+        onClick={() => router.back()} 
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition"
+      >
+        <ArrowLeft className="h-4 w-4" /> Retour à mes demandes
+      </button>
+
+      {/* Carte des détails de la demande */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <span className="inline-block rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 mb-2">
+              {demande.categorie}
+            </span>
+            <h1 className="text-2xl font-bold text-gray-900">{demande.titre}</h1>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            demande.statut === 'Ouvert' ? 'bg-green-100 text-green-700' : 
+            demande.statut === 'Annulé' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+          }`}>
+            {demande.statut}
+          </span>
         </div>
-        <Link href="/devis/nouvelle" style={{
-          padding: "var(--space-3) var(--space-5)",
-          borderRadius: "var(--radius-lg)",
-          background: "var(--color-primary-500)",
-          color: "white",
-          fontSize: "var(--text-sm)",
-          fontWeight: "var(--font-semibold)",
-          textDecoration: "none",
-        }}>
-          + Nouvelle demande
-        </Link>
+
+        <p className="text-gray-600 text-sm whitespace-pre-line border-t border-b border-gray-50 py-4">
+          {demande.description}
+        </p>
+
+        <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-2">
+          <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {demande.ville} {demande.quartier ? `(${demande.quartier})` : ''}</span>
+          <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Créée le {demande.dateCreation}</span>
+          <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> {demande.type_intervention}</span>
+        </div>
       </div>
 
-      <div style={{ marginBottom: "var(--space-5)" }}>
-        <DemandeFilters filters={filters} onChange={setFilters} />
-      </div>
+      {/* Section des devis des artisans */}
+      <div className="space-y-4 pt-4">
+        <h2 className="text-xl font-bold text-gray-900">
+          Propositions des artisans ({devisList.length})
+        </h2>
 
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
-          <p style={{ fontSize: "3rem" }}>📋</p>
-          <p>Aucune demande pour le moment</p>
-          <Link href="/devis/nouvelle" style={{ color: "var(--color-primary-500)", fontSize: "var(--text-sm)" }}>
-            Créer votre première demande →
-          </Link>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {filtered.map((d) => <DemandeCard key={d.id} demande={d} onSupprimer={handleAnnuler} />)}
-        </div>
-      )}
+        <DevisList 
+          demandeId={demande.id} 
+          clientId={clientId} 
+          initialDevis={devisList} 
+        />
+      </div>
     </div>
   )
 }
