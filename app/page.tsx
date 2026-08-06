@@ -10,8 +10,44 @@ import {
 
 /* ─────────────────── HOOKS SUPABASE ─────────────────── */
 
+function useAnimatedNumber(target: number, duration = 1200) {
+  const [value, setValue] = useState(0);
+  const frame = useRef<number | null>(null);
+  const startValue = useRef(0);
+
+  useEffect(() => {
+    if (target === startValue.current) return;
+
+    const from = startValue.current;
+    const diff = target - from;
+    const startTime = performance.now();
+
+    function easeOutExpo(t: number) {
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    }
+
+    function step(now: number) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = easeOutExpo(progress);
+      setValue(Math.round(from + diff * eased));
+      if (progress < 1) {
+        frame.current = requestAnimationFrame(step);
+      } else {
+        startValue.current = target;
+      }
+    }
+
+    frame.current = requestAnimationFrame(step);
+    return () => {
+      if (frame.current) cancelAnimationFrame(frame.current);
+    };
+  }, [target, duration]);
+
+  return value;
+}
+
 function useStats() {
-  const [stats, setStats] = useState({ artisans: 0, missions: 0, villes: 0, noteMoyenne: 0 });
+  const [stats, setStats] = useState({ artisans: 0, missions: 0, villes: 0, noteMoyenne: 0, totalUsers: 0 });
 
   useEffect(() => {
     async function fetchStats() {
@@ -20,11 +56,13 @@ function useStats() {
         { count: missions },
         { data: villesData },
         { data: notesData },
+        { data: totalUsersData },
       ] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "prestataire"),
         supabase.from("missions").select("*", { count: "exact", head: true }).eq("statut", "terminée"),
         supabase.from("profiles").select("ville").eq("role", "prestataire"),
         supabase.from("avis").select("note"),
+        supabase.rpc("get_public_user_count"),
       ]);
 
       const villesUniques = new Set(villesData?.map((p) => p.ville)).size;
@@ -37,9 +75,12 @@ function useStats() {
         missions: missions ?? 0,
         villes: villesUniques,
         noteMoyenne: Number(moyenne),
+        totalUsers: typeof totalUsersData === "number" ? totalUsersData : 0,
       });
     }
     fetchStats();
+    const interval = setInterval(fetchStats, 30_000); // rafraîchit toutes les 30s
+    return () => clearInterval(interval);
   }, []);
 
   return stats;
@@ -146,6 +187,7 @@ export default function HomePage() {
   const refs = useRef<Record<string, HTMLElement | null>>({});
 
   const stats = useStats();
+  const animatedTotalUsers = useAnimatedNumber(stats.totalUsers);
   const prestataires = useTopPrestataires();
   const temoignages = useTemoignages();
 
@@ -304,6 +346,7 @@ export default function HomePage() {
 
             <div style={{ display: "flex", gap: 32, justifyContent: "center", marginTop: 52, flexWrap: "wrap" }}>
               {[
+                { value: animatedTotalUsers > 0 ? `${animatedTotalUsers.toLocaleString("fr-FR")}+` : "—", label: "Utilisateurs inscrits" },
                 { value: stats.artisans > 0 ? `${stats.artisans}+` : "—", label: "Artisans" },
                 { value: stats.villes > 0 ? `${stats.villes} villes` : "—", label: "Couvertes" },
                 { value: stats.noteMoyenne > 0 ? `${stats.noteMoyenne}/5` : "—", label: "Note moyenne" },
@@ -585,5 +628,3 @@ export default function HomePage() {
     </>
   );
 }
-        
-        
