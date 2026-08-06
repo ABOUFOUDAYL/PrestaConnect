@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, AlertCircle, KeyRound, Lock } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 
 interface FieldErrors {
@@ -17,13 +17,12 @@ export default function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
 
-  // Modes : 'password' | 'otp_email' | 'otp_verify'
-  const [authMode, setAuthMode] = useState<'password' | 'otp_email' | 'otp_verify'>('password')
+  // Étapes : 'credentials' (Email+Mdp) -> 'otp_verify' (Saisie du code 6 chiffres)
+  const [authStep, setAuthStep] = useState<'credentials' | 'otp_verify'>('credentials')
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [token, setToken] = useState('')
-
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,18 +33,7 @@ export default function LoginForm() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  // Validation commune de l'email
-  function validateEmail(): boolean {
-    const errors: FieldErrors = {}
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = 'Adresse email invalide'
-    }
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  // Validation pour le mot de passe
-  function validatePasswordLogin(): boolean {
+  function validateCredentials(): boolean {
     const errors: FieldErrors = {}
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.email = 'Adresse email invalide'
@@ -57,7 +45,6 @@ export default function LoginForm() {
     return Object.keys(errors).length === 0
   }
 
-  // Fonction partagée pour la redirection selon le rôle
   async function handlePostLoginRedirect(userId: string) {
     router.refresh()
 
@@ -89,27 +76,26 @@ export default function LoginForm() {
     }
   }
 
-  // 1. Soumission Connexion par Mot de Passe
-  async function handlePasswordSubmit(e: React.FormEvent) {
+  // ÉTAPE 1 : Vérification du mot de passe + Envoi du code OTP
+  async function handleCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!validatePasswordLogin()) return
+    if (!validateCredentials()) return
 
     setLoading(true)
     setError(null)
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
+    // 1. On vérifie d'abord si l'email et le mot de passe sont corrects
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: password,
     })
 
-    if (authError || !data.user) {
-      const msg = authError?.message ?? 'Erreur inconnue'
+    if (authError) {
+      const msg = authError.message
       if (msg.includes('Invalid login credentials')) {
         setError('Email ou mot de passe incorrect.')
       } else if (msg.includes('Email not confirmed')) {
         setError('Veuillez confirmer votre email avant de vous connecter.')
-      } else if (msg.includes('Too many requests')) {
-        setError('Trop de tentatives. Réessayez dans quelques minutes.')
       } else {
         setError(`Erreur : ${msg}`)
       }
@@ -117,36 +103,23 @@ export default function LoginForm() {
       return
     }
 
-    await handlePostLoginRedirect(data.user.id)
-  }
-
-  // 2. Étape 1 OTP : Demander l'envoi du code à 6 chiffres
-  async function handleSendOtp(e: React.FormEvent) {
-    e.preventDefault()
-    if (!validateEmail()) return
-
-    setLoading(true)
-    setError(null)
-
+    // 2. Si les identifiants sont bons, on génère un code OTP envoyé par email
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: {
-        shouldCreateUser: true, // Crée le compte automatiquement s'il n'existe pas
-      },
     })
 
-    setLoading(false)
-
     if (otpError) {
-      setError(`Erreur lors de l'envoi du code : ${otpError.message}`)
+      setError("Erreur lors de l'envoi du code de sécurité. Veuillez réessayer.")
+      setLoading(false)
       return
     }
 
-    // Passage à l'écran de saisie du code à 6 chiffres
-    setAuthMode('otp_verify')
+    // 3. On passe à l'écran de saisie du code sans rediriger l'utilisateur
+    setAuthStep('otp_verify')
+    setLoading(false)
   }
 
-  // 3. Étape 2 OTP : Vérifier le code à 6 chiffres saisi
+  // ÉTAPE 2 : Vérification du code OTP à 6 chiffres
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault()
     if (!token || token.length !== 6) {
@@ -169,6 +142,7 @@ export default function LoginForm() {
       return
     }
 
+    // Redirection finale uniquement si le code est validé
     await handlePostLoginRedirect(data.user.id)
   }
 
@@ -181,9 +155,9 @@ export default function LoginForm() {
         </div>
       )}
 
-      {/* FORMULAIRE MOT DE PASSE */}
-      {authMode === 'password' && (
-        <form onSubmit={handlePasswordSubmit} noValidate className="space-y-5">
+      {/* ÉTAPE 1 : IDENTIFIANTS */}
+      {authStep === 'credentials' && (
+        <form onSubmit={handleCredentialsSubmit} noValidate className="space-y-5">
           <div className="space-y-1.5">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
               Adresse email
@@ -241,79 +215,24 @@ export default function LoginForm() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Connexion en cours…' : 'Se connecter'}
+            {loading ? 'Vérification...' : 'Continuer'}
           </button>
-
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => { setAuthMode('otp_email'); setError(null); }}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:underline"
-            >
-              <KeyRound className="h-4 w-4" />
-              Se connecter par code unique (OTP)
-            </button>
-          </div>
         </form>
       )}
 
-      {/* FORMULAIRE OTP - ÉTAPE 1 : SAISIE DE L'EMAIL */}
-      {authMode === 'otp_email' && (
-        <form onSubmit={handleSendOtp} noValidate className="space-y-5">
-          <div className="rounded-xl bg-primary-50 p-4 text-sm text-primary-800">
-            Entrez votre adresse email pour recevoir un code de connexion unique à 6 chiffres.
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="otp-email" className="block text-sm font-medium text-gray-700">
-              Adresse email
-            </label>
-            <input
-              id="otp-email"
-              type="email"
-              autoComplete="email"
-              placeholder="vous@exemple.fr"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
-                focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
-                ${fieldErrors.email ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-            />
-            {fieldErrors.email && <p className="text-xs text-red-600">{fieldErrors.email}</p>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Envoi du code...' : 'Recevoir mon code par email'}
-          </button>
-
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => { setAuthMode('password'); setError(null); }}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
-            >
-              <Lock className="h-4 w-4" />
-              Retour à la connexion par mot de passe
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* FORMULAIRE OTP - ÉTAPE 2 : SAISIE DU CODE À 6 CHIFFRES */}
-      {authMode === 'otp_verify' && (
+      {/* ÉTAPE 2 : CODE OTP */}
+      {authStep === 'otp_verify' && (
         <form onSubmit={handleVerifyOtp} noValidate className="space-y-5">
-          <div className="rounded-xl bg-primary-50 p-4 text-sm text-primary-800">
-            Un code à 6 chiffres a été envoyé à l'adresse <span className="font-semibold">{email}</span>. Vérifiez votre boîte mail.
+          <div className="rounded-xl bg-primary-50 p-4 flex flex-col items-center text-center gap-2">
+            <ShieldCheck className="h-8 w-8 text-primary-600" />
+            <p className="text-sm text-primary-800">
+              Par mesure de sécurité, un code à 6 chiffres a été envoyé à <span className="font-semibold">{email}</span>.
+            </p>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="token" className="block text-sm font-medium text-gray-700">
-              Code de vérification (6 chiffres)
+            <label htmlFor="token" className="block text-sm font-medium text-gray-700 text-center">
+              Saisissez le code de vérification
             </label>
             <input
               id="token"
@@ -322,9 +241,9 @@ export default function LoginForm() {
               placeholder="123456"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-xl tracking-widest outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-center text-2xl font-bold tracking-widest outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
             />
-            {fieldErrors.token && <p className="text-xs text-red-600">{fieldErrors.token}</p>}
+            {fieldErrors.token && <p className="text-xs text-red-600 text-center">{fieldErrors.token}</p>}
           </div>
 
           <button
@@ -333,23 +252,16 @@ export default function LoginForm() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-700 active:scale-[.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? 'Vérification...' : 'Valider et se connecter'}
+            {loading ? 'Connexion en cours...' : 'Valider et accéder au tableau de bord'}
           </button>
 
-          <div className="flex items-center justify-between pt-2 text-sm">
+          <div className="text-center pt-2">
             <button
               type="button"
-              onClick={() => { setAuthMode('otp_email'); setError(null); }}
-              className="text-gray-600 hover:underline"
+              onClick={() => { setAuthStep('credentials'); setToken(''); setError(null); }}
+              className="text-sm font-medium text-gray-500 hover:text-gray-700 underline"
             >
-              Changer d'email
-            </button>
-            <button
-              type="button"
-              onClick={() => { setAuthMode('password'); setError(null); }}
-              className="text-primary-600 font-medium hover:underline"
-            >
-              Par mot de passe
+              Annuler et revenir en arrière
             </button>
           </div>
         </form>
