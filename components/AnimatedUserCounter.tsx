@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 const REFRESH_INTERVAL_MS = 30_000; // rafraichissement toutes les 30s
 const ANIMATION_DURATION_MS = 1200;
@@ -35,7 +35,6 @@ export default function AnimatedUserCounter() {
   };
 
   const fetchCount = async () => {
-    const supabase = createClient();
     const { data, error } = await supabase.rpc('get_public_user_count');
     if (!error && typeof data === 'number' && data !== targetValue.current) {
       animateTo(data);
