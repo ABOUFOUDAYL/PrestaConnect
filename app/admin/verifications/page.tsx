@@ -72,18 +72,18 @@ export default function AdminVerifications() {
     if (!url) {
       return (
         <span className="text-xs text-red-500 flex items-center gap-1">
-          ❌ {label}
+          Manquant : {label}
         </span>
       );
     }
     return (
-      
+      <a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="text-xs text-green-600 underline flex items-center gap-1"
       >
-        ✅ {label}
+        Fourni : {label}
       </a>
     );
   }
@@ -135,10 +135,10 @@ export default function AdminVerifications() {
                       {new Date(p.created_at).toLocaleDateString("fr-FR")}
                       {" · "}
                       {p.qualification_type === "diplome"
-                        ? "🎓 Diplômé"
+                        ? "Diplômé"
                         : p.qualification_type === "non_diplome"
-                        ? "🛠️ Non diplômé"
-                        : "⚠️ Qualification non renseignée"}
+                        ? "Non diplômé"
+                        : "Qualification non renseignée"}
                     </p>
                   </div>
 
@@ -162,14 +162,14 @@ export default function AdminVerifications() {
 
                 <div className="mt-3 flex flex-wrap gap-3 pt-3 border-t">
                   <DocLink label="Photo de profil" url={p.image} />
-                  <DocLink label="Pièce d'identité" url={p.piece_identite_url} />
-                  <DocLink label="Selfie avec pièce d'identité" url={p.selfie_identite_url} />
+                  <DocLink label="Piece d'identite" url={p.piece_identite_url} />
+                  <DocLink label="Selfie avec piece d'identite" url={p.selfie_identite_url} />
                   {p.qualification_type === "diplome" && (
-                    <DocLink label="Diplôme / certificat" url={p.diplome_url} />
+                    <DocLink label="Diplome / certificat" url={p.diplome_url} />
                   )}
                   {p.qualification_type === "non_diplome" && (
                     <>
-                      <DocLink label="Attestation d'expérience" url={p.attestation_experience_url} />
+                      <DocLink label="Attestation d'experience" url={p.attestation_experience_url} />
                       <DocLink label="Carte d'artisan" url={p.carte_artisan_url} />
                       <DocLink label="Autre justificatif" url={p.autre_justificatif_url} />
                     </>
@@ -187,7 +187,7 @@ export default function AdminVerifications() {
                 {erreurDossier?.id === p.id && (
                   <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                     <p className="text-sm font-medium text-red-700 mb-1">
-                      Impossible d'approuver — dossier incomplet :
+                      Impossible d'approuver, dossier incomplet :
                     </p>
                     <ul className="text-xs text-red-600 list-disc list-inside">
                       {erreurDossier.manquants.map((m) => (
