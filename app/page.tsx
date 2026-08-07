@@ -8,17 +8,16 @@ import {
   Quote, Clock, Shield, Star, BadgeCheck, Users,
 } from "lucide-react";
 
-/* ─────────────────── HOOKS SUPABASE ─────────────────── */
+/* ─────────────────── ANIMATION ODOMÈTRE ─────────────────── */
 
 function useAnimatedNumber(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
   const frame = useRef<number | null>(null);
-  const startValue = useRef(0);
+  const prevTarget = useRef(0);
 
   useEffect(() => {
-    if (target === startValue.current) return;
-
-    const from = startValue.current;
+    if (target === prevTarget.current) return;
+    const from = prevTarget.current;
     const diff = target - from;
     const startTime = performance.now();
 
@@ -33,7 +32,7 @@ function useAnimatedNumber(target: number, duration = 1200) {
       if (progress < 1) {
         frame.current = requestAnimationFrame(step);
       } else {
-        startValue.current = target;
+        prevTarget.current = target;
       }
     }
 
@@ -46,40 +45,25 @@ function useAnimatedNumber(target: number, duration = 1200) {
   return value;
 }
 
+/* ─────────────────── HOOKS SUPABASE ─────────────────── */
+
 function useStats() {
-  const [stats, setStats] = useState({ artisans: 0, missions: 0, villes: 0, noteMoyenne: 0, totalUsers: 0 });
+  const [stats, setStats] = useState({ artisans: 0, villes: 0, noteMoyenne: 0, totalUsers: 0 });
 
   useEffect(() => {
     async function fetchStats() {
-      const [
-        { count: artisans },
-        { count: missions },
-        { data: villesData },
-        { data: notesData },
-        { data: totalUsersData },
-      ] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "prestataire"),
-        supabase.from("missions").select("*", { count: "exact", head: true }).eq("statut", "terminée"),
-        supabase.from("profiles").select("ville").eq("role", "prestataire"),
-        supabase.from("avis").select("note"),
-        supabase.rpc("get_public_user_count"),
-      ]);
-
-      const villesUniques = new Set(villesData?.map((p) => p.ville)).size;
-      const moyenne = notesData?.length
-        ? (notesData.reduce((s, a) => s + a.note, 0) / notesData.length).toFixed(1)
-        : "0.0";
-
-      setStats({
-        artisans: artisans ?? 0,
-        missions: missions ?? 0,
-        villes: villesUniques,
-        noteMoyenne: Number(moyenne),
-        totalUsers: typeof totalUsersData === "number" ? totalUsersData : 0,
-      });
+      const { data, error } = await supabase.rpc("get_homepage_stats");
+      if (!error && data) {
+        setStats({
+          artisans: data.artisans ?? 0,
+          villes: data.villes ?? 0,
+          noteMoyenne: Number(data.note_moyenne ?? 0),
+          totalUsers: data.total_users ?? 0,
+        });
+      }
     }
     fetchStats();
-    const interval = setInterval(fetchStats, 30_000); // rafraîchit toutes les 30s
+    const interval = setInterval(fetchStats, 30_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -90,35 +74,13 @@ function useTopPrestataires() {
   const [prestataires, setPrestataires] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, nom, metier, ville, avatar_url, missions_count, verifie, badge")
-        .eq("role", "prestataire")
-        .eq("verifie", true)
-        .order("missions_count", { ascending: false })
-        .limit(4);
-
-      if (!data) return;
-
-      const withNotes = await Promise.all(
-        data.map(async (p) => {
-          const { data: avis } = await supabase
-            .from("avis")
-            .select("note")
-            .eq("prestataire_id", p.id);
-
-          const note = avis?.length
-            ? Number((avis.reduce((s, a) => s + a.note, 0) / avis.length).toFixed(1))
-            : 0;
-
-          return { ...p, note, avis: avis?.length ?? 0 };
-        })
-      );
-
-      setPrestataires(withNotes);
+    async function fetchTop() {
+      const { data, error } = await supabase.rpc("get_top_prestataires", { limit_count: 4 });
+      if (!error && data) setPrestataires(data);
     }
-    fetch();
+    fetchTop();
+    const interval = setInterval(fetchTop, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   return prestataires;
@@ -128,21 +90,22 @@ function useTemoignages() {
   const [temoignages, setTemoignages] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetch() {
-      const { data } = await supabase
-        .from("avis")
-        .select(`
-          id, texte, note, created_at,
-          auteur:profiles!avis_client_id_fkey(nom, ville, role)
-        `)
-        .gte("note", 4)
-        .not("texte", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(2);
-
-      setTemoignages(data ?? []);
+    async function fetchTemoignages() {
+      const { data, error } = await supabase.rpc("get_homepage_temoignages", { limit_count: 2 });
+      if (!error && data) {
+        setTemoignages(
+          data.map((t: any) => ({
+            id: t.id,
+            texte: t.commentaire,
+            note: t.note,
+            auteur: { nom: t.auteur_nom, ville: t.auteur_ville, role: t.auteur_role },
+          }))
+        );
+      }
     }
-    fetch();
+    fetchTemoignages();
+    const interval = setInterval(fetchTemoignages, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   return temoignages;
@@ -188,6 +151,8 @@ export default function HomePage() {
 
   const stats = useStats();
   const animatedTotalUsers = useAnimatedNumber(stats.totalUsers);
+  const animatedArtisans = useAnimatedNumber(stats.artisans);
+  const animatedVilles = useAnimatedNumber(stats.villes);
   const prestataires = useTopPrestataires();
   const temoignages = useTemoignages();
 
@@ -279,7 +244,7 @@ export default function HomePage() {
 
       <main style={{ overflowX: "hidden" }}>
 
-        {/* ══════════════ HERO (avec mini-stats intégrées) ══════════════ */}
+        {/* ══════════════ HERO ══════════════ */}
         <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#06091A", overflow: "hidden", paddingTop: "var(--navbar-height, 64px)" }}>
           {HERO_IMAGES.map((src, i) => (
             <img key={i} src={src} alt="" className="img-slide" style={{ opacity: i === currentImg ? 0.3 : 0 }} />
@@ -347,8 +312,8 @@ export default function HomePage() {
             <div style={{ display: "flex", gap: 32, justifyContent: "center", marginTop: 52, flexWrap: "wrap" }}>
               {[
                 { value: animatedTotalUsers > 0 ? `${animatedTotalUsers.toLocaleString("fr-FR")}+` : "—", label: "Utilisateurs inscrits" },
-                { value: stats.artisans > 0 ? `${stats.artisans}+` : "—", label: "Artisans" },
-                { value: stats.villes > 0 ? `${stats.villes} villes` : "—", label: "Couvertes" },
+                { value: animatedArtisans > 0 ? `${animatedArtisans}+` : "—", label: "Artisans" },
+                { value: animatedVilles > 0 ? `${animatedVilles} villes` : "—", label: "Couvertes" },
                 { value: stats.noteMoyenne > 0 ? `${stats.noteMoyenne}/5` : "—", label: "Note moyenne" },
                 { value: "0%", label: "Commission" },
               ].map((s) => (
@@ -438,8 +403,8 @@ export default function HomePage() {
                         <div style={{ position: "absolute", top: 12, right: 12, background: p.verifie ? "#059669" : "#D97706", color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
                           {p.verifie ? "Vérifié" : "Nouveau"}
                         </div>
-                        {p.avatar_url ? (
-                          <img src={p.avatar_url} alt={p.nom} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.15)", marginBottom: 12 }} />
+                        {p.image ? (
+                          <img src={p.image} alt={p.nom} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.15)", marginBottom: 12 }} />
                         ) : (
                           <div style={{ width: 64, height: 64, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#334155", marginBottom: 12, border: "3px solid rgba(255,255,255,0.15)" }}>
                             {getInitiales(p.nom)}
@@ -453,15 +418,15 @@ export default function HomePage() {
                         </div>
                       </div>
                       <div style={{ padding: "16px 20px 20px" }}>
-                        <div style={{ display: "flex", gap: 0, marginBottom: 12 }}>{renderStars(p.note)}</div>
+                        <div style={{ display: "flex", gap: 0, marginBottom: 12 }}>{renderStars(p.note ?? 0)}</div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
                           <div style={{ textAlign: "center" }}>
-                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.note}</div>
-                            <div style={{ fontSize: 10, color: "#94A3B8" }}>{p.avis} avis</div>
+                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.note ?? 0}</div>
+                            <div style={{ fontSize: 10, color: "#94A3B8" }}>{p.nb_avis ?? 0} avis</div>
                           </div>
                           <div style={{ width: 1, background: "#F1F5F9" }} />
                           <div style={{ textAlign: "center" }}>
-                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.missions_count ?? 0}</div>
+                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.nb_missions ?? 0}</div>
                             <div style={{ fontSize: 10, color: "#94A3B8" }}>missions</div>
                           </div>
                           <div style={{ width: 1, background: "#F1F5F9" }} />
@@ -525,7 +490,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ══════════════ COMMENT ÇA MARCHE (version compacte) ══════════════ */}
+        {/* ══════════════ COMMENT ÇA MARCHE ══════════════ */}
         <section style={{ background: "#fff", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
             <div id="how-title" ref={addRef("how-title")} style={{ ...reveal("how-title"), textAlign: "center", marginBottom: 36 }}>
@@ -553,7 +518,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ══════════════ TÉMOIGNAGES (réduit à 2) ══════════════ */}
+        {/* ══════════════ TÉMOIGNAGES ══════════════ */}
         <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
             <div id="testi-title" ref={addRef("testi-title")} style={{ ...reveal("testi-title"), textAlign: "center", marginBottom: 36 }}>
@@ -589,7 +554,7 @@ export default function HomePage() {
                         </div>
                         <div>
                           <div className="syne" style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{t.auteur?.nom ?? "Utilisateur"}</div>
-                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.auteur?.role === "prestataire" ? "Artisan" : "Client"} · {t.auteur?.ville ?? ""}</div>
+                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.auteur?.role === "artisan" ? "Artisan" : "Client"} · {t.auteur?.ville ?? ""}</div>
                         </div>
                       </div>
                     </div>
@@ -598,7 +563,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ══════════════ CTA FINAL (intègre les tarifs en bref) ══════════════ */}
+        {/* ══════════════ CTA FINAL ══════════════ */}
         <section style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 60%, #06091A 100%)", padding: "80px 20px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, opacity: 0.06, backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
           <div id="cta-final" ref={addRef("cta-final")} style={{ ...reveal("cta-final"), textAlign: "center", position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
