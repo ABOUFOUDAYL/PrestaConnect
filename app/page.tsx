@@ -8,6 +8,42 @@ import {
   Quote, Clock, Shield, Star, BadgeCheck, Users,
 } from "lucide-react";
 
+/* ─────────────────── REVEAL (animation d'apparition isolée) ─────────────────── */
+
+function Reveal({ children, delay = "0ms" }: { children: React.ReactNode; delay?: string }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect(); // plus besoin d'observer une fois révélé
+        }
+      },
+      { threshold: 0.08 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(32px)",
+        transition: `opacity 0.6s ease ${delay}, transform 0.6s ease ${delay}`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 /* ─────────────────── ANIMATION ODOMÈTRE ─────────────────── */
 
 function useAnimatedNumber(target: number, duration = 1200) {
@@ -146,8 +182,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"client" | "prestataire">("client");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchVille, setSearchVille] = useState("");
-  const [visible, setVisible] = useState<Record<string, boolean>>({});
-  const refs = useRef<Record<string, HTMLElement | null>>({});
 
   const stats = useStats();
   const animatedTotalUsers = useAnimatedNumber(stats.totalUsers);
@@ -160,29 +194,6 @@ export default function HomePage() {
     const t = setInterval(() => setCurrentImg((i) => (i + 1) % HERO_IMAGES.length), 5000);
     return () => clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((e) => {
-        if (e.isIntersecting) setVisible((v) => ({ ...v, [e.target.id]: true }));
-      }),
-      { threshold: 0.08 }
-    );
-    Object.values(refs.current).forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
-  function addRef(id: string) {
-    return (el: HTMLElement | null) => { refs.current[id] = el; };
-  }
-
-  function reveal(id: string, delay = "0ms") {
-    return {
-      opacity: visible[id] ? 1 : 0,
-      transform: visible[id] ? "translateY(0)" : "translateY(32px)",
-      transition: `opacity 0.6s ease ${delay}, transform 0.6s ease ${delay}`,
-    };
-  }
 
   function renderStars(n: number) {
     return Array.from({ length: 5 }, (_, i) => (
@@ -247,7 +258,7 @@ export default function HomePage() {
         {/* ══════════════ HERO ══════════════ */}
         <section style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#06091A", overflow: "hidden", paddingTop: "var(--navbar-height, 64px)" }}>
           {HERO_IMAGES.map((src, i) => (
-            <img key={i} src={src} alt="" className="img-slide" style={{ opacity: i === currentImg ? 0.3 : 0 }} />
+            <img key={i} src={src} alt="" className="img-slide" style={{ opacity: i === currentImg ? 0.3 : 0 }} loading={i === 0 ? "eager" : "lazy"} />
           ))}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(6,9,26,0.7) 0%, rgba(230,57,70,0.15) 50%, rgba(6,9,26,0.85) 100%)" }} />
           <div style={{ position: "absolute", inset: 0, opacity: 0.12, backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
@@ -342,20 +353,24 @@ export default function HomePage() {
         {/* ══════════════ CATEGORIES ══════════════ */}
         <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="cats-title" ref={addRef("cats-title")} style={{ ...reveal("cats-title"), textAlign: "center", marginBottom: 36 }}>
-              <span className="section-label">Catégories populaires</span>
-              <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Tous les métiers, <span style={{ color: "#E63946" }}>partout au Bénin</span>
-              </h2>
-            </div>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 36 }}>
+                <span className="section-label">Catégories populaires</span>
+                <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
+                  Tous les métiers, <span style={{ color: "#E63946" }}>partout au Bénin</span>
+                </h2>
+              </div>
+            </Reveal>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
               {CATEGORIES.map((cat, i) => (
-                <Link key={cat.label} href={`/explore?categorie=${encodeURIComponent(cat.label)}`} style={{ textDecoration: "none" }}>
-                  <div id={`cat-${i}`} ref={addRef(`cat-${i}`)} className="cat-card" style={{ ...reveal(`cat-${i}`, `${i * 55}ms`), background: cat.color }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>{cat.emoji}</div>
-                    <div className="syne" style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{cat.label}</div>
-                  </div>
-                </Link>
+                <Reveal key={cat.label} delay={`${i * 55}ms`}>
+                  <Link href={`/explore?categorie=${encodeURIComponent(cat.label)}`} style={{ textDecoration: "none" }}>
+                    <div className="cat-card" style={{ background: cat.color }}>
+                      <div style={{ fontSize: 32, marginBottom: 8 }}>{cat.emoji}</div>
+                      <div className="syne" style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{cat.label}</div>
+                    </div>
+                  </Link>
+                </Reveal>
               ))}
             </div>
             <div style={{ textAlign: "center", marginTop: 24 }}>
@@ -369,17 +384,19 @@ export default function HomePage() {
         {/* ══════════════ PRESTATAIRES EN VEDETTE ══════════════ */}
         <section style={{ background: "#fff", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="presta-title" ref={addRef("presta-title")} style={{ ...reveal("presta-title"), display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <span className="section-label">Artisans en vedette</span>
-                <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                  Les meilleurs professionnels <span style={{ color: "#E63946" }}>près de chez vous</span>
-                </h2>
+            <Reveal>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <span className="section-label">Artisans en vedette</span>
+                  <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
+                    Les meilleurs professionnels <span style={{ color: "#E63946" }}>près de chez vous</span>
+                  </h2>
+                </div>
+                <Link href="/explore" className="btn" style={{ background: "#F8FAFC", color: "#0F172A", border: "1px solid #E2E8F0", padding: "10px 20px", borderRadius: 12, fontSize: 13 }}>
+                  Voir tous <ArrowRight size={15} />
+                </Link>
               </div>
-              <Link href="/explore" className="btn" style={{ background: "#F8FAFC", color: "#0F172A", border: "1px solid #E2E8F0", padding: "10px 20px", borderRadius: 12, fontSize: 13 }}>
-                Voir tous <ArrowRight size={15} />
-              </Link>
-            </div>
+            </Reveal>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
               {prestataires.length === 0
@@ -398,48 +415,50 @@ export default function HomePage() {
                     </div>
                   ))
                 : prestataires.map((p, i) => (
-                    <div key={p.id} id={`presta-${i}`} ref={addRef(`presta-${i}`)} className="presta-card" style={reveal(`presta-${i}`, `${i * 80}ms`)}>
-                      <div style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 100%)", padding: "24px 20px 20px", position: "relative" }}>
-                        <div style={{ position: "absolute", top: 12, right: 12, background: p.verifie ? "#059669" : "#D97706", color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
-                          {p.verifie ? "Vérifié" : "Nouveau"}
-                        </div>
-                        {p.image ? (
-                          <img src={p.image} alt={p.nom} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.15)", marginBottom: 12 }} />
-                        ) : (
-                          <div style={{ width: 64, height: 64, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#334155", marginBottom: 12, border: "3px solid rgba(255,255,255,0.15)" }}>
-                            {getInitiales(p.nom)}
+                    <Reveal key={p.id} delay={`${i * 80}ms`}>
+                      <div className="presta-card">
+                        <div style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 100%)", padding: "24px 20px 20px", position: "relative" }}>
+                          <div style={{ position: "absolute", top: 12, right: 12, background: p.verifie ? "#059669" : "#D97706", color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: 10, fontWeight: 700 }}>
+                            {p.verifie ? "Vérifié" : "Nouveau"}
                           </div>
-                        )}
-                        <div className="syne" style={{ fontWeight: 700, color: "#fff", fontSize: "1rem" }}>{p.nom}</div>
-                        <div style={{ color: "#94A3B8", fontSize: 12, marginTop: 3 }}>{p.metier}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
-                          <MapPin size={11} color="#64748B" />
-                          <span style={{ fontSize: 11, color: "#64748B" }}>{p.ville}</span>
+                          {p.image ? (
+                            <img src={p.image} alt={p.nom} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.15)", marginBottom: 12 }} loading="lazy" />
+                          ) : (
+                            <div style={{ width: 64, height: 64, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, color: "#334155", marginBottom: 12, border: "3px solid rgba(255,255,255,0.15)" }}>
+                              {getInitiales(p.nom)}
+                            </div>
+                          )}
+                          <div className="syne" style={{ fontWeight: 700, color: "#fff", fontSize: "1rem" }}>{p.nom}</div>
+                          <div style={{ color: "#94A3B8", fontSize: 12, marginTop: 3 }}>{p.metier}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                            <MapPin size={11} color="#64748B" />
+                            <span style={{ fontSize: 11, color: "#64748B" }}>{p.ville}</span>
+                          </div>
+                        </div>
+                        <div style={{ padding: "16px 20px 20px" }}>
+                          <div style={{ display: "flex", gap: 0, marginBottom: 12 }}>{renderStars(p.note ?? 0)}</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                            <div style={{ textAlign: "center" }}>
+                              <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.note ?? 0}</div>
+                              <div style={{ fontSize: 10, color: "#94A3B8" }}>{p.nb_avis ?? 0} avis</div>
+                            </div>
+                            <div style={{ width: 1, background: "#F1F5F9" }} />
+                            <div style={{ textAlign: "center" }}>
+                              <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.nb_missions ?? 0}</div>
+                              <div style={{ fontSize: 10, color: "#94A3B8" }}>missions</div>
+                            </div>
+                            <div style={{ width: 1, background: "#F1F5F9" }} />
+                            <div style={{ textAlign: "center" }}>
+                              <BadgeCheck size={18} color="#E63946" style={{ margin: "0 auto 2px" }} />
+                              <div style={{ fontSize: 10, color: "#94A3B8" }}>vérifié</div>
+                            </div>
+                          </div>
+                          <Link href={`/prestataire/${p.id}`} className="btn btn-primary" style={{ width: "100%", borderRadius: 12, padding: "11px 16px", fontSize: 13 }}>
+                            Voir le profil
+                          </Link>
                         </div>
                       </div>
-                      <div style={{ padding: "16px 20px 20px" }}>
-                        <div style={{ display: "flex", gap: 0, marginBottom: 12 }}>{renderStars(p.note ?? 0)}</div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
-                          <div style={{ textAlign: "center" }}>
-                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.note ?? 0}</div>
-                            <div style={{ fontSize: 10, color: "#94A3B8" }}>{p.nb_avis ?? 0} avis</div>
-                          </div>
-                          <div style={{ width: 1, background: "#F1F5F9" }} />
-                          <div style={{ textAlign: "center" }}>
-                            <div className="syne" style={{ fontSize: "1.2rem", fontWeight: 800, color: "#0F172A" }}>{p.nb_missions ?? 0}</div>
-                            <div style={{ fontSize: 10, color: "#94A3B8" }}>missions</div>
-                          </div>
-                          <div style={{ width: 1, background: "#F1F5F9" }} />
-                          <div style={{ textAlign: "center" }}>
-                            <BadgeCheck size={18} color="#E63946" style={{ margin: "0 auto 2px" }} />
-                            <div style={{ fontSize: 10, color: "#94A3B8" }}>vérifié</div>
-                          </div>
-                        </div>
-                        <Link href={`/prestataire/${p.id}`} className="btn btn-primary" style={{ width: "100%", borderRadius: 12, padding: "11px 16px", fontSize: 13 }}>
-                          Voir le profil
-                        </Link>
-                      </div>
-                    </div>
+                    </Reveal>
                   ))}
             </div>
           </div>
@@ -448,44 +467,50 @@ export default function HomePage() {
         {/* ══════════════ DOUBLE CTA ══════════════ */}
         <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="double-title" ref={addRef("double-title")} style={{ ...reveal("double-title"), textAlign: "center", marginBottom: 36 }}>
-              <span className="section-label">Une plateforme, deux côtés</span>
-              <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.25 }}>
-                Que vous soyez client ou artisan, <span style={{ color: "#E63946" }}>PrestaConnect est fait pour vous.</span>
-              </h2>
-            </div>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 36 }}>
+                <span className="section-label">Une plateforme, deux côtés</span>
+                <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.25 }}>
+                  Que vous soyez client ou artisan, <span style={{ color: "#E63946" }}>PrestaConnect est fait pour vous.</span>
+                </h2>
+              </div>
+            </Reveal>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-              <div id="cta-client" ref={addRef("cta-client")} className="card" style={{ ...reveal("cta-client"), background: "#FFF1F2", border: "1px solid #FFC8CB", padding: "28px 26px" }}>
-                <div style={{ width: 52, height: 52, background: "#E63946", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <Search size={24} color="#fff" />
+              <Reveal>
+                <div className="card" style={{ background: "#FFF1F2", border: "1px solid #FFC8CB", padding: "28px 26px" }}>
+                  <div style={{ width: 52, height: 52, background: "#E63946", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                    <Search size={24} color="#fff" />
+                  </div>
+                  <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous cherchez un artisan ?</h3>
+                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Trouvez en quelques clics un professionnel vérifié près de chez vous.</p>
+                  <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {["Prestataires vérifiés", "Réponse en moins de 1h", "Zéro avance de frais"].map(item => (
+                      <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#7A1D25", fontWeight: 500 }}>
+                        <CheckCircle2 size={15} color="#E63946" style={{ flexShrink: 0 }} /> {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/explore" className="btn btn-primary" style={{ width: "100%", borderRadius: 14 }}><Search size={16} /> Trouver un artisan</Link>
                 </div>
-                <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous cherchez un artisan ?</h3>
-                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Trouvez en quelques clics un professionnel vérifié près de chez vous.</p>
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {["Prestataires vérifiés", "Réponse en moins de 1h", "Zéro avance de frais"].map(item => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#7A1D25", fontWeight: 500 }}>
-                      <CheckCircle2 size={15} color="#E63946" style={{ flexShrink: 0 }} /> {item}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/explore" className="btn btn-primary" style={{ width: "100%", borderRadius: 14 }}><Search size={16} /> Trouver un artisan</Link>
-              </div>
+              </Reveal>
 
-              <div id="cta-presta" ref={addRef("cta-presta")} className="card" style={{ ...reveal("cta-presta", "120ms"), background: "#F0FDF4", border: "1px solid #BBF7D0", padding: "28px 26px" }}>
-                <div style={{ width: 52, height: 52, background: "#059669", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <Hammer size={24} color="#fff" />
+              <Reveal delay="120ms">
+                <div className="card" style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", padding: "28px 26px" }}>
+                  <div style={{ width: 52, height: 52, background: "#059669", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                    <Hammer size={24} color="#fff" />
+                  </div>
+                  <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous êtes artisan ?</h3>
+                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Recevez des missions qualifiées sans payer d'abonnement mensuel.</p>
+                  <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {["Zéro abonnement mensuel", "Clients dans votre zone", "Paiement via Mobile Money"].map(item => (
+                      <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#14532D", fontWeight: 500 }}>
+                        <CheckCircle2 size={15} color="#059669" style={{ flexShrink: 0 }} /> {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/register/provider" className="btn btn-green" style={{ width: "100%", borderRadius: 14 }}>S'inscrire comme artisan <ArrowRight size={16} /></Link>
                 </div>
-                <h3 className="syne" style={{ fontSize: "1.25rem", fontWeight: 800, color: "#0F172A", marginBottom: 10 }}>Vous êtes artisan ?</h3>
-                <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.75, marginBottom: 18 }}>Recevez des missions qualifiées sans payer d'abonnement mensuel.</p>
-                <ul style={{ listStyle: "none", padding: 0, marginBottom: 24, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {["Zéro abonnement mensuel", "Clients dans votre zone", "Paiement via Mobile Money"].map(item => (
-                    <li key={item} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "#14532D", fontWeight: 500 }}>
-                      <CheckCircle2 size={15} color="#059669" style={{ flexShrink: 0 }} /> {item}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register/provider" className="btn btn-green" style={{ width: "100%", borderRadius: 14 }}>S'inscrire comme artisan <ArrowRight size={16} /></Link>
-              </div>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -493,26 +518,30 @@ export default function HomePage() {
         {/* ══════════════ COMMENT ÇA MARCHE ══════════════ */}
         <section style={{ background: "#fff", padding: "64px 20px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-            <div id="how-title" ref={addRef("how-title")} style={{ ...reveal("how-title"), textAlign: "center", marginBottom: 36 }}>
-              <span className="section-label">Comment ça marche</span>
-              <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Simple, rapide, <span style={{ color: "#E63946" }}>efficace.</span>
-              </h2>
-            </div>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 36 }}>
+                <span className="section-label">Comment ça marche</span>
+                <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
+                  Simple, rapide, <span style={{ color: "#E63946" }}>efficace.</span>
+                </h2>
+              </div>
+            </Reveal>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
               {[
                 { num: "01", delay: "0ms", title: "Décrivez votre besoin", desc: "Indiquez le type de travaux et votre ville.", icon: <Search size={18} color="#E63946" /> },
                 { num: "02", delay: "100ms", title: "Choisissez votre artisan", desc: "Comparez profils, notes et avis vérifiés.", icon: <Users size={18} color="#E63946" /> },
                 { num: "03", delay: "200ms", title: "Travail fait, payez après", desc: "Vous validez, zéro avance, zéro risque.", icon: <CheckCircle2 size={18} color="#E63946" /> },
               ].map((step) => (
-                <div key={step.num} id={`step-${step.num}`} ref={addRef(`step-${step.num}`)} className="card" style={{ ...reveal(`step-${step.num}`, step.delay), padding: "24px 20px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#FFF1F2", borderRadius: 10, width: 36, height: 36 }}>{step.icon}</div>
-                    <span className="syne" style={{ fontWeight: 800, fontSize: 13, color: "#E63946" }}>{step.num}</span>
+                <Reveal key={step.num} delay={step.delay}>
+                  <div className="card" style={{ padding: "24px 20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#FFF1F2", borderRadius: 10, width: 36, height: 36 }}>{step.icon}</div>
+                      <span className="syne" style={{ fontWeight: 800, fontSize: 13, color: "#E63946" }}>{step.num}</span>
+                    </div>
+                    <h3 className="syne" style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{step.title}</h3>
+                    <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.7 }}>{step.desc}</p>
                   </div>
-                  <h3 className="syne" style={{ fontSize: "1.05rem", fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>{step.title}</h3>
-                  <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.7 }}>{step.desc}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -521,12 +550,14 @@ export default function HomePage() {
         {/* ══════════════ TÉMOIGNAGES ══════════════ */}
         <section style={{ background: "#F8FAFC", padding: "64px 20px" }}>
           <div style={{ maxWidth: 900, margin: "0 auto" }}>
-            <div id="testi-title" ref={addRef("testi-title")} style={{ ...reveal("testi-title"), textAlign: "center", marginBottom: 36 }}>
-              <span className="section-label">Témoignages</span>
-              <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-                Ils font confiance <span style={{ color: "#E63946" }}>à PrestaConnect</span>
-              </h2>
-            </div>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: 36 }}>
+                <span className="section-label">Témoignages</span>
+                <h2 className="syne" style={{ fontSize: "clamp(1.6rem, 4vw, 2.6rem)", fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
+                  Ils font confiance <span style={{ color: "#E63946" }}>à PrestaConnect</span>
+                </h2>
+              </div>
+            </Reveal>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
               {temoignages.length === 0
@@ -544,20 +575,22 @@ export default function HomePage() {
                     </div>
                   ))
                 : temoignages.map((t, i) => (
-                    <div key={t.id} id={`testi-${i}`} ref={addRef(`testi-${i}`)} className="temoignage-card" style={reveal(`testi-${i}`, `${i * 100}ms`)}>
-                      <div style={{ color: "#FFC8CB", marginBottom: 14 }}><Quote size={28} /></div>
-                      <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 18 }}>"{t.texte}"</p>
-                      <div style={{ display: "flex", gap: 2, marginBottom: 14 }}>{renderStars(t.note)}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 40, height: 40, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#334155" }}>
-                          {getInitiales(t.auteur?.nom ?? "?")}
-                        </div>
-                        <div>
-                          <div className="syne" style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{t.auteur?.nom ?? "Utilisateur"}</div>
-                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.auteur?.role === "artisan" ? "Artisan" : "Client"} · {t.auteur?.ville ?? ""}</div>
+                    <Reveal key={t.id} delay={`${i * 100}ms`}>
+                      <div className="temoignage-card">
+                        <div style={{ color: "#FFC8CB", marginBottom: 14 }}><Quote size={28} /></div>
+                        <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.8, marginBottom: 18 }}>"{t.texte}"</p>
+                        <div style={{ display: "flex", gap: 2, marginBottom: 14 }}>{renderStars(t.note)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 40, height: 40, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#334155" }}>
+                            {getInitiales(t.auteur?.nom ?? "?")}
+                          </div>
+                          <div>
+                            <div className="syne" style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>{t.auteur?.nom ?? "Utilisateur"}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.auteur?.role === "artisan" ? "Artisan" : "Client"} · {t.auteur?.ville ?? ""}</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Reveal>
                   ))}
             </div>
           </div>
@@ -566,28 +599,30 @@ export default function HomePage() {
         {/* ══════════════ CTA FINAL ══════════════ */}
         <section style={{ background: "linear-gradient(135deg, #06091A 0%, #450B10 60%, #06091A 100%)", padding: "80px 20px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, opacity: 0.06, backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-          <div id="cta-final" ref={addRef("cta-final")} style={{ ...reveal("cta-final"), textAlign: "center", position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(251,107,114,0.15)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 20 }}>
-              🚀 Rejoignez la communauté
-            </span>
-            <h2 className="syne" style={{ fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, marginBottom: 16 }}>
-              Prêt à rejoindre <span style={{ background: "linear-gradient(135deg, #FB6B72, #E63946)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PrestaConnect ?</span>
-            </h2>
-            <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.75, maxWidth: 460, margin: "0 auto 32px" }}>
-              Pas d'abonnement pour les artisans : <strong style={{ color: "#fff" }}>300 FCFA</strong> pour un contact urgent, <strong style={{ color: "#fff" }}>1 500 FCFA</strong> pour un grand chantier.
-            </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/explore" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}><Search size={18} /> Trouver un prestataire</Link>
-              <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}>🔨 Devenir Prestataire</Link>
+          <Reveal>
+            <div style={{ textAlign: "center", position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(251,107,114,0.15)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 20 }}>
+                🚀 Rejoignez la communauté
+              </span>
+              <h2 className="syne" style={{ fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, marginBottom: 16 }}>
+                Prêt à rejoindre <span style={{ background: "linear-gradient(135deg, #FB6B72, #E63946)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PrestaConnect ?</span>
+              </h2>
+              <p style={{ color: "#64748B", fontSize: 15, lineHeight: 1.75, maxWidth: 460, margin: "0 auto 32px" }}>
+                Pas d'abonnement pour les artisans : <strong style={{ color: "#fff" }}>300 FCFA</strong> pour un contact urgent, <strong style={{ color: "#fff" }}>1 500 FCFA</strong> pour un grand chantier.
+              </p>
+              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                <Link href="/explore" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}><Search size={18} /> Trouver un prestataire</Link>
+                <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}>🔨 Devenir Prestataire</Link>
+              </div>
+              <div style={{ display: "flex", gap: 28, justifyContent: "center", marginTop: 40, flexWrap: "wrap" }}>
+                {[{ icon: <Shield size={15} />, text: "Artisans vérifiés" }, { icon: <Clock size={15} />, text: "Réponse < 1h" }, { icon: <Star size={15} />, text: `${stats.noteMoyenne > 0 ? stats.noteMoyenne : "4.8"}/5 de satisfaction` }].map((item) => (
+                  <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#64748B" }}>
+                    <span style={{ color: "#FB6B72" }}>{item.icon}</span>{item.text}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 28, justifyContent: "center", marginTop: 40, flexWrap: "wrap" }}>
-              {[{ icon: <Shield size={15} />, text: "Artisans vérifiés" }, { icon: <Clock size={15} />, text: "Réponse < 1h" }, { icon: <Star size={15} />, text: `${stats.noteMoyenne > 0 ? stats.noteMoyenne : "4.8"}/5 de satisfaction` }].map((item) => (
-                <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, color: "#64748B" }}>
-                  <span style={{ color: "#FB6B72" }}>{item.icon}</span>{item.text}
-                </div>
-              ))}
-            </div>
-          </div>
+          </Reveal>
         </section>
         </main>
     </>
