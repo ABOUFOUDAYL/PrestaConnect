@@ -34,6 +34,11 @@ const VILLES = [
   'Péhunco', 'Toucountouna', 'N\'Dali', 'Pèrèrè', 'Autre ville/commune'
 ]
 
+const QUALIFICATIONS = [
+  { value: 'diplome', label: 'Diplômé (j\'ai un diplôme ou certificat professionnel)' },
+  { value: 'non_diplome', label: 'Non diplômé (expérience professionnelle sans diplôme)' },
+]
+
 interface FormData {
   firstName: string
   lastName: string
@@ -41,6 +46,7 @@ interface FormData {
   phone: string
   ville: string
   metier: string
+  qualificationType: string
   password: string
   confirmPassword: string
   acceptTerms: boolean
@@ -53,6 +59,7 @@ interface FieldErrors {
   phone?: string
   ville?: string
   metier?: string
+  qualificationType?: string
   password?: string
   confirmPassword?: string
   acceptTerms?: string
@@ -66,6 +73,7 @@ export default function RegisterProviderForm() {
     phone: '',
     ville: '',
     metier: '',
+    qualificationType: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false,
@@ -86,6 +94,7 @@ export default function RegisterProviderForm() {
     if (!form.phone.trim()) errors.phone = 'Téléphone requis'
     if (!form.ville.trim()) errors.ville = 'Ville requise'
     if (!form.metier.trim()) errors.metier = 'Métier requis'
+    if (!form.qualificationType.trim()) errors.qualificationType = 'Veuillez indiquer votre situation'
     if (!form.password || form.password.length < 8)
       errors.password = 'Minimum 8 caractères'
     if (form.password !== form.confirmPassword)
@@ -136,6 +145,7 @@ export default function RegisterProviderForm() {
         telephone: form.phone,
         ville: form.ville,
         metier: form.metier,
+        qualification_type: form.qualificationType,
         latitude,
         longitude,
       }),
@@ -276,6 +286,21 @@ export default function RegisterProviderForm() {
           </select>
           {fieldErrors.ville && <p className="text-xs text-red-600">{fieldErrors.ville}</p>}
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium text-gray-700">Votre situation professionnelle *</label>
+        <select
+          value={form.qualificationType}
+          onChange={(e) => setForm((f) => ({ ...f, qualificationType: e.target.value }))}
+          className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
+            focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20
+            ${fieldErrors.qualificationType ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+        >
+          <option value="">Sélectionner</option>
+          {QUALIFICATIONS.map(q => <option key={q.value} value={q.value}>{q.label}</option>)}
+        </select>
+        {fieldErrors.qualificationType && <p className="text-xs text-red-600">{fieldErrors.qualificationType}</p>}
       </div>
 
       <div className="space-y-1.5">

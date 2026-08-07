@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       email, password, role, first_name, last_name,
-      telephone, ville, metier,
+      telephone, ville, metier, qualification_type,
       carte_identite_url, casier_judiciaire_url,
       latitude, longitude
     } = body;
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
           ville: ville || null,
           telephone: telephone || null,
           statut: "en_attente",
+          qualification_type: qualification_type || null,
           latitude: latitude || null,
           longitude: longitude || null,
         });
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
             <p><strong>Téléphone :</strong> ${telephone}</p>
             <p><strong>Métier :</strong> ${metier}</p>
             <p><strong>Ville :</strong> ${ville}</p>
+            <p><strong>Qualification :</strong> ${qualification_type === 'diplome' ? 'Diplômé' : qualification_type === 'non_diplome' ? 'Non diplômé' : 'Non renseignée'}</p>
             <br/>
             <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
             <a href="https://presta-connect.vercel.app/admin-ambassadeur">
