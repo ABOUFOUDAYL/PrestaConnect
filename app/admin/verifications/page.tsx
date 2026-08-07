@@ -17,12 +17,22 @@ type Prestataire = {
   statut: string;
   verifie: boolean;
   created_at: string;
+  image: string | null;
+  qualification_type: string | null;
+  piece_identite_url: string | null;
+  selfie_identite_url: string | null;
+  diplome_url: string | null;
+  attestation_experience_url: string | null;
+  carte_artisan_url: string | null;
+  autre_justificatif_url: string | null;
+  casier_judiciaire_url: string | null;
 };
 
 export default function AdminVerifications() {
   const [prestataires, setPrestataires] = useState<Prestataire[]>([]);
   const [onglet, setOnglet] = useState("en_attente");
   const [loading, setLoading] = useState(true);
+  const [erreurDossier, setErreurDossier] = useState<{ id: string; manquants: string[] } | null>(null);
 
   useEffect(() => {
     fetchPrestataires();
@@ -40,12 +50,42 @@ export default function AdminVerifications() {
   }
 
   async function updateStatut(id: string, statut: string) {
-    await fetch(`/api/admin/prestataires/${id}`, {
+    setErreurDossier(null);
+    const res = await fetch(`/api/admin/prestataires/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ statut }),
     });
+
+    if (!res.ok) {
+      const data = await res.json();
+      if (data.manquants) {
+        setErreurDossier({ id, manquants: data.manquants });
+      }
+      return;
+    }
+
     fetchPrestataires();
+  }
+
+  function DocLink({ label, url }: { label: string; url: string | null }) {
+    if (!url) {
+      return (
+        <span className="text-xs text-red-500 flex items-center gap-1">
+          ❌ {label}
+        </span>
+      );
+    }
+    return (
+      
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-green-600 underline flex items-center gap-1"
+      >
+        ✅ {label}
+      </a>
+    );
   }
 
   return (
@@ -82,29 +122,28 @@ export default function AdminVerifications() {
         ) : prestataires.length === 0 ? (
           <p className="text-center text-gray-400 py-10">Aucun dossier</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-gray-500 border-b">
-                <th className="pb-3">Nom</th>
-                <th className="pb-3">Métier</th>
-                <th className="pb-3">Ville</th>
-                <th className="pb-3">Téléphone</th>
-                <th className="pb-3">Date</th>
-                {onglet === "en_attente" && <th className="pb-3">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {prestataires.map((p) => (
-                <tr key={p.id} className="border-b last:border-0">
-                  <td className="py-3 font-medium text-gray-800">{p.nom}</td>
-                  <td className="py-3 text-gray-600">{p.metier}</td>
-                  <td className="py-3 text-gray-600">{p.ville}</td>
-                  <td className="py-3 text-gray-600">{p.telephone}</td>
-                  <td className="py-3 text-gray-400">
-                    {new Date(p.created_at).toLocaleDateString("fr-FR")}
-                  </td>
+          <div className="space-y-4">
+            {prestataires.map((p) => (
+              <div key={p.id} className="border rounded-xl p-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="font-semibold text-gray-800">{p.nom}</p>
+                    <p className="text-sm text-gray-500">
+                      {p.metier} · {p.ville} · {p.telephone}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                      {" · "}
+                      {p.qualification_type === "diplome"
+                        ? "🎓 Diplômé"
+                        : p.qualification_type === "non_diplome"
+                        ? "🛠️ Non diplômé"
+                        : "⚠️ Qualification non renseignée"}
+                    </p>
+                  </div>
+
                   {onglet === "en_attente" && (
-                    <td className="py-3 flex gap-2">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => updateStatut(p.id, "approuve")}
                         className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600"
@@ -117,12 +156,49 @@ export default function AdminVerifications() {
                       >
                         Refuser
                       </button>
-                    </td>
+                    </div>
                   )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-3 pt-3 border-t">
+                  <DocLink label="Photo de profil" url={p.image} />
+                  <DocLink label="Pièce d'identité" url={p.piece_identite_url} />
+                  <DocLink label="Selfie avec pièce d'identité" url={p.selfie_identite_url} />
+                  {p.qualification_type === "diplome" && (
+                    <DocLink label="Diplôme / certificat" url={p.diplome_url} />
+                  )}
+                  {p.qualification_type === "non_diplome" && (
+                    <>
+                      <DocLink label="Attestation d'expérience" url={p.attestation_experience_url} />
+                      <DocLink label="Carte d'artisan" url={p.carte_artisan_url} />
+                      <DocLink label="Autre justificatif" url={p.autre_justificatif_url} />
+                    </>
+                  )}
+                  <DocLink
+                    label={
+                      p.qualification_type === "non_diplome"
+                        ? "Casier judiciaire (obligatoire)"
+                        : "Casier judiciaire"
+                    }
+                    url={p.casier_judiciaire_url}
+                  />
+                </div>
+
+                {erreurDossier?.id === p.id && (
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-red-700 mb-1">
+                      Impossible d'approuver — dossier incomplet :
+                    </p>
+                    <ul className="text-xs text-red-600 list-disc list-inside">
+                      {erreurDossier.manquants.map((m) => (
+                        <li key={m}>{m}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
