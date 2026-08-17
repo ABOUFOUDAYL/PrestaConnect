@@ -31,10 +31,10 @@ export default function ArtisanLoginPage() {
   }
 
   // Connexion / inscription artisan via Google.
-  // Le rôle 'artisan' est transmis dans les métadonnées OAuth et lu par le
-  // trigger SQL handle_new_user() pour fixer profiles.role à la création du compte.
-  // Le callback (/auth/callback) redirige ensuite vers /artisan/onboarding
-  // si la ligne prestataires correspondante n'existe pas encore.
+  // signInWithOAuth n'accepte pas de "data" personnalisé (contrairement à signUp).
+  // On transmet donc le rôle via un paramètre de requête sur redirectTo,
+  // que /auth/callback lira pour savoir s'il doit créer une ligne "prestataires"
+  // et rediriger vers /artisan/onboarding si elle n'existe pas encore.
   async function handleGoogleLogin() {
     setSocialLoading(true)
     setError('')
@@ -42,8 +42,7 @@ export default function ArtisanLoginPage() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        data: { role: 'artisan' },
+        redirectTo: `${window.location.origin}/auth/callback?role=artisan`,
       },
     })
 
