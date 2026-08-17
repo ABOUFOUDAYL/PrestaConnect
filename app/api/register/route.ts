@@ -1,147 +1,64 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
-import { Resend } from "resend";
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { NextResponse } from 'next/server'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+  // Gestion robuste de l'hôte pour la production (Vercel / Domaines personnalisés)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  const baseHost = isDevelopment ? origin : forwardedHost ? `https://${forwardedHost}` : origin
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const {
-      email, password, role, first_name, last_name,
-      telephone, ville, metier, qualification_type,
-      carte_identite_url, casier_judiciaire_url,
-      latitude, longitude
-    } = body;
+  if (code) {
+    const supabase = await createSupabaseServerClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!email || !password || !role || !first_name || !last_name) {
-      return NextResponse.json(
-        { error: "Champs obligatoires manquants" },
-        { status: 400 }
-      );
-    }
+    if (!error) {
+      const { data: { user } } = await supabase.auth.getUser()
 
-    const normalizedRole = role === 'prestataire' ? 'artisan' : role;
-    if (!['client', 'artisan', 'admin', 'ambassadeur'].includes(normalizedRole)) {
-      return NextResponse.json(
-        { error: "Rôle invalide" },
-        { status: 400 }
-      );
-    }
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-    const full_name = `${first_name} ${last_name}`.trim();
+        if (profileError) {
+          console.error('Erreur récupération profil (auth callback):', profileError)
+        }
 
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: false,
-        user_metadata: { full_name, role: normalizedRole },
-      });
-    if (authError) throw authError;
+        const role = profile?.role
 
-    const userId = authData.user?.id;
-    if (!userId) throw new Error("User non créé");
+        if (role === 'admin' || role === 'super_admin') return NextResponse.redirect(`${baseHost}/admin/dashboard`)
+        if (role === 'ambassadeur') return NextResponse.redirect(`${baseHost}/ambassadeur/dashboard`)
 
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .upsert({
-        id: userId,
-        user_id: userId,
-        nom: last_name,
-        prenom: first_name,
-        telephone: telephone || null,
-        email,
-        role: normalizedRole,
-        ville: ville || null,
-        metier: metier || null,
-        carte_identite_url: carte_identite_url || null,
-        casier_judiciaire_url: casier_judiciaire_url || null,
-        statut_verification: normalizedRole === 'client' ? 'valide' : 'en_attente_validation',
-      }, { onConflict: "id" });
-    if (profileError) throw profileError;
+        if (role === 'artisan') {
+          // Un compte artisan créé via Google n'a pas encore de ligne dans
+          // `prestataires` (métier, ville, qualification...) : ces infos ne
+          // viennent pas de Google. Tant que l'onboarding n'est pas fait,
+          // l'artisan resterait invisible côté admin/recherche.
+          const { data: prestataire, error: prestataireError } = await supabase
+            .from('prestataires')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle()
 
-    if (normalizedRole === 'artisan') {
-      const { error: prestaError } = await supabaseAdmin
-        .from("prestataires")
-        .insert({
-          user_id: userId,
-          nom: full_name,
-          metier: metier || "Non renseigné",
-          ville: ville || null,
-          telephone: telephone || null,
-          statut: "en_attente",
-          qualification_type: qualification_type || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
-        });
-      if (prestaError) throw prestaError;
-
-      try {
-        await resend.emails.send({
-          from: "PrestaConnect <onboarding@resend.dev>",
-          to: process.env.ADMIN_EMAIL!,
-          subject: "Nouvel artisan en attente de validation",
-          html: `
-            <h2>Nouvel artisan inscrit sur PrestaConnect</h2>
-            <p><strong>Nom :</strong> ${full_name}</p>
-            <p><strong>Email :</strong> ${email}</p>
-            <p><strong>Téléphone :</strong> ${telephone}</p>
-            <p><strong>Métier :</strong> ${metier}</p>
-            <p><strong>Ville :</strong> ${ville}</p>
-            <p><strong>Qualification :</strong> ${qualification_type === 'diplome' ? 'Diplômé' : qualification_type === 'non_diplome' ? 'Non diplômé' : 'Non renseignée'}</p>
-            <br/>
-            <p>Connectez-vous au tableau de bord admin pour valider ce compte.</p>
-            <a href="https://presta-connect.vercel.app/admin-ambassadeur">
-              Voir le tableau de bord
-            </a>
-          `,
-        });
-      } catch (emailError) {
-        console.error("Email admin error:", emailError);
-      }
-
-    } else if (normalizedRole === 'client') {
-      const { error: clientError } = await supabaseAdmin
-        .from("clients")
-        .insert({
-          user_id: userId,
-          nom: last_name,
-          prenom: first_name,
-          telephone: telephone || null,
-          email,
-        });
-      if (clientError) throw clientError;
-    }
-
-    try {
-      await resend.emails.send({
-        from: "PrestaConnect <onboarding@resend.dev>",
-        to: email,
-        subject: "Bienvenue sur PrestaConnect !",
-        html: `
-          <h2>Bienvenue ${first_name} !</h2>
-          <p>Votre compte ${normalizedRole === 'artisan' ? 'artisan' : 'client'} a bien été créé.</p>
-          ${normalizedRole === 'artisan'
-            ? `<p>Votre profil est en cours de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.</p>`
-            : `<p>Vous pouvez dès maintenant vous connecter et publier vos demandes.</p>`
+          if (prestataireError) {
+            console.error('Erreur récupération prestataire (auth callback):', prestataireError)
           }
-          <a href="https://presta-connect.vercel.app/login">Se connecter</a>
-        `,
-      });
-    } catch (emailError) {
-      console.error("Email confirmation error:", emailError);
+
+          if (!prestataire) {
+            return NextResponse.redirect(`${baseHost}/artisan/onboarding`)
+          }
+
+          return NextResponse.redirect(`${baseHost}/artisan/dashboard`)
+        }
+
+        return NextResponse.redirect(`${baseHost}/dashboard`)
+      }
     }
-
-    return NextResponse.json({ success: true, userId });
-
-  } catch (err: any) {
-    console.error("❌ Register error:", err);
-    return NextResponse.json({ error: err.message }, { status: 400 });
   }
+
+  return NextResponse.redirect(`${baseHost}/login`)
 }
