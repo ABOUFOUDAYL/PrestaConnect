@@ -5,9 +5,39 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Loader2, AlertCircle } from 'lucide-react'
 
+const METIERS = [
+  'Plombier', 'Électricien', 'Maçon', 'Peintre en bâtiment', 'Menuisier bois',
+  'Menuisier métallique / Soudeur', 'Carreleur', 'Climatiseur / Frigoriste',
+  'Jardinier / Paysagiste', 'Informaticien / Réparateur', 'Mécanicien auto',
+  'Mécanicien moto', 'Coiffeur / Coiffeuse', 'Couturier / Couturière',
+  'Photographe', 'Vitrier', 'Plâtrier', 'Charpentier', 'Couvreur',
+  'Serrurier', 'Tapissier / Décorateur', 'Ferronnier', 'Forgeron',
+  'Cordonnier', 'Tailleur', 'Bijoutier / Orfèvre', 'Ébéniste',
+  'Mécanicien réfrigération', 'Électronicien', 'Plombier-chauffagiste',
+  'Maçon carreleur', 'Décorateur d\'intérieur', 'Tôlier / Carrossier',
+  'Vidangeur', 'Puisatier', 'Installateur solaire', 'Antenniste',
+  'Réparateur électroménager', 'Vulcanisateur', 'Teinturier',
+  'Tisserand', 'Sculpteur sur bois', 'Potier / Céramiste', 'Autre métier artisanal'
+]
+
+const VILLES = [
+  'Cotonou', 'Porto-Novo', 'Parakou', 'Djougou', 'Bohicon', 'Kandi',
+  'Lokossa', 'Ouidah', 'Abomey', 'Natitingou', 'Pobè', 'Abomey-Calavi',
+  'Comè', 'Sakété', 'Savalou', 'Savè', 'Aplahoué', 'Dassa-Zoumè',
+  'Ouèssè', 'Tchaourou', 'Banikoara', 'Kérou', 'Malanville', 'Nikki',
+  'Kouandé', 'Ségbana', 'Bembèrèkè', 'Gogounou', 'Kalalé', 'Karimama',
+  'Sinendé', 'Kétou', 'Adja-Ouèrè', 'Akpro-Missérété', 'Avrankou',
+  'Bonou', 'Dangbo', 'Ifangni', 'Allada', 'Kpomassè', 'Toffo', 'Tori-Bossito',
+  'Zè', 'Bopa', 'Athiémé', 'Grand-Popo', 'Houéyogbé', 'Lalo',
+  'Djakotomey', 'Klouékanmè', 'Toviklin', 'Agbangnizoun',
+  'Covè', 'Djidja', 'Ouinhi', 'Za-Kpota', 'Zangnanado', 'Zogbodomey',
+  'Glazoué', 'Bassila', 'Copargo', 'Cobly', 'Boukoumbé', 'Matéri',
+  'Péhunco', 'Toucountouna', 'N\'Dali', 'Pèrèrè', 'Autre ville/commune'
+]
+
 const QUALIFICATIONS = [
-  { value: 'diplome', label: 'Diplômé(e)' },
-  { value: 'non_diplome', label: 'Non diplômé(e)' },
+  { value: 'diplome', label: 'Diplômé (j\'ai un diplôme ou certificat professionnel)' },
+  { value: 'non_diplome', label: 'Non diplômé (expérience professionnelle sans diplôme)' },
 ]
 
 export default function ArtisanOnboardingPage() {
@@ -22,8 +52,6 @@ export default function ArtisanOnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Si l'utilisateur a déjà une ligne prestataires (ex: retour en arrière
-  // manuel sur cette page), on ne le laisse pas la recréer.
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -110,26 +138,28 @@ export default function ArtisanOnboardingPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Métier</label>
-            <input
-              type="text"
+            <select
               value={metier}
               onChange={(e) => setMetier(e.target.value)}
               required
-              placeholder="Ex: Plombier, Électricien..."
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
+            >
+              <option value="">Sélectionner</option>
+              {METIERS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
-            <input
-              type="text"
+            <select
               value={ville}
               onChange={(e) => setVille(e.target.value)}
               required
-              placeholder="Ex: Cotonou"
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
+            >
+              <option value="">Sélectionner</option>
+              {VILLES.map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
           </div>
 
           <div>
@@ -144,23 +174,16 @@ export default function ArtisanOnboardingPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Qualification</label>
-            <div className="grid grid-cols-2 gap-3">
-              {QUALIFICATIONS.map((q) => (
-                <button
-                  key={q.value}
-                  type="button"
-                  onClick={() => setQualificationType(q.value)}
-                  className={`px-4 py-2.5 rounded-lg border text-sm font-medium transition ${
-                    qualificationType === q.value
-                      ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {q.label}
-                </button>
-              ))}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Votre situation professionnelle</label>
+            <select
+              value={qualificationType}
+              onChange={(e) => setQualificationType(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="">Sélectionner</option>
+              {QUALIFICATIONS.map((q) => <option key={q.value} value={q.value}>{q.label}</option>)}
+            </select>
           </div>
 
           <button

@@ -10,9 +10,8 @@ const supabaseAdmin = createClient(
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const requestedRole = searchParams.get('role') // 'artisan' si venant du bouton Google artisan
+  const requestedRole = searchParams.get('role')
 
-  // Gestion robuste de l'hôte pour la production (Vercel / Domaines personnalisés)
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isDevelopment = process.env.NODE_ENV === 'development'
   const baseHost = isDevelopment ? origin : forwardedHost ? `https://${forwardedHost}` : origin
@@ -37,9 +36,6 @@ export async function GET(request: Request) {
 
         let role = profile?.role
 
-        // Si la personne vient du bouton Google "artisan" et que le trigger
-        // handle_new_user() a mis un rôle par défaut différent, on force le rôle
-        // artisan sur le profil (uniquement dans ce cas précis).
         if (requestedRole === 'artisan' && role !== 'artisan') {
           const { error: updateError } = await supabaseAdmin
             .from('profiles')
@@ -57,7 +53,8 @@ export async function GET(request: Request) {
         if (role === 'ambassadeur') return NextResponse.redirect(`${baseHost}/ambassadeur/dashboard`)
 
         if (role === 'artisan') {
-          // Vérifie si une ligne prestataires existe déjà pour cet utilisateur
+          // On vérifie seulement l'existence, on ne crée plus rien ici.
+          // C'est /artisan/onboarding qui crée la ligne, avec les vraies infos.
           const { data: presta, error: prestaError } = await supabaseAdmin
             .from('prestataires')
             .select('id')
@@ -69,27 +66,6 @@ export async function GET(request: Request) {
           }
 
           if (!presta) {
-            // Première connexion artisan via Google : crée une ligne prestataires
-            // minimale, à compléter dans l'onboarding (métier, ville, qualification).
-            const fullName =
-              user.user_metadata?.full_name ||
-              user.user_metadata?.name ||
-              user.email?.split('@')[0] ||
-              'Artisan'
-
-            const { error: insertError } = await supabaseAdmin
-              .from('prestataires')
-              .insert({
-                user_id: user.id,
-                nom: fullName,
-                metier: 'Non renseigné',
-                statut: 'en_attente',
-              })
-
-            if (insertError) {
-              console.error('Erreur création prestataires (auth callback):', insertError)
-            }
-
             return NextResponse.redirect(`${baseHost}/artisan/onboarding`)
           }
 
