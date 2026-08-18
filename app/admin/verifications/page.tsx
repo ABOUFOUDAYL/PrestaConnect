@@ -28,6 +28,46 @@ type Prestataire = {
   casier_judiciaire_url: string | null;
 };
 
+function DocLink({ label, path }: { label: string; path: string | null }) {
+  const [loading, setLoading] = useState(false);
+
+  if (!path) {
+    return (
+      <span className="text-xs text-red-500 flex items-center gap-1">
+        Manquant : {label}
+      </span>
+    );
+  }
+
+  async function openDocument() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/document-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={openDocument}
+      disabled={loading}
+      className="text-xs text-green-600 underline flex items-center gap-1 disabled:opacity-50"
+    >
+      {loading ? "Ouverture..." : `Fourni : ${label}`}
+    </button>
+  );
+}
+
 export default function AdminVerifications() {
   const [prestataires, setPrestataires] = useState<Prestataire[]>([]);
   const [onglet, setOnglet] = useState("en_attente");
@@ -66,26 +106,6 @@ export default function AdminVerifications() {
     }
 
     fetchPrestataires();
-  }
-
-  function DocLink({ label, url }: { label: string; url: string | null }) {
-    if (!url) {
-      return (
-        <span className="text-xs text-red-500 flex items-center gap-1">
-          Manquant : {label}
-        </span>
-      );
-    }
-    return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-xs text-green-600 underline flex items-center gap-1"
-      >
-        Fourni : {label}
-      </a>
-    );
   }
 
   return (
@@ -161,17 +181,17 @@ export default function AdminVerifications() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-3 pt-3 border-t">
-                  <DocLink label="Photo de profil" url={p.image} />
-                  <DocLink label="Piece d'identite" url={p.piece_identite_url} />
-                  <DocLink label="Selfie avec piece d'identite" url={p.selfie_identite_url} />
+                  <DocLink label="Photo de profil" path={p.image} />
+                  <DocLink label="Piece d'identite" path={p.piece_identite_url} />
+                  <DocLink label="Selfie avec piece d'identite" path={p.selfie_identite_url} />
                   {p.qualification_type === "diplome" && (
-                    <DocLink label="Diplome / certificat" url={p.diplome_url} />
+                    <DocLink label="Diplome / certificat" path={p.diplome_url} />
                   )}
                   {p.qualification_type === "non_diplome" && (
                     <>
-                      <DocLink label="Attestation d'experience" url={p.attestation_experience_url} />
-                      <DocLink label="Carte d'artisan" url={p.carte_artisan_url} />
-                      <DocLink label="Autre justificatif" url={p.autre_justificatif_url} />
+                      <DocLink label="Attestation d'experience" path={p.attestation_experience_url} />
+                      <DocLink label="Carte d'artisan" path={p.carte_artisan_url} />
+                      <DocLink label="Autre justificatif" path={p.autre_justificatif_url} />
                     </>
                   )}
                   <DocLink
@@ -180,7 +200,7 @@ export default function AdminVerifications() {
                         ? "Casier judiciaire (obligatoire)"
                         : "Casier judiciaire"
                     }
-                    url={p.casier_judiciaire_url}
+                    path={p.casier_judiciaire_url}
                   />
                 </div>
 

@@ -14,6 +14,14 @@ const DOCUMENT_TYPES = [
   { id: 'casier', label: 'Casier judiciaire' },
 ]
 
+const COLUMN_MAP: Record<string, string> = {
+  cni: 'piece_identite_url',
+  cip: 'carte_artisan_url',
+  diplome: 'diplome_url',
+  attestation: 'attestation_experience_url',
+  casier: 'casier_judiciaire_url',
+}
+
 export default function ArtisanRegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -59,8 +67,6 @@ export default function ArtisanRegisterPage() {
     setLoading(true)
     setError('')
 
-    // Passe par la même route API que l'inscription client,
-    // pour que profiles / prestataires soient créés de façon cohérente.
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -89,11 +95,37 @@ export default function ArtisanRegisterPage() {
     }
 
     const userId = data.userId
+
     if (userId) {
+      const updates: Record<string, string> = {}
+
       for (const [type, file] of Object.entries(documents)) {
         if (file) {
           const path = `documents/${userId}/${type}/${file.name}`
-          await supabase.storage.from('Documents').upload(path, file)
+          const { error: uploadError } = await supabase.storage
+            .from('Documents')
+            .upload(path, file, { upsert: true })
+
+          if (uploadError) {
+            console.error(`Erreur upload document ${type}:`, uploadError)
+            continue
+          }
+
+          const column = COLUMN_MAP[type]
+          if (column) {
+            updates[column] = path
+          }
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabase
+          .from('prestataires')
+          .update(updates)
+          .eq('user_id', userId)
+
+        if (updateError) {
+          console.error('Erreur mise à jour URLs documents:', updateError)
         }
       }
     }
@@ -101,11 +133,6 @@ export default function ArtisanRegisterPage() {
     router.push('/artisan-login?registered=true')
   }
 
-  // Inscription / connexion artisan via Google.
-  // signInWithOAuth crée automatiquement le compte s'il n'existe pas encore,
-  // donc ce même bouton sert à la fois pour l'inscription et la connexion.
-  // Le rôle est transmis via l'URL de redirection ; /auth/callback s'occupe
-  // ensuite de créer la ligne "prestataires" et de rediriger vers l'onboarding.
   async function handleGoogleSignup() {
     setSocialLoading(true)
     setError('')
@@ -144,7 +171,6 @@ export default function ArtisanRegisterPage() {
 
         {step === 1 && (
           <>
-            {/* BOUTON INSCRIPTION / CONNEXION GOOGLE - ARTISAN */}
             <button
               type="button"
               onClick={handleGoogleSignup}
