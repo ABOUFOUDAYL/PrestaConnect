@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const DOCUMENT_TYPES = [
@@ -17,6 +18,7 @@ export default function ArtisanRegisterPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [socialLoading, setSocialLoading] = useState(false)
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
@@ -99,6 +101,28 @@ export default function ArtisanRegisterPage() {
     router.push('/artisan-login?registered=true')
   }
 
+  // Inscription / connexion artisan via Google.
+  // signInWithOAuth crée automatiquement le compte s'il n'existe pas encore,
+  // donc ce même bouton sert à la fois pour l'inscription et la connexion.
+  // Le rôle est transmis via l'URL de redirection ; /auth/callback s'occupe
+  // ensuite de créer la ligne "prestataires" et de rediriger vers l'onboarding.
+  async function handleGoogleSignup() {
+    setSocialLoading(true)
+    setError('')
+
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?role=artisan`,
+      },
+    })
+
+    if (oauthError) {
+      setError('Impossible de continuer avec Google pour le moment.')
+      setSocialLoading(false)
+    }
+  }
+
   return (
     <div className="w-full max-w-lg mx-auto">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
@@ -119,62 +143,90 @@ export default function ArtisanRegisterPage() {
         )}
 
         {step === 1 && (
-          <form onSubmit={handleStep1} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
-                <input name="first_name" value={form.first_name} onChange={handleChange} required
-                  placeholder="Jean"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
-                <input name="last_name" value={form.last_name} onChange={handleChange} required
-                  placeholder="Dupont"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} required
-                placeholder="votre@email.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Téléphone</label>
-              <input name="phone" value={form.phone} onChange={handleChange} required
-                placeholder="+229 00 00 00 00"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Métier</label>
-              <input name="metier" value={form.metier} onChange={handleChange} required
-                placeholder="Plombier, Électricien..."
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
-              <input name="ville" value={form.ville} onChange={handleChange} required
-                placeholder="Cotonou, Porto-Novo..."
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
-              <input name="password" type="password" value={form.password} onChange={handleChange} required
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmer le mot de passe</label>
-              <input name="confirm_password" type="password" value={form.confirm_password} onChange={handleChange} required
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
-            </div>
-            <button type="submit"
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2">
-              Continuer →
+          <>
+            {/* BOUTON INSCRIPTION / CONNEXION GOOGLE - ARTISAN */}
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={socialLoading}
+              className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[.98] disabled:opacity-60 mb-4"
+            >
+              {socialLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+              ) : (
+                <svg className="h-5 w-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.31 7.27 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.6H1.19C.43 8.13 0 9.87 0 12s.43 3.87 1.19 5.4l4.08-3.16z" />
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.17 2.69 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z" />
+                </svg>
+              )}
+              Continuer avec Google
             </button>
-          </form>
+
+            <div className="relative flex py-2 items-center mb-2">
+              <div className="flex-grow border-t border-gray-200"></div>
+              <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase">Ou avec votre email</span>
+              <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            <form onSubmit={handleStep1} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
+                  <input name="first_name" value={form.first_name} onChange={handleChange} required
+                    placeholder="Jean"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
+                  <input name="last_name" value={form.last_name} onChange={handleChange} required
+                    placeholder="Dupont"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <input name="email" type="email" value={form.email} onChange={handleChange} required
+                  placeholder="votre@email.com"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Téléphone</label>
+                <input name="phone" value={form.phone} onChange={handleChange} required
+                  placeholder="+229 00 00 00 00"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Métier</label>
+                <input name="metier" value={form.metier} onChange={handleChange} required
+                  placeholder="Plombier, Électricien..."
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
+                <input name="ville" value={form.ville} onChange={handleChange} required
+                  placeholder="Cotonou, Porto-Novo..."
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
+                <input name="password" type="password" value={form.password} onChange={handleChange} required
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirmer le mot de passe</label>
+                <input name="confirm_password" type="password" value={form.confirm_password} onChange={handleChange} required
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+              </div>
+              <button type="submit"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors mt-2">
+                Continuer →
+              </button>
+            </form>
+          </>
         )}
 
         {step === 2 && (
