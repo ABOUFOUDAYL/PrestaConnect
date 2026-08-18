@@ -11,6 +11,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const requestedRole = searchParams.get('role')
+  const redirectParam = searchParams.get('redirect')
 
   const forwardedHost = request.headers.get('x-forwarded-host')
   const isDevelopment = process.env.NODE_ENV === 'development'
@@ -49,12 +50,13 @@ export async function GET(request: Request) {
           }
         }
 
+        // Si un redirect personnalisé était demandé (ex: page protégée avant login),
+        // on le respecte en priorité pour les rôles client. Les rôles admin/ambassadeur/artisan
+        // gardent leur redirection dédiée, plus sûre que de suivre un redirect arbitraire.
         if (role === 'admin' || role === 'super_admin') return NextResponse.redirect(`${baseHost}/admin/dashboard`)
         if (role === 'ambassadeur') return NextResponse.redirect(`${baseHost}/ambassadeur/dashboard`)
 
         if (role === 'artisan') {
-          // On vérifie seulement l'existence, on ne crée plus rien ici.
-          // C'est /artisan/onboarding qui crée la ligne, avec les vraies infos.
           const { data: presta, error: prestaError } = await supabaseAdmin
             .from('prestataires')
             .select('id')
@@ -70,6 +72,10 @@ export async function GET(request: Request) {
           }
 
           return NextResponse.redirect(`${baseHost}/artisan/dashboard`)
+        }
+
+        if (redirectParam) {
+          return NextResponse.redirect(`${baseHost}${redirectParam}`)
         }
 
         return NextResponse.redirect(`${baseHost}/dashboard`)
