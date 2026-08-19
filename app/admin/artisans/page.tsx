@@ -10,13 +10,9 @@ const supabase = createClient(
 
 type Prestataire = {
   id: string;
-  user_id: string;
   nom: string;
   metier: string;
-  ville: string;
   telephone: string;
-  email?: string;
-  statut: string;
   qualification_type: string;
   piece_identite_url: string;
   carte_artisan_url: string;
@@ -38,26 +34,11 @@ export default function AdminArtisans() {
 
   async function fetchPrestataires() {
     setLoading(true);
-    // On récupère les prestataires et on joint la table auth.users via user_id
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("prestataires")
-      .select(`
-        *,
-        auth_users:user_id (email)
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Erreur chargement prestataires:", error);
-    }
-
-    // On extrait l'email de l'objet joint pour l'injecter proprement dans chaque prestataire
-    const formated = data?.map((p: any) => ({
-      ...p,
-      email: p.auth_users?.email || ""
-    })) || [];
-
-    setPrestataires(formated);
+    setPrestataires(data || []);
     setLoading(false);
   }
 
@@ -69,29 +50,31 @@ export default function AdminArtisans() {
     return !hasIdentity || !hasQualificationDoc;
   };
 
-  async function relancerArtisan(p: Prestataire) {
-    if (!p.email || p.email.trim() === "") {
-      alert("Cet artisan n'a pas d'adresse e-mail associée à son compte.");
+  async function notifierArtisan(p: Prestataire) {
+    if (!p.telephone) {
+      alert("Aucun numéro de téléphone enregistré pour cet artisan.");
       return;
     }
 
-    if (!confirm(`Envoyer l'e-mail de relance à ${p.nom} (${p.email}) ?`)) return;
+    if (!confirm(`Envoyer la notification automatique à ${p.nom} ?`)) return;
 
     setSendingId(p.id);
     try {
-      const response = await fetch('/api/relance-artisan', {
+      const response = await fetch('/api/notifier-artisan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: p.email, nom: p.nom })
+        body: JSON.stringify({ telephone: p.telephone, nom: p.nom, type: 'relance_dossier' })
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        alert("E-mail de relance envoyé avec succès !");
+        alert(`Notification envoyée avec succès via ${result.canal} !`);
       } else {
-        alert("Erreur lors de l'envoi de l'e-mail.");
+        alert(`Erreur : ${result.error || "Impossible d'envoyer la notification."}`);
       }
     } catch (err) {
-      alert("Erreur réseau lors de l'appel API.");
+      alert("Erreur réseau lors de l'appel de l'API.");
     } finally {
       setSendingId(null);
     }
@@ -101,7 +84,7 @@ export default function AdminArtisans() {
     const matchTexte =
       p.nom?.toLowerCase().includes(recherche.toLowerCase()) ||
       p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
-      p.email?.toLowerCase().includes(recherche.toLowerCase());
+      p.telephone?.includes(recherche);
     
     if (filtreIncomplet) {
       return matchTexte && estIncomplet(p);
@@ -119,7 +102,7 @@ export default function AdminArtisans() {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <input
           type="text"
-          placeholder="Rechercher par nom, métier ou email..."
+          placeholder="Rechercher par nom, métier ou téléphone..."
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           className="w-full border border-gray-200 rounded-lg px-4 py-2 mb-4 text-sm"
@@ -130,18 +113,16 @@ export default function AdminArtisans() {
             <thead>
               <tr className="text-left text-gray-500 border-b">
                 <th className="pb-3">Nom</th>
-                <th className="pb-3">E-mail</th>
+                <th className="pb-3">Téléphone</th>
                 <th className="pb-3">Dossier</th>
-                <th className="pb-3">Actions</th>
+                <th className="pb-3">Action</th>
               </tr>
             </thead>
             <tbody>
               {filtres.map((p) => (
                 <tr key={p.id} className="border-b last:border-0">
                   <td className="py-3 font-medium text-gray-800">{p.nom || 'Sans nom'}</td>
-                  <td className="py-3 text-gray-600">
-                    {p.email || <span className="text-red-500 font-bold">MISSING</span>}
-                  </td>
+                  <td className="py-3 text-gray-600">{p.telephone || 'Non renseigné'}</td>
                   <td className="py-3">
                     {estIncomplet(p) ? (
                       <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">Incomplet</span>
@@ -152,11 +133,11 @@ export default function AdminArtisans() {
                   <td className="py-3">
                     {estIncomplet(p) && (
                       <button
-                        onClick={() => relancerArtisan(p)}
+                        onClick={() => notifierArtisan(p)}
                         disabled={sendingId === p.id}
-                        className="px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 text-xs font-medium"
+                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 text-xs font-medium"
                       >
-                        {sendingId === p.id ? "Envoi..." : "Relancer"}
+                        {sendingId === p.id ? "Envoi..." : "📲 Relancer"}
                       </button>
                     )}
                   </td>
