@@ -45,12 +45,6 @@ export default function AdminArtisans() {
     setLoading(false);
   }
 
-  async function supprimerPrestataire(id: string) {
-    if (!confirm("Confirmer la suppression ?")) return;
-    await supabase.from("prestataires").delete().eq("id", id);
-    fetchPrestataires();
-  }
-
   const estIncomplet = (p: Prestataire) => {
     const hasIdentity = p.piece_identite_url || p.carte_artisan_url;
     const hasQualificationDoc = p.qualification_type === 'non_diplome' 
@@ -60,12 +54,12 @@ export default function AdminArtisans() {
   };
 
   async function relancerArtisan(p: Prestataire) {
-    if (!p.email) {
-      alert("Cet artisan n'a pas d'adresse e-mail enregistrée.");
+    if (!p.email || p.email.trim() === "") {
+      alert("Cet artisan n'a pas d'adresse e-mail enregistrée dans la base de données.");
       return;
     }
 
-    if (!confirm(`Envoyer l'e-mail de relance à ${p.nom || 'cet artisan'} ?`)) return;
+    if (!confirm(`Envoyer l'e-mail de relance à ${p.nom} (${p.email}) ?`)) return;
 
     setSendingId(p.id);
     try {
@@ -81,7 +75,7 @@ export default function AdminArtisans() {
         alert("Erreur lors de l'envoi de l'e-mail.");
       }
     } catch (err) {
-      alert("Erreur réseau.");
+      alert("Erreur réseau lors de l'appel API.");
     } finally {
       setSendingId(null);
     }
@@ -91,7 +85,7 @@ export default function AdminArtisans() {
     const matchTexte =
       p.nom?.toLowerCase().includes(recherche.toLowerCase()) ||
       p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
-      p.ville?.toLowerCase().includes(recherche.toLowerCase());
+      p.email?.toLowerCase().includes(recherche.toLowerCase());
     
     if (filtreIncomplet) {
       return matchTexte && estIncomplet(p);
@@ -100,102 +94,58 @@ export default function AdminArtisans() {
   });
 
   return (
-    <div>
+    <div className="p-6">
       <div className="bg-orange-500 rounded-2xl p-8 mb-8 text-white">
-        <p className="text-orange-100 text-sm mb-1">Administration</p>
         <h1 className="text-3xl font-bold">Gestion des artisans</h1>
-        <p className="text-orange-100 mt-1">{prestataires.length} artisan(s) enregistré(s)</p>
+        <p className="text-orange-100 mt-1">{prestataires.length} artisan(s) au total</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center justify-between">
-          <input
-            type="text"
-            placeholder="Rechercher par nom, métier ou ville..."
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)}
-            className="w-full sm:flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
-          />
-          <button
-            onClick={() => setFiltreIncomplet(!filtreIncomplet)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
-              filtreIncomplet 
-                ? "bg-orange-600 text-white" 
-                : "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
-            }`}
-          >
-            {filtreIncomplet ? "Afficher tous" : "⚠️ Inscriptions incomplètes"}
-          </button>
-        </div>
+        <input
+          type="text"
+          placeholder="Rechercher par nom, métier ou email..."
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-4 py-2 mb-4"
+        />
 
-        {loading ? (
-          <p className="text-center text-gray-400 py-10">Chargement...</p>
-        ) : filtres.length === 0 ? (
-          <p className="text-center text-gray-400 py-10">Aucun artisan trouvé</p>
-        ) : (
+        {loading ? <p className="text-center">Chargement...</p> : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500 border-b">
                 <th className="pb-3">Nom</th>
-                <th className="pb-3">Métier</th>
-                <th className="pb-3">Ville</th>
-                <th className="pb-3">Téléphone</th>
+                <th className="pb-3">E-mail</th>
                 <th className="pb-3">Dossier</th>
-                <th className="pb-3">Statut</th>
                 <th className="pb-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtres.map((p) => {
-                const incomplet = estIncomplet(p);
-                return (
-                  <tr key={p.id} className="border-b last:border-0">
-                    <td className="py-3 font-medium text-gray-800">{p.nom || 'Sans nom'}</td>
-                    <td className="py-3 text-gray-600">{p.metier || 'N/A'}</td>
-                    <td className="py-3 text-gray-600">{p.ville || 'N/A'}</td>
-                    <td className="py-3 text-gray-600">{p.telephone || 'N/A'}</td>
-                    <td className="py-3">
-                      {incomplet ? (
-                        <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
-                          Incomplet
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
-                          Complet
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        p.statut === "approuve"
-                          ? "bg-green-100 text-green-700"
-                          : p.statut === "refuse"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-orange-100 text-orange-700"
-                      }`}>
-                        {p.statut === "approuve" ? "Approuvé" : p.statut === "refuse" ? "Refusé" : "En attente"}
-                      </span>
-                    </td>
-                    <td className="py-3 flex items-center gap-2">
-                      {incomplet && (
-                        <button
-                          onClick={() => relancerArtisan(p)}
-                          disabled={sendingId === p.id}
-                          className="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition disabled:bg-amber-300"
-                        >
-                          {sendingId === p.id ? "Envoi..." : "Relancer par e-mail"}
-                        </button>
-                      )}
+              {filtres.map((p) => (
+                <tr key={p.id} className="border-b">
+                  <td className="py-3">{p.nom || 'Sans nom'}</td>
+                  <td className="py-3 text-gray-600">
+                    {p.email || <span className="text-red-500 font-bold">MISSING</span>}
+                  </td>
+                  <td className="py-3">
+                    {estIncomplet(p) ? (
+                      <span className="text-amber-600 font-medium">Incomplet</span>
+                    ) : (
+                      <span className="text-green-600">Complet</span>
+                    )}
+                  </td>
+                  <td className="py-3">
+                    {estIncomplet(p) && (
                       <button
-                        onClick={() => supprimerPrestataire(p.id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 transition"
+                        onClick={() => relancerArtisan(p)}
+                        disabled={sendingId === p.id}
+                        className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400"
                       >
-                        Supprimer
+                        {sendingId === p.id ? "Envoi..." : "Relancer"}
                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         )}
