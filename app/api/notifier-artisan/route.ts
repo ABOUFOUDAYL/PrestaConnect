@@ -9,7 +9,6 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    // On s'aligne avec le frontend qui envoie désormais 'prestataireId' et 'id'
     const targetId = body.prestataireId || body.id;
 
     if (!targetId) {
@@ -20,14 +19,12 @@ export async function POST(request: Request) {
     }
 
     // Récupération des coordonnées de l'artisan
-    // Utilisation de select('*') pour éviter les erreurs si une colonne manque
     const { data: prestataire, error: fetchError } = await supabase
       .from('prestataires')
       .select('*')
       .eq('id', targetId)
       .single();
 
-    // Si Supabase remonte une erreur (ex: problème de RLS ou de variable d'environnement), on l'affiche !
     if (fetchError) {
       return NextResponse.json(
         { error: `Erreur Supabase : ${fetchError.message}` },
@@ -45,7 +42,6 @@ export async function POST(request: Request) {
     const nomComplet = `${prestataire.prenom || ''} ${prestataire.nom || ''}`.trim() || 'Artisan';
     const messageTexte = body.message || `Bonjour ${nomComplet}, votre dossier PrestaConnect est actuellement incomplet. Merci de vous connecter à votre espace pour fournir les pièces justificatives manquantes.`;
 
-    // On s'assure de ne pas planter s'il n'y a pas d'email
     const emailArtisan = prestataire.email || '';
 
     const resultats = await notifierArtisanGlobal({
@@ -67,6 +63,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      canal: "WhatsApp & Email (UltraMsg + Resend)",
       resultats,
     });
   } catch (error: any) {
