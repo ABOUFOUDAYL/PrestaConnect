@@ -17,11 +17,17 @@ type Prestataire = {
   statut: string;
   verifie: boolean;
   created_at: string;
+  qualification_type: string;
+  piece_identite_url: string;
+  carte_artisan_url: string;
+  diplome_url: string;
+  casier_judiciaire_url: string;
 };
 
 export default function AdminArtisans() {
   const [prestataires, setPrestataires] = useState<Prestataire[]>([]);
   const [recherche, setRecherche] = useState("");
+  const [filtreIncomplet, setFiltreIncomplet] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,12 +50,33 @@ export default function AdminArtisans() {
     fetchPrestataires();
   }
 
-  const filtres = prestataires.filter(
-    (p) =>
+  // Fonction pour vérifier si le dossier est incomplet
+  const estIncomplet = (p: Prestataire) => {
+    const hasIdentity = p.piece_identite_url || p.carte_artisan_url;
+    const hasQualificationDoc = p.qualification_type === 'non_diplome' 
+      ? p.casier_judiciaire_url 
+      : p.diplome_url;
+    return !hasIdentity || !hasQualificationDoc;
+  };
+
+  const relancerArtisan = (p: Prestataire) => {
+    // Action de relance (copie du lien de complétion ou message)
+    const lien = `${window.location.origin}/artisan/complete-documents`;
+    navigator.clipboard.writeText(lien);
+    alert(`Lien de finalisation copié pour ${p.nom || 'cet artisan'} !\nVous pouvez le lui envoyer par SMS au ${p.telephone || 'numéro enregistré'}.`);
+  };
+
+  const filtres = prestataires.filter((p) => {
+    const matchTexte =
       p.nom?.toLowerCase().includes(recherche.toLowerCase()) ||
       p.metier?.toLowerCase().includes(recherche.toLowerCase()) ||
-      p.ville?.toLowerCase().includes(recherche.toLowerCase())
-  );
+      p.ville?.toLowerCase().includes(recherche.toLowerCase());
+    
+    if (filtreIncomplet) {
+      return matchTexte && estIncomplet(p);
+    }
+    return matchTexte;
+  });
 
   return (
     <div>
@@ -60,13 +87,25 @@ export default function AdminArtisans() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <input
-          type="text"
-          placeholder="Rechercher par nom, métier ou ville..."
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm mb-6 focus:outline-none focus:ring-2 focus:ring-orange-400"
-        />
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center justify-between">
+          <input
+            type="text"
+            placeholder="Rechercher par nom, métier ou ville..."
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            className="w-full sm:flex-1 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+          />
+          <button
+            onClick={() => setFiltreIncomplet(!filtreIncomplet)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
+              filtreIncomplet 
+                ? "bg-orange-600 text-white" 
+                : "bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
+            }`}
+          >
+            {filtreIncomplet ? "Afficher tous" : "⚠️ Inscriptions incomplètes"}
+          </button>
+        </div>
 
         {loading ? (
           <p className="text-center text-gray-400 py-10">Chargement...</p>
@@ -80,38 +119,62 @@ export default function AdminArtisans() {
                 <th className="pb-3">Métier</th>
                 <th className="pb-3">Ville</th>
                 <th className="pb-3">Téléphone</th>
+                <th className="pb-3">Dossier</th>
                 <th className="pb-3">Statut</th>
                 <th className="pb-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtres.map((p) => (
-                <tr key={p.id} className="border-b last:border-0">
-                  <td className="py-3 font-medium text-gray-800">{p.nom}</td>
-                  <td className="py-3 text-gray-600">{p.metier}</td>
-                  <td className="py-3 text-gray-600">{p.ville}</td>
-                  <td className="py-3 text-gray-600">{p.telephone}</td>
-                  <td className="py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      p.statut === "approuve"
-                        ? "bg-green-100 text-green-700"
-                        : p.statut === "refuse"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-orange-100 text-orange-700"
-                    }`}>
-                      {p.statut === "approuve" ? "Approuvé" : p.statut === "refuse" ? "Refusé" : "En attente"}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <button
-                      onClick={() => supprimerPrestataire(p.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600"
-                    >
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtres.map((p) => {
+                const incomplet = estIncomplet(p);
+                return (
+                  <tr key={p.id} className="border-b last:border-0">
+                    <td className="py-3 font-medium text-gray-800">{p.nom || 'Sans nom'}</td>
+                    <td className="py-3 text-gray-600">{p.metier || 'N/A'}</td>
+                    <td className="py-3 text-gray-600">{p.ville || 'N/A'}</td>
+                    <td className="py-3 text-gray-600">{p.telephone || 'N/A'}</td>
+                    <td className="py-3">
+                      {incomplet ? (
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">
+                          Incomplet
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                          Complet
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        p.statut === "approuve"
+                          ? "bg-green-100 text-green-700"
+                          : p.statut === "refuse"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-orange-100 text-orange-700"
+                      }`}>
+                        {p.statut === "approuve" ? "Approuvé" : p.statut === "refuse" ? "Refusé" : "En attente"}
+                      </span>
+                    </td>
+                    <td className="py-3 flex items-center gap-2">
+                      {incomplet && (
+                        <button
+                          onClick={() => relancerArtisan(p)}
+                          className="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition"
+                          title="Copier le lien pour relancer l'artisan"
+                        >
+                          Relancer
+                        </button>
+                      )}
+                      <button
+                        onClick={() => supprimerPrestataire(p.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 transition"
+                      >
+                        Supprimer
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
