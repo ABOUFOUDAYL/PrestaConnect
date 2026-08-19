@@ -10,11 +10,12 @@ const supabase = createClient(
 
 type Prestataire = {
   id: string;
+  user_id: string;
   nom: string;
   metier: string;
   ville: string;
   telephone: string;
-  email: string;
+  email?: string;
   statut: string;
   qualification_type: string;
   piece_identite_url: string;
@@ -37,11 +38,26 @@ export default function AdminArtisans() {
 
   async function fetchPrestataires() {
     setLoading(true);
-    const { data } = await supabase
+    // On récupère les prestataires et on joint la table auth.users via user_id
+    const { data, error } = await supabase
       .from("prestataires")
-      .select("*")
+      .select(`
+        *,
+        auth_users:user_id (email)
+      `)
       .order("created_at", { ascending: false });
-    setPrestataires(data || []);
+
+    if (error) {
+      console.error("Erreur chargement prestataires:", error);
+    }
+
+    // On extrait l'email de l'objet joint pour l'injecter proprement dans chaque prestataire
+    const formated = data?.map((p: any) => ({
+      ...p,
+      email: p.auth_users?.email || ""
+    })) || [];
+
+    setPrestataires(formated);
     setLoading(false);
   }
 
@@ -55,7 +71,7 @@ export default function AdminArtisans() {
 
   async function relancerArtisan(p: Prestataire) {
     if (!p.email || p.email.trim() === "") {
-      alert("Cet artisan n'a pas d'adresse e-mail enregistrée dans la base de données.");
+      alert("Cet artisan n'a pas d'adresse e-mail associée à son compte.");
       return;
     }
 
@@ -106,10 +122,10 @@ export default function AdminArtisans() {
           placeholder="Rechercher par nom, métier ou email..."
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-4 py-2 mb-4"
+          className="w-full border border-gray-200 rounded-lg px-4 py-2 mb-4 text-sm"
         />
 
-        {loading ? <p className="text-center">Chargement...</p> : (
+        {loading ? <p className="text-center py-10 text-gray-400">Chargement...</p> : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500 border-b">
@@ -121,16 +137,16 @@ export default function AdminArtisans() {
             </thead>
             <tbody>
               {filtres.map((p) => (
-                <tr key={p.id} className="border-b">
-                  <td className="py-3">{p.nom || 'Sans nom'}</td>
+                <tr key={p.id} className="border-b last:border-0">
+                  <td className="py-3 font-medium text-gray-800">{p.nom || 'Sans nom'}</td>
                   <td className="py-3 text-gray-600">
                     {p.email || <span className="text-red-500 font-bold">MISSING</span>}
                   </td>
                   <td className="py-3">
                     {estIncomplet(p) ? (
-                      <span className="text-amber-600 font-medium">Incomplet</span>
+                      <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-medium">Incomplet</span>
                     ) : (
-                      <span className="text-green-600">Complet</span>
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">Complet</span>
                     )}
                   </td>
                   <td className="py-3">
@@ -138,7 +154,7 @@ export default function AdminArtisans() {
                       <button
                         onClick={() => relancerArtisan(p)}
                         disabled={sendingId === p.id}
-                        className="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 disabled:bg-gray-400"
+                        className="px-3 py-1 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-400 text-xs font-medium"
                       >
                         {sendingId === p.id ? "Envoi..." : "Relancer"}
                       </button>
