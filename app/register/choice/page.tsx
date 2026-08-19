@@ -36,7 +36,7 @@ export default function RegisterChoicePage() {
 
           {/* Prestataire */}
           <button
-            onClick={() => router.push('/register/provider')}
+            onClick={() => router.push('/artisan-register')} // <-- C'est ici que la magie opère !
             className="group bg-white border border-slate-100 rounded-2xl shadow-sm p-8 flex flex-col items-center gap-4 hover:border-slate-400 hover:shadow-md transition text-left"
           >
             <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-200 transition">
