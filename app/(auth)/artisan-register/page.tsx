@@ -7,10 +7,9 @@ import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const DOCUMENT_TYPES = [
-  { id: 'cni', label: "Carte d'identité" },
-  { id: 'cip', label: 'CIP' },
+  { id: 'cni', label: "Carte d'identité (CNI)" },
+  { id: 'cip', label: 'Carte d\'Identification Personnelle (CIP)' },
   { id: 'diplome', label: 'Diplôme' },
-  { id: 'attestation', label: 'Attestation' },
   { id: 'casier', label: 'Casier judiciaire' },
 ]
 
@@ -18,7 +17,6 @@ const COLUMN_MAP: Record<string, string> = {
   cni: 'piece_identite_url',
   cip: 'carte_artisan_url',
   diplome: 'diplome_url',
-  attestation: 'attestation_experience_url',
   casier: 'casier_judiciaire_url',
 }
 
@@ -38,13 +36,19 @@ export default function ArtisanRegisterPage() {
     confirm_password: '',
     metier: '',
     ville: '',
+    qualification_type: 'diplome', // Valeur par défaut
   })
 
   const [documents, setDocuments] = useState<Record<string, File | null>>({
-    cni: null, cip: null, diplome: null, attestation: null, casier: null,
+    cni: null, cip: null, diplome: null, casier: null,
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Déterminer les documents à afficher selon le type de qualification
+  const visibleDocuments = form.qualification_type === 'diplome' 
+    ? DOCUMENT_TYPES.filter(doc => ['cni', 'cip', 'diplome'].includes(doc.id))
+    : DOCUMENT_TYPES.filter(doc => ['cni', 'cip', 'casier'].includes(doc.id))
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
@@ -67,6 +71,7 @@ export default function ArtisanRegisterPage() {
     setLoading(true)
     setError('')
 
+    // 1. Création du compte via l'API
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -79,6 +84,7 @@ export default function ArtisanRegisterPage() {
         telephone: form.phone || null,
         ville: form.ville || null,
         metier: form.metier || null,
+        qualification_type: form.qualification_type, // On envoie la qualification au backend
       }),
     })
 
@@ -97,10 +103,23 @@ export default function ArtisanRegisterPage() {
     const userId = data.userId
 
     if (userId) {
+      // 2. Connexion immédiate pour autoriser l'upload (RLS)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
+
+      if (signInError) {
+        console.error("Erreur de connexion post-inscription:", signInError)
+        router.push('/artisan-login?registered=true')
+        return
+      }
+
+      // 3. Upload des documents visibles uniquement
       const updates: Record<string, string> = {}
 
       for (const [type, file] of Object.entries(documents)) {
-        if (file) {
+        if (file && visibleDocuments.find(doc => doc.id === type)) {
           const path = `documents/${userId}/${type}/${file.name}`
           const { error: uploadError } = await supabase.storage
             .from('Documents')
@@ -190,7 +209,7 @@ export default function ArtisanRegisterPage() {
               Continuer avec Google
             </button>
 
-            <div className="relative flex py-2 items-center mb-2">
+            <div className="relative flex py-2 items-center mb-4">
               <div className="flex-grow border-t border-gray-200"></div>
               <span className="flex-shrink mx-4 text-xs text-gray-400 uppercase">Ou avec votre email</span>
               <div className="flex-grow border-t border-gray-200"></div>
@@ -223,17 +242,34 @@ export default function ArtisanRegisterPage() {
                   placeholder="+229 00 00 00 00"
                   className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
               </div>
+              
+              {/* NOUVEAU CHAMP : Type de qualification */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Métier</label>
-                <input name="metier" value={form.metier} onChange={handleChange} required
-                  placeholder="Plombier, Électricien..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Niveau de qualification</label>
+                <select 
+                  name="qualification_type" 
+                  value={form.qualification_type} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="diplome">Diplômé(e)</option>
+                  <option value="non_diplome">Non diplômé(e) / Apprentissage sur le tas</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
-                <input name="ville" value={form.ville} onChange={handleChange} required
-                  placeholder="Cotonou, Porto-Novo..."
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Métier</label>
+                  <input name="metier" value={form.metier} onChange={handleChange} required
+                    placeholder="Plombier..."
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Ville</label>
+                  <input name="ville" value={form.ville} onChange={handleChange} required
+                    placeholder="Cotonou..."
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
@@ -260,7 +296,7 @@ export default function ArtisanRegisterPage() {
             <p className="text-sm text-gray-600 mb-4">
               Téléversez vos documents pour validation. Au moins un document est requis.
             </p>
-            {DOCUMENT_TYPES.map(doc => (
+            {visibleDocuments.map(doc => (
               <div key={doc.id}>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">{doc.label}</label>
                 <input
