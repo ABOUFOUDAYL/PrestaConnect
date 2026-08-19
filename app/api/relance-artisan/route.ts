@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     if (!RESEND_API_KEY) {
-      return NextResponse.json({ error: "Clé API Resend non configurée" }, { status: 500 });
+      return NextResponse.json({ error: "Configuration manquante" }, { status: 500 });
     }
 
     const res = await fetch('https://api.resend.com/emails', {
