@@ -63,7 +63,8 @@ export default function AdminArtisans() {
       const response = await fetch('/api/notifier-artisan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telephone: p.telephone, nom: p.nom, type: 'relance_dossier' })
+        // L'ID du prestataire est maintenant correctement envoyé à l'API
+        body: JSON.stringify({ prestataireId: p.id, id: p.id, telephone: p.telephone, nom: p.nom, type: 'relance_dossier' })
       });
 
       const result = await response.json();
