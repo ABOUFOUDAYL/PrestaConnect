@@ -1,82 +1,241 @@
-type TypeNotification = 'relance_dossier' | 'compte_approuve' | 'nouvelle_demande';
+import { Resend } from 'resend';
+import twilio from 'twilio';
+import { createClient } from '@supabase/supabase-js';
 
-export async function envoyerNotificationGlobal(
-  telephone: string, 
-  nom: string, 
-  type: TypeNotification, 
-  dataSupplementaire?: string
-) {
-  if (!telephone) return { success: false, error: "Téléphone manquant" };
+// Initialisation des clients Supabase (Service Role pour contourner la RLS lors du logging serveur)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Nettoyage et formatage du numéro au format international (+229...)
-  let cleanPhone = telephone.replace(/\s+/g, '').replace('+', '');
-  if (!cleanPhone.startsWith('229')) {
-    cleanPhone = '229' + cleanPhone;
+// Initialisation Resend
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+// Initialisation Twilio
+const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER; // Format: +1234567890 ou whatsapp:+1234567890
+const twilioClient = (twilioSid && twilioToken) ? twilio(twilioSid, twilioToken) : null;
+
+export interface NotificationPayload {
+  prestataireId: string;
+  email?: string;
+  telephone?: string;
+  nom: string;
+  typeEvenement: 'relance_dossier_incomplet' | 'validation_compte' | 'rejet_dossier' | 'general';
+  sujetEmail?: string;
+  messageTexte: string;
+  htmlEmail?: string;
+}
+
+/**
+ * Normalise un numéro de téléphone au format E.164 béninois (+229XXXXXXXX)
+ */
+export function formaterTelephoneBenin(phone: string): string {
+  let net = phone.replace(/\s+|\+|\-|\(\)/g, '');
+  if (!net.startsWith('229')) {
+    net = `229${net}`;
   }
+  return `+${net}`;
+}
 
-  // Définition dynamique du message
-  let message = "";
-  switch (type) {
-    case 'relance_dossier':
-      message = `Bonjour ${nom || 'Artisan'}, c'est PrestaConnect. Votre dossier est incomplet. Pour l'activer et recevoir des clients, merci de compléter vos pièces ici : https://presta-connect.vercel.app/artisan/complete-documents`;
-      break;
-    case 'compte_approuve':
-      message = `Félicitations ${nom || 'Artisan'} ! Votre compte PrestaConnect a été approuvé. Vous pouvez désormais recevoir des demandes clients.`;
-      break;
-    case 'nouvelle_demande':
-      message = `Bonjour ${nom || 'Artisan'}, vous avez reçu une nouvelle demande sur PrestaConnect : "${dataSupplementaire || 'Vérifiez votre espace'}".`;
-      break;
-    default:
-      message = `Bonjour ${nom || 'Artisan'}, vous avez une nouvelle notification sur PrestaConnect.`;
-  }
-
-  let success = false;
-  let canalUtilise = '';
-
-  // --- 1. Tentative WhatsApp ---
+/**
+ * Enregistre le résultat de l'envoi dans public.logs_notifications
+ */
+async function loggerNotification(params: {
+  prestataireId: string;
+  canal: 'email' | 'whatsapp' | 'sms';
+  destinataire: string;
+  typeEvenement: string;
+  statut: 'succes' | 'echec' | 'en_attente';
+  erreurMessage?: string;
+  metadata?: Record<string, any>;
+}) {
   try {
-    const waRes = await fetch(`https://api.ultramsg.com/${process.env.WHATSAPP_INSTANCE_ID}/messages/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        token: process.env.WHATSAPP_TOKEN,
-        to: cleanPhone,
-        body: message
-      })
+    if (!supabaseUrl || !supabaseServiceKey) return;
+
+    await supabase.from('logs_notifications').insert({
+      prestataire_id: params.prestataireId,
+      canal: params.canal,
+      destinataire: params.destinataire,
+      type_evenement: params.typeEvenement,
+      statut: params.statut,
+      erreur_message: params.erreurMessage || null,
+      metadata: params.metadata || {},
     });
-    const waData = await waRes.json();
-    if (waRes.ok && waData.sent) {
-      success = true;
-      canalUtilise = 'WhatsApp';
-    }
   } catch (err) {
-    console.log("WhatsApp indisponible, basculement SMS...");
+    console.error('[LOG_NOTIF_ERROR]', err);
+  }
+}
+
+/**
+ * Envoie un email via Resend
+ */
+export async function envoyerEmailNotif(payload: NotificationPayload): Promise<boolean> {
+  if (!payload.email) return false;
+  if (!resend) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'email',
+      destinataire: payload.email,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: 'RESEND_API_KEY non configurée dans .env',
+    });
+    return false;
   }
 
-  // --- 2. Fallback SMS si WhatsApp échoue ---
-  if (!success) {
-    try {
-      const smsRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64'),
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          To: '+' + cleanPhone,
-          From: process.env.TWILIO_PHONE_NUMBER || 'PrestaConnect',
-          Body: message
-        })
-      });
+  try {
+    const { error } = await resend.emails.send({
+      from: 'PrestaConnect <notifications@prestaconnect.bj>',
+      to: [payload.email],
+      subject: payload.sujetEmail || 'Notification PrestaConnect',
+      html: payload.htmlEmail || `<p>${payload.messageTexte}</p>`,
+    });
 
-      if (smsRes.ok) {
-        success = true;
-        canalUtilise = 'SMS';
-      }
-    } catch (err) {
-      console.error("Erreur SMS:", err);
+    if (error) throw new Error(error.message);
+
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'email',
+      destinataire: payload.email,
+      typeEvenement: payload.typeEvenement,
+      statut: 'succes',
+    });
+    return true;
+  } catch (err: any) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'email',
+      destinataire: payload.email,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: err.message || 'Erreur inconnue Resend',
+    });
+    return false;
+  }
+}
+
+/**
+ * Envoie un message WhatsApp via Twilio
+ */
+export async function envoyerWhatsAppNotif(payload: NotificationPayload): Promise<boolean> {
+  if (!payload.telephone) return false;
+  const telephoneFormate = formaterTelephoneBenin(payload.telephone);
+
+  if (!twilioClient || !twilioPhone) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'whatsapp',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: 'Variables Twilio non configurées dans .env',
+    });
+    return false;
+  }
+
+  try {
+    const message = await twilioClient.messages.create({
+      from: `whatsapp:${twilioPhone}`,
+      to: `whatsapp:${telephoneFormate}`,
+      body: payload.messageTexte,
+    });
+
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'whatsapp',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'succes',
+      metadata: { sid: message.sid },
+    });
+    return true;
+  } catch (err: any) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'whatsapp',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: err.message || 'Erreur WhatsApp Twilio',
+    });
+    return false;
+  }
+}
+
+/**
+ * Envoie un SMS via Twilio (Fallback si WhatsApp échoue ou si préféré)
+ */
+export async function envoyerSMSNotif(payload: NotificationPayload): Promise<boolean> {
+  if (!payload.telephone) return false;
+  const telephoneFormate = formaterTelephoneBenin(payload.telephone);
+
+  if (!twilioClient || !twilioPhone) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'sms',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: 'Variables Twilio non configurées dans .env',
+    });
+    return false;
+  }
+
+  try {
+    const message = await twilioClient.messages.create({
+      from: twilioPhone.replace('whatsapp:', ''),
+      to: telephoneFormate,
+      body: payload.messageTexte,
+    });
+
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'sms',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'succes',
+      metadata: { sid: message.sid },
+    });
+    return true;
+  } catch (err: any) {
+    await loggerNotification({
+      prestataireId: payload.prestataireId,
+      canal: 'sms',
+      destinataire: telephoneFormate,
+      typeEvenement: payload.typeEvenement,
+      statut: 'echec',
+      erreurMessage: err.message || 'Erreur SMS Twilio',
+    });
+    return false;
+  }
+}
+
+/**
+ * Orchestrateur central : tente Email + WhatsApp, avec fallback SMS
+ */
+export async function notifierArtisanGlobal(payload: NotificationPayload) {
+  const resultats = {
+    emailSent: false,
+    whatsappSent: false,
+    smsSent: false,
+  };
+
+  // 1. Tenter l'envoi d'e-mail si disponible
+  if (payload.email) {
+    resultats.emailSent = await envoyerEmailNotif(payload);
+  }
+
+  // 2. Tenter WhatsApp
+  if (payload.telephone) {
+    resultats.whatsappSent = await envoyerWhatsAppNotif(payload);
+
+    // 3. Fallback SMS si WhatsApp a échoué
+    if (!resultats.whatsappSent) {
+      resultats.smsSent = await envoyerSMSNotif(payload);
     }
   }
 
-  return { success, canal: canalUtilise };
+  return resultats;
 }
