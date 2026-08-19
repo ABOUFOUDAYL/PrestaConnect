@@ -1,10 +1,12 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { FileText, Send, Wrench, CreditCard, Star, Clock } from 'lucide-react'
 
 export default function ArtisanDashboardPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [prestataire, setPrestataire] = useState<any>(null)
@@ -23,7 +25,7 @@ export default function ArtisanDashboardPage() {
       setIsLoading(true)
 
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setIsLoading(false); return }
+      if (!user) { setIsLoading(false); router.push('/login'); return }
 
       const { data: prof } = await supabase
         .from('profiles')
@@ -37,6 +39,20 @@ export default function ArtisanDashboardPage() {
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle()
+
+      if (presta) {
+        // VÉRIFICATION DOCUMENTAIRE : Si les documents obligatoires manquent, on redirige
+        const hasIdentity = presta.piece_identite_url || presta.carte_artisan_url
+        const hasQualificationDoc = presta.qualification_type === 'diplome' 
+          ? presta.diplome_url 
+          : presta.casier_judiciaire_url
+
+        if (!hasIdentity || !hasQualificationDoc) {
+          router.push('/artisan/complete-documents')
+          return
+        }
+      }
+
       setPrestataire(presta)
 
       if (presta) {
@@ -105,7 +121,7 @@ export default function ArtisanDashboardPage() {
     }
 
     load()
-  }, [])
+  }, [router])
 
   const getGreeting = () => {
     const h = new Date().getHours()
