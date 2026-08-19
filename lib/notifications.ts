@@ -1,21 +1,18 @@
 import { Resend } from 'resend';
-import twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialisation des clients Supabase (Service Role pour contourner la RLS lors du logging serveur)
+// Initialisation du client Supabase (Service Role pour contourner RLS)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Initialisation Resend
+// Initialisation Resend (Email)
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-// Initialisation Twilio
-const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioPhone = process.env.TWILIO_PHONE_NUMBER; // Format: +1234567890 ou whatsapp:+1234567890
-const twilioClient = (twilioSid && twilioToken) ? twilio(twilioSid, twilioToken) : null;
+// Configuration UltraMsg (WhatsApp)
+const ultraMsgInstanceId = process.env.WHATSAPP_INSTANCE_ID || process.env.ULTRAMSG_INSTANCE_ID;
+const ultraMsgToken = process.env.WHATSAPP_TOKEN || process.env.ULTRAMSG_TOKEN;
 
 export interface NotificationPayload {
   prestataireId: string;
@@ -73,6 +70,7 @@ async function loggerNotification(params: {
  */
 export async function envoyerEmailNotif(payload: NotificationPayload): Promise<boolean> {
   if (!payload.email) return false;
+  
   if (!resend) {
     await loggerNotification({
       prestataireId: payload.prestataireId,
@@ -117,124 +115,83 @@ export async function envoyerEmailNotif(payload: NotificationPayload): Promise<b
 }
 
 /**
- * Envoie un message WhatsApp via Twilio
+ * Envoie un message WhatsApp via UltraMsg
  */
-export async function envoyerWhatsAppNotif(payload: NotificationPayload): Promise<boolean> {
+export async function envoyerWhatsAppUltraMsg(payload: NotificationPayload): Promise<boolean> {
   if (!payload.telephone) return false;
   const telephoneFormate = formaterTelephoneBenin(payload.telephone);
 
-  if (!twilioClient || !twilioPhone) {
+  if (!ultraMsgInstanceId || !ultraMsgToken) {
     await loggerNotification({
       prestataireId: payload.prestataireId,
       canal: 'whatsapp',
       destinataire: telephoneFormate,
       typeEvenement: payload.typeEvenement,
       statut: 'echec',
-      erreurMessage: 'Variables Twilio non configurées dans .env',
+      erreurMessage: 'Variables WHATSAPP_INSTANCE_ID ou WHATSAPP_TOKEN non configurées',
     });
     return false;
   }
 
   try {
-    const message = await twilioClient.messages.create({
-      from: `whatsapp:${twilioPhone}`,
-      to: `whatsapp:${telephoneFormate}`,
-      body: payload.messageTexte,
-    });
-
-    await loggerNotification({
-      prestataireId: payload.prestataireId,
-      canal: 'whatsapp',
-      destinataire: telephoneFormate,
-      typeEvenement: payload.typeEvenement,
-      statut: 'succes',
-      metadata: { sid: message.sid },
-    });
-    return true;
-  } catch (err: any) {
-    await loggerNotification({
-      prestataireId: payload.prestataireId,
-      canal: 'whatsapp',
-      destinataire: telephoneFormate,
-      typeEvenement: payload.typeEvenement,
-      statut: 'echec',
-      erreurMessage: err.message || 'Erreur WhatsApp Twilio',
-    });
-    return false;
-  }
-}
-
-/**
- * Envoie un SMS via Twilio (Fallback si WhatsApp échoue ou si préféré)
- */
-export async function envoyerSMSNotif(payload: NotificationPayload): Promise<boolean> {
-  if (!payload.telephone) return false;
-  const telephoneFormate = formaterTelephoneBenin(payload.telephone);
-
-  if (!twilioClient || !twilioPhone) {
-    await loggerNotification({
-      prestataireId: payload.prestataireId,
-      canal: 'sms',
-      destinataire: telephoneFormate,
-      typeEvenement: payload.typeEvenement,
-      statut: 'echec',
-      erreurMessage: 'Variables Twilio non configurées dans .env',
-    });
-    return false;
-  }
-
-  try {
-    const message = await twilioClient.messages.create({
-      from: twilioPhone.replace('whatsapp:', ''),
+    const url = `https://api.ultramsg.com/${ultraMsgInstanceId}/messages/chat`;
+    const params = new URLSearchParams({
+      token: ultraMsgToken,
       to: telephoneFormate,
       body: payload.messageTexte,
     });
 
-    await loggerNotification({
-      prestataireId: payload.prestataireId,
-      canal: 'sms',
-      destinataire: telephoneFormate,
-      typeEvenement: payload.typeEvenement,
-      statut: 'succes',
-      metadata: { sid: message.sid },
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
     });
-    return true;
+
+    const data = await response.json();
+
+    if (data.sent === 'true' || data.id) {
+      await loggerNotification({
+        prestataireId: payload.prestataireId,
+        canal: 'whatsapp',
+        destinataire: telephoneFormate,
+        typeEvenement: payload.typeEvenement,
+        statut: 'succes',
+        metadata: { messageId: data.id },
+      });
+      return true;
+    } else {
+      throw new Error(data.error || 'Erreur UltraMsg inconnue');
+    }
   } catch (err: any) {
     await loggerNotification({
       prestataireId: payload.prestataireId,
-      canal: 'sms',
+      canal: 'whatsapp',
       destinataire: telephoneFormate,
       typeEvenement: payload.typeEvenement,
       statut: 'echec',
-      erreurMessage: err.message || 'Erreur SMS Twilio',
+      erreurMessage: err.message || 'Erreur réseau UltraMsg',
     });
     return false;
   }
 }
 
 /**
- * Orchestrateur central : tente Email + WhatsApp, avec fallback SMS
+ * Orchestrateur central : tente Email + WhatsApp via UltraMsg
  */
 export async function notifierArtisanGlobal(payload: NotificationPayload) {
   const resultats = {
     emailSent: false,
     whatsappSent: false,
-    smsSent: false,
   };
 
-  // 1. Tenter l'envoi d'e-mail si disponible
+  // 1. Envoi e-mail via Resend
   if (payload.email) {
     resultats.emailSent = await envoyerEmailNotif(payload);
   }
 
-  // 2. Tenter WhatsApp
+  // 2. Envoi WhatsApp via UltraMsg
   if (payload.telephone) {
-    resultats.whatsappSent = await envoyerWhatsAppNotif(payload);
-
-    // 3. Fallback SMS si WhatsApp a échoué
-    if (!resultats.whatsappSent) {
-      resultats.smsSent = await envoyerSMSNotif(payload);
-    }
+    resultats.whatsappSent = await envoyerWhatsAppUltraMsg(payload);
   }
 
   return resultats;
