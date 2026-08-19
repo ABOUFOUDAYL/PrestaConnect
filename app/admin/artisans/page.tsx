@@ -14,14 +14,14 @@ type Prestataire = {
   metier: string;
   ville: string;
   telephone: string;
+  email: string;
   statut: string;
-  verifie: boolean;
-  created_at: string;
   qualification_type: string;
   piece_identite_url: string;
   carte_artisan_url: string;
   diplome_url: string;
   casier_judiciaire_url: string;
+  created_at: string;
 };
 
 export default function AdminArtisans() {
@@ -29,6 +29,7 @@ export default function AdminArtisans() {
   const [recherche, setRecherche] = useState("");
   const [filtreIncomplet, setFiltreIncomplet] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPrestataires();
@@ -50,7 +51,6 @@ export default function AdminArtisans() {
     fetchPrestataires();
   }
 
-  // Fonction pour vérifier si le dossier est incomplet
   const estIncomplet = (p: Prestataire) => {
     const hasIdentity = p.piece_identite_url || p.carte_artisan_url;
     const hasQualificationDoc = p.qualification_type === 'non_diplome' 
@@ -59,12 +59,33 @@ export default function AdminArtisans() {
     return !hasIdentity || !hasQualificationDoc;
   };
 
-  const relancerArtisan = (p: Prestataire) => {
-    // Action de relance (copie du lien de complétion ou message)
-    const lien = `${window.location.origin}/artisan/complete-documents`;
-    navigator.clipboard.writeText(lien);
-    alert(`Lien de finalisation copié pour ${p.nom || 'cet artisan'} !\nVous pouvez le lui envoyer par SMS au ${p.telephone || 'numéro enregistré'}.`);
-  };
+  async function relancerArtisan(p: Prestataire) {
+    if (!p.email) {
+      alert("Cet artisan n'a pas d'adresse e-mail enregistrée.");
+      return;
+    }
+
+    if (!confirm(`Envoyer l'e-mail de relance à ${p.nom || 'cet artisan'} ?`)) return;
+
+    setSendingId(p.id);
+    try {
+      const response = await fetch('/api/relance-artisan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: p.email, nom: p.nom })
+      });
+
+      if (response.ok) {
+        alert("E-mail de relance envoyé avec succès !");
+      } else {
+        alert("Erreur lors de l'envoi de l'e-mail.");
+      }
+    } catch (err) {
+      alert("Erreur réseau.");
+    } finally {
+      setSendingId(null);
+    }
+  }
 
   const filtres = prestataires.filter((p) => {
     const matchTexte =
@@ -159,10 +180,10 @@ export default function AdminArtisans() {
                       {incomplet && (
                         <button
                           onClick={() => relancerArtisan(p)}
-                          className="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition"
-                          title="Copier le lien pour relancer l'artisan"
+                          disabled={sendingId === p.id}
+                          className="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-medium hover:bg-amber-600 transition disabled:bg-amber-300"
                         >
-                          Relancer
+                          {sendingId === p.id ? "Envoi..." : "Relancer par e-mail"}
                         </button>
                       )}
                       <button
