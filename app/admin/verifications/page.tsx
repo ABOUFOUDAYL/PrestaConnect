@@ -28,6 +28,11 @@ type Prestataire = {
   casier_judiciaire_url: string | null;
 };
 
+type UserProfile = {
+  role: string;
+  assigned_zone: string | null;
+};
+
 function DocLink({ label, path }: { label: string; path: string | null }) {
   const [loading, setLoading] = useState(false);
 
@@ -72,19 +77,48 @@ export default function AdminVerifications() {
   const [prestataires, setPrestataires] = useState<Prestataire[]>([]);
   const [onglet, setOnglet] = useState("en_attente");
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [erreurDossier, setErreurDossier] = useState<{ id: string; manquants: string[] } | null>(null);
 
   useEffect(() => {
-    fetchPrestataires();
+    chargerDonneesEtPrestataires();
   }, [onglet]);
 
-  async function fetchPrestataires() {
+  async function chargerDonneesEtPrestataires() {
     setLoading(true);
-    const { data } = await supabase
+
+    // 1. Récupérer l'utilisateur connecté pour connaitre son rôle et sa zone
+    const { data: authData } = await supabase.auth.getUser();
+    let zoneAmbassadeur: string | null = null;
+    let roleUtilisateur: string | null = null;
+
+    if (authData.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, assigned_zone")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+        roleUtilisateur = profile.role;
+        zoneAmbassadeur = profile.assigned_zone;
+      }
+    }
+
+    // 2. Construire la requête des prestataires
+    let query = supabase
       .from("prestataires")
       .select("*")
       .eq("statut", onglet)
       .order("created_at", { ascending: false });
+
+    // Si c'est un ambassadeur et qu'il a une zone assignée, on filtre strictement
+    if (roleUtilisateur === "ambassadeur" && zoneAmbassadeur) {
+      query = query.eq("ville", zoneAmbassadeur);
+    }
+
+    const { data } = await query;
     setPrestataires(data || []);
     setLoading(false);
   }
@@ -105,15 +139,27 @@ export default function AdminVerifications() {
       return;
     }
 
-    fetchPrestataires();
+    chargerDonneesEtPrestataires();
   }
 
   return (
     <div>
-      <div className="bg-orange-500 rounded-2xl p-8 mb-8 text-white">
-        <p className="text-orange-100 text-sm mb-1">Modération</p>
-        <h1 className="text-3xl font-bold">Vérification des dossiers</h1>
-        <p className="text-orange-100 mt-1">Validez ou refusez les dossiers des artisans</p>
+      {/* En-tête dynamique selon le rôle */}
+      <div className="bg-orange-500 rounded-2xl p-8 mb-8 text-white shadow-sm flex justify-between items-center flex-wrap gap-4">
+        <div>
+          <p className="text-orange-100 text-sm mb-1">Modération Terrain</p>
+          <h1 className="text-3xl font-bold">Vérification des dossiers</h1>
+          <p className="text-orange-100 mt-1">
+            {userProfile?.role === "ambassadeur"
+              ? `Zone assignée : ${userProfile.assigned_zone || "Aucune zone définie"}`
+              : "Supervision globale de tous les artisans du Bénin"}
+          </p>
+        </div>
+        {userProfile?.role === "ambassadeur" && (
+          <div className="bg-orange-600 px-4 py-2 rounded-xl text-sm font-semibold border border-orange-400">
+            📍 Ambassadeur : {userProfile.assigned_zone}
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6">
@@ -140,7 +186,7 @@ export default function AdminVerifications() {
         {loading ? (
           <p className="text-center text-gray-400 py-10">Chargement...</p>
         ) : prestataires.length === 0 ? (
-          <p className="text-center text-gray-400 py-10">Aucun dossier</p>
+          <p className="text-center text-gray-400 py-10">Aucun dossier dans cette vue</p>
         ) : (
           <div className="space-y-4">
             {prestataires.map((p) => (
@@ -149,7 +195,7 @@ export default function AdminVerifications() {
                   <div>
                     <p className="font-semibold text-gray-800">{p.nom}</p>
                     <p className="text-sm text-gray-500">
-                      {p.metier} · {p.ville} · {p.telephone}
+                      {p.metier} · <span className="font-medium text-orange-600">{p.ville}</span> · {p.telephone}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
                       {new Date(p.created_at).toLocaleDateString("fr-FR")}
