@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import LoginForm from '@/components/auth/LoginForm'
-import { Wrench } from 'lucide-react'
+import { Wrench, Search, ClipboardList, MessageCircle, BadgeCheck } from 'lucide-react'
 
 export const metadata = {
   title: 'Connexion — PrestaConnect',
@@ -58,13 +58,13 @@ export default async function LoginPage({
           </div>
           <ul className="space-y-4">
             {[
-              { icon: '🔍', text: "Recherche parmi des centaines d'artisans" },
-              { icon: '📋', text: 'Devis gratuits et comparatifs' },
-              { icon: '💬', text: 'Messagerie intégrée sécurisée' },
-              { icon: '✅', text: 'Artisans vérifiés et notés' },
+              { icon: <Search className="h-4 w-4" />, text: "Recherche parmi des centaines d'artisans" },
+              { icon: <ClipboardList className="h-4 w-4" />, text: 'Devis gratuits et comparatifs' },
+              { icon: <MessageCircle className="h-4 w-4" />, text: 'Messagerie intégrée sécurisée' },
+              { icon: <BadgeCheck className="h-4 w-4" />, text: 'Artisans vérifiés et notés' },
             ].map((item) => (
               <li key={item.text} className="flex items-center gap-3 text-sm text-primary-50">
-                <span className="text-lg">{item.icon}</span>
+                {item.icon}
                 {item.text}
               </li>
             ))}
@@ -81,7 +81,7 @@ export default async function LoginPage({
             <span className="font-title text-lg font-bold text-gray-900">PrestaConnect</span>
           </div>
           <div className="space-y-1">
-            <h2 className="font-title text-2xl font-bold text-gray-900">Bon retour 👋</h2>
+            <h2 className="font-title text-2xl font-bold text-gray-900">Bon retour</h2>
             <p className="text-sm text-gray-500">Connectez-vous à votre espace</p>
           </div>
           <LoginForm />
