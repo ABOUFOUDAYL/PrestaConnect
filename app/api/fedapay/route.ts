@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     const tokenData = await tokenRes.json()
     const token = tokenData.token
-    const payment_url = tokenData.url  // ✅ URL directe fournie par FedaPay
+    const payment_url = tokenData.url  // URL directe fournie par FedaPay
 
     if (!token || !payment_url) throw new Error('Token ou URL FedaPay introuvable')
 
