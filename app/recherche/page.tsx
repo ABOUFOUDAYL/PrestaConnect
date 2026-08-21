@@ -30,7 +30,7 @@ export default function RechercheClientPage() {
   const [envoiEnCours, setEnvoiEnCours] = useState(false);
   const [messageSucces, setMessageSucces] = useState('');
 
-  // ✅ Vérification auth au chargement
+  // Vérification auth au chargement
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +43,7 @@ export default function RechercheClientPage() {
     checkAuth();
   }, [router]);
 
-  // ✅ Recherche déclenchée uniquement après auth confirmée
+  // Recherche déclenchée uniquement après auth confirmée
   useEffect(() => {
     if (!authChecked) return;
     lancerRecherche();
@@ -112,7 +112,7 @@ export default function RechercheClientPage() {
     }
   }
 
-  // ✅ Écran de chargement pendant la vérification auth
+  // Écran de chargement pendant la vérification auth
   if (!authChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -175,7 +175,7 @@ export default function RechercheClientPage() {
               <p className="text-blue-100 text-sm">Publiez une annonce globale et recevez des devis.</p>
             </div>
           </div>
-          {/* ✅ Redirection rapide avec router.push au lieu de button passif */}
+          {/* Redirection rapide avec router.push au lieu de button passif */}
           <button
             onClick={() => router.push('/bourse')}
             className="px-6 py-3 bg-white text-blue-700 font-bold rounded-xl shadow-sm hover:bg-blue-50 transition-all"
