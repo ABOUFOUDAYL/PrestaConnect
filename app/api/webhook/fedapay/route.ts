@@ -21,14 +21,50 @@ export async function POST(request: Request) {
 
       const metadata = transactionData.custom_metadata || transactionData.metadata || {};
       const profileId = metadata.profile_id;
-      const transactionId = metadata.transaction_id; // ← recharge wallet
+      const transactionId = metadata.transaction_id;
       const transactionAmount = transactionData.amount;
+      const metadataType = metadata.type;
 
-      // CAS 1 : Recharge wallet
+      // CAS 0 (nouveau, correction critique) : Déblocage contact prestataire
+      // Doit être vérifié EN PREMIER car il partage metadata.transaction_id avec le CAS 1 (recharge),
+      // ce qui faisait auparavant traiter un déblocage comme une recharge de wallet.
+      if (metadataType === 'deblocage_prestataire' && transactionId) {
+        const clientId = metadata.client_id;
+        const prestataireId = metadata.prestataire_id;
+
+        if (!clientId || !prestataireId) {
+          console.error('[Webhook] Métadonnées déblocage incomplètes');
+          return NextResponse.json({ error: 'Métadonnées déblocage incomplètes' }, { status: 400 });
+        }
+
+        await supabaseAdmin
+          .from('transactions')
+          .update({
+            statut: 'approuve',
+            fedapay_id: String(transactionData.id || transactionData.reference || ''),
+          })
+          .eq('id', transactionId);
+
+        const { error: deblocageError } = await supabaseAdmin
+          .from('deblocages_prestataires')
+          .upsert(
+            { client_id: clientId, prestataire_id: prestataireId, transaction_id: transactionId },
+            { onConflict: 'client_id,prestataire_id', ignoreDuplicates: true }
+          );
+
+        if (deblocageError) {
+          console.error('[Webhook] Erreur insertion deblocage:', deblocageError.message);
+          return NextResponse.json({ error: 'Erreur enregistrement déblocage' }, { status: 500 });
+        }
+
+        console.log(`[Webhook] Déblocage confirmé - client ${clientId} → prestataire ${prestataireId}`);
+        return NextResponse.json({ message: 'Déblocage confirmé avec succès' }, { status: 200 });
+      }
+
+      // CAS 1 : Recharge wallet (logique existante, inchangée)
       if (transactionId) {
         console.log(`[Webhook] Recharge wallet - transaction_id: ${transactionId}, montant: ${transactionAmount}`)
 
-        // Récupérer la transaction pour avoir le user_id
         const { data: tx, error: txFetchError } = await supabaseAdmin
           .from('transactions')
           .select('user_id, montant')
@@ -40,7 +76,6 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Transaction introuvable' }, { status: 404 })
         }
 
-        // Mettre à jour le statut de la transaction
         await supabaseAdmin
           .from('transactions')
           .update({
@@ -49,7 +84,6 @@ export async function POST(request: Request) {
           })
           .eq('id', transactionId)
 
-        // Incrémenter le solde du wallet
         const { data: wallet, error: walletError } = await supabaseAdmin
           .from('wallet')
           .select('solde')
@@ -57,7 +91,6 @@ export async function POST(request: Request) {
           .single()
 
         if (walletError || !wallet) {
-          // Créer le wallet s'il n'existe pas
           await supabaseAdmin
             .from('wallet')
             .insert({ artisan_id: tx.user_id, solde: tx.montant })
