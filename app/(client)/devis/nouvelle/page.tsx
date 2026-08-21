@@ -88,7 +88,7 @@ export default function NouvelleDevisPage() {
       })
 
     if (insertError) {
-      console.error('❌ Erreur insertion demande:', insertError)
+      console.error('Erreur insertion demande:', insertError)
       setError(`Erreur : ${insertError.message}`)
       setLoading(false)
       return
