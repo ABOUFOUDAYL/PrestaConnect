@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       const transactionId = metadata.transaction_id; // ← recharge wallet
       const transactionAmount = transactionData.amount;
 
-      // ✅ CAS 1 : Recharge wallet
+      // CAS 1 : Recharge wallet
       if (transactionId) {
         console.log(`[Webhook] Recharge wallet - transaction_id: ${transactionId}, montant: ${transactionAmount}`)
 
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Wallet rechargé avec succès' }, { status: 200 })
       }
 
-      // ✅ CAS 2 : Paiement d'inscription (logique existante)
+      // CAS 2 : Paiement d'inscription (logique existante)
       if (profileId) {
         const { error: dbError } = await supabaseAdmin
           .from('profiles')
