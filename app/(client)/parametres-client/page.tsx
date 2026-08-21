@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { Settings, Lock, XCircle, CheckCircle2, Bell, AlertTriangle } from "lucide-react"
 
 export default function ParametresClientPage() {
   const router = useRouter()
@@ -65,24 +66,24 @@ export default function ParametresClientPage() {
 
   return (
     <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#0f172a", marginBottom: "24px" }}>
-        ⚙️ Paramètres
+      <h1 style={{ fontSize: "24px", fontWeight: 700, color: "#0f172a", marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <Settings size={22} /> Paramètres
       </h1>
 
       {/* Changer mot de passe */}
       <div style={sectionStyle}>
-        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", marginBottom: "16px" }}>
-          🔒 Changer le mot de passe
+        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <Lock size={18} /> Changer le mot de passe
         </h2>
 
         {error && (
-          <div style={{ padding: "10px 14px", borderRadius: "10px", background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", marginBottom: "16px" }}>
-            ❌ {error}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "10px", background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", fontSize: "14px", marginBottom: "16px" }}>
+            <XCircle size={16} /> {error}
           </div>
         )}
         {success && (
-          <div style={{ padding: "10px 14px", borderRadius: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontSize: "14px", marginBottom: "16px" }}>
-            ✅ {success}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 14px", borderRadius: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontSize: "14px", marginBottom: "16px" }}>
+            <CheckCircle2 size={16} /> {success}
           </div>
         )}
 
@@ -119,8 +120,8 @@ export default function ParametresClientPage() {
 
       {/* Notifications */}
       <div style={sectionStyle}>
-        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", marginBottom: "16px" }}>
-          🔔 Notifications
+        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <Bell size={18} /> Notifications
         </h2>
         <p style={{ fontSize: "14px", color: "#64748b" }}>
           La gestion des notifications sera disponible prochainement.
@@ -129,8 +130,8 @@ export default function ParametresClientPage() {
 
       {/* Zone danger */}
       <div style={{ ...sectionStyle, border: "1px solid #fecaca" }}>
-        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#dc2626", marginBottom: "8px" }}>
-          ⚠️ Zone de danger
+        <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#dc2626", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <AlertTriangle size={18} /> Zone de danger
         </h2>
         <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "16px" }}>
           La suppression de votre compte est irréversible et entraîne la perte de toutes vos données.
