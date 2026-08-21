@@ -4,8 +4,9 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { XCircle, PartyPopper } from 'lucide-react'
 
-// ✅ Composant interne qui utilise useSearchParams
+// Composant interne qui utilise useSearchParams
 function RechargeSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -26,7 +27,7 @@ function RechargeSuccessContent() {
         .limit(1)
         .maybeSingle()
 
-      if (transaction?.statut === 'reussi') {
+      if (transaction?.statut === 'approuve') {
         setStatut('success')
       } else {
         setStatut('failed')
@@ -58,7 +59,7 @@ function RechargeSuccessContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
-          <div className="text-6xl mb-4">❌</div>
+          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-red-600 mb-2">Paiement échoué</h1>
           <p className="text-gray-500 mb-6">Le paiement n'a pas pu être traité. Veuillez réessayer.</p>
           <Link href="/recharge" className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition-all">
@@ -72,7 +73,7 @@ function RechargeSuccessContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
-        <div className="text-6xl mb-4">🎉</div>
+        <PartyPopper className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-green-600 mb-2">Recharge réussie !</h1>
         <p className="text-gray-500 mb-6">Votre wallet a été crédité avec succès.</p>
         <div className="bg-green-50 rounded-xl p-4 mb-6">
@@ -92,7 +93,7 @@ function RechargeSuccessContent() {
   )
 }
 
-// ✅ Page principale avec Suspense boundary
+// Page principale avec Suspense boundary
 export default function RechargeSuccessPage() {
   return (
     <Suspense fallback={
