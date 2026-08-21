@@ -196,7 +196,7 @@ export default function ArtisanParametresPage() {
 
         <button onClick={handleSavePerso} disabled={savingPerso} style={saveButtonStyle(savingPerso)}>
           {savedPerso ? <Check size={15} /> : <Save size={15} />}
-          {savingPerso ? 'Enregistrement...' : savedPerso ? 'Enregistré ✓' : 'Enregistrer'}
+          {savingPerso ? 'Enregistrement...' : savedPerso ? 'Enregistré' : 'Enregistrer'}
         </button>
       </div>
 
@@ -260,7 +260,7 @@ export default function ArtisanParametresPage() {
 
         <button onClick={handleSavePro} disabled={savingPro} style={saveButtonStyle(savingPro)}>
           {savedPro ? <Check size={15} /> : <Save size={15} />}
-          {savingPro ? 'Enregistrement...' : savedPro ? 'Enregistré ✓' : 'Enregistrer'}
+          {savingPro ? 'Enregistrement...' : savedPro ? 'Enregistré' : 'Enregistrer'}
         </button>
       </div>
 
@@ -302,7 +302,7 @@ export default function ArtisanParametresPage() {
           style={saveButtonStyle(savingPassword || !newPassword)}
         >
           {savedPassword ? <Check size={15} /> : <Save size={15} />}
-          {savingPassword ? 'Mise à jour...' : savedPassword ? 'Mot de passe modifié ✓' : 'Changer le mot de passe'}
+          {savingPassword ? 'Mise à jour...' : savedPassword ? 'Mot de passe modifié' : 'Changer le mot de passe'}
         </button>
       </div>
     </div>
