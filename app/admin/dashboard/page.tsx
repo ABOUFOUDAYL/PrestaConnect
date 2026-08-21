@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Hammer, Users, ClipboardList, Package } from "lucide-react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,26 +40,29 @@ export default function AdminDashboard() {
   return (
     <div>
       <div className="bg-orange-500 rounded-2xl p-8 mb-8 text-white">
-        <p className="text-orange-100 text-sm mb-1">Bonjour 👋</p>
+        <p className="text-orange-100 text-sm mb-1">Bonjour</p>
         <h1 className="text-3xl font-bold">Panel Admin</h1>
         <p className="text-orange-100 mt-1">Gestion de la plateforme PrestaConnect</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Artisans", value: stats.artisans, icon: "🔨" },
-          { label: "Clients", value: stats.clients, icon: "👥" },
-          { label: "En attente", value: stats.enAttente, icon: "📋" },
-          { label: "Commandes", value: stats.commandes, icon: "📦" },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">{stat.label}</p>
-              <span className="text-2xl">{stat.icon}</span>
+          { label: "Artisans", value: stats.artisans, icon: Hammer },
+          { label: "Clients", value: stats.clients, icon: Users },
+          { label: "En attente", value: stats.enAttente, icon: ClipboardList },
+          { label: "Commandes", value: stats.commandes, icon: Package },
+        ].map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <Icon className="w-6 h-6 text-orange-500" strokeWidth={1.5} />
+              </div>
+              <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
             </div>
-            <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
