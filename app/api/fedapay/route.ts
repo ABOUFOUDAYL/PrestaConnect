@@ -14,6 +14,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('user_id', user_id)
+      .maybeSingle()
+
+    const customerEmail = profile?.email || 'client@prestaconnect.bj'
+
     const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
@@ -41,7 +49,7 @@ export async function POST(req: Request) {
         currency: { iso: 'XOF' },
         callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/recharge/success`,
         metadata: { artisan_id, transaction_id: transaction.id },
-        customer: { email: 'client@prestaconnect.bj' },
+        customer: { email: customerEmail },
       }),
     })
 
