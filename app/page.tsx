@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import {
   ArrowRight, Search, MapPin, CheckCircle2, Hammer,
   Quote, Clock, Shield, Star, BadgeCheck, Users,
+  User, Rocket, ChevronDown, Zap, Wrench, Blocks,
+  Axe, Paintbrush, Grid3x3, Flame, Snowflake,
 } from "lucide-react";
 
 /* ─────────────────── REVEAL (animation d'apparition isolée) ─────────────────── */
@@ -21,7 +23,7 @@ function Reveal({ children, delay = "0ms" }: { children: React.ReactNode; delay?
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true);
-          observer.disconnect(); // plus besoin d'observer une fois révélé
+          observer.disconnect();
         }
       },
       { threshold: 0.08 }
@@ -163,14 +165,14 @@ const MARQUEE_WORDS = [
 ];
 
 const CATEGORIES = [
-  { label: "Électricité", emoji: "⚡", color: "#FEF3C7", text: "#92400E" },
-  { label: "Plomberie", emoji: "🔧", color: "#FFE1E3", text: "#7A1D25" },
-  { label: "Maçonnerie", emoji: "🧱", color: "#FCE7F3", text: "#831843" },
-  { label: "Menuiserie", emoji: "🪵", color: "#DCFCE7", text: "#14532D" },
-  { label: "Peinture", emoji: "🖌️", color: "#F3E8FF", text: "#4C1D95" },
-  { label: "Carrelage", emoji: "🏠", color: "#FFEDD5", text: "#7C2D12" },
-  { label: "Soudure", emoji: "🔥", color: "#FFC8CB", text: "#7A1D25" },
-  { label: "Climatisation", emoji: "❄️", color: "#E0F2FE", text: "#0C4A6E" },
+  { label: "Électricité", icon: Zap, color: "#FEF3C7", text: "#92400E" },
+  { label: "Plomberie", icon: Wrench, color: "#FFE1E3", text: "#7A1D25" },
+  { label: "Maçonnerie", icon: Blocks, color: "#FCE7F3", text: "#831843" },
+  { label: "Menuiserie", icon: Axe, color: "#DCFCE7", text: "#14532D" },
+  { label: "Peinture", icon: Paintbrush, color: "#F3E8FF", text: "#4C1D95" },
+  { label: "Carrelage", icon: Grid3x3, color: "#FFEDD5", text: "#7C2D12" },
+  { label: "Soudure", icon: Flame, color: "#FFC8CB", text: "#7A1D25" },
+  { label: "Climatisation", icon: Snowflake, color: "#E0F2FE", text: "#0C4A6E" },
 ];
 
 const AVATAR_COLORS = ["#FFC8CB", "#DCFCE7", "#F3E8FF", "#FFEDD5"];
@@ -197,7 +199,12 @@ export default function HomePage() {
 
   function renderStars(n: number) {
     return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} style={{ color: i < Math.floor(n) ? "#F59E0B" : "#E5E7EB", fontSize: 13 }}>★</span>
+      <Star
+        key={i}
+        size={13}
+        fill={i < Math.floor(n) ? "#F59E0B" : "#E5E7EB"}
+        color={i < Math.floor(n) ? "#F59E0B" : "#E5E7EB"}
+      />
     ));
   }
 
@@ -265,12 +272,16 @@ export default function HomePage() {
 
           <div style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 860, margin: "0 auto", padding: "60px 20px 100px", textAlign: "center" }}>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(230,57,70,0.18)", border: "1px solid rgba(230,57,70,0.4)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 600, marginBottom: 28, letterSpacing: "0.05em" }}>
-              🇧🇯 La première plateforme artisanale du Bénin
+              <MapPin size={13} /> La première plateforme artisanale du Bénin
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
-              <button className={`tab-btn ${activeTab === "client" ? "tab-active-client" : "tab-inactive"}`} onClick={() => setActiveTab("client")}>👤 Je cherche un artisan</button>
-              <button className={`tab-btn ${activeTab === "prestataire" ? "tab-active-presta" : "tab-inactive"}`} onClick={() => setActiveTab("prestataire")}>🔨 Je suis artisan</button>
+              <button className={`tab-btn ${activeTab === "client" ? "tab-active-client" : "tab-inactive"}`} onClick={() => setActiveTab("client")}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><User size={15} /> Je cherche un artisan</span>
+              </button>
+              <button className={`tab-btn ${activeTab === "prestataire" ? "tab-active-presta" : "tab-inactive"}`} onClick={() => setActiveTab("prestataire")}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Hammer size={15} /> Je suis artisan</span>
+              </button>
             </div>
 
             {activeTab === "client" ? (
@@ -314,7 +325,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <>
-                  <Link href="/register/provider" className="btn btn-green">🔨 S'inscrire comme artisan <ArrowRight size={17} /></Link>
+                  <Link href="/register/provider" className="btn btn-green"><Hammer size={17} /> S'inscrire comme artisan <ArrowRight size={17} /></Link>
                   <Link href="/tarifs" className="btn btn-outline">Voir les tarifs</Link>
                 </>
               )}
@@ -336,7 +347,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", animation: "bounce 2s infinite", color: "#fff", opacity: 0.3, fontSize: 22 }}>↓</div>
+          <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", animation: "bounce 2s infinite", color: "#fff", opacity: 0.3 }}>
+            <ChevronDown size={22} />
+          </div>
         </section>
 
         {/* ══════════════ MARQUEE ══════════════ */}
@@ -366,7 +379,9 @@ export default function HomePage() {
                 <Reveal key={cat.label} delay={`${i * 55}ms`}>
                   <Link href={`/explore?categorie=${encodeURIComponent(cat.label)}`} style={{ textDecoration: "none" }}>
                     <div className="cat-card" style={{ background: cat.color }}>
-                      <div style={{ fontSize: 32, marginBottom: 8 }}>{cat.emoji}</div>
+                      <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}>
+                        <cat.icon size={32} color={cat.text} />
+                      </div>
                       <div className="syne" style={{ fontWeight: 700, fontSize: 13, color: "#0F172A" }}>{cat.label}</div>
                     </div>
                   </Link>
@@ -602,7 +617,7 @@ export default function HomePage() {
           <Reveal>
             <div style={{ textAlign: "center", position: "relative", zIndex: 1, maxWidth: 680, margin: "0 auto" }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(251,107,114,0.15)", color: "#FF9DA3", borderRadius: 999, padding: "6px 16px", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 20 }}>
-                🚀 Rejoignez la communauté
+                <Rocket size={14} /> Rejoignez la communauté
               </span>
               <h2 className="syne" style={{ fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 800, color: "#fff", lineHeight: 1.15, marginBottom: 16 }}>
                 Prêt à rejoindre <span style={{ background: "linear-gradient(135deg, #FB6B72, #E63946)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PrestaConnect ?</span>
@@ -612,7 +627,7 @@ export default function HomePage() {
               </p>
               <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
                 <Link href="/explore" className="btn btn-primary" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}><Search size={18} /> Trouver un prestataire</Link>
-                <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}>🔨 Devenir Prestataire</Link>
+                <Link href="/register/provider" className="btn btn-green" style={{ fontSize: 15, padding: "14px 28px", borderRadius: 14 }}><Hammer size={18} /> Devenir Prestataire</Link>
               </div>
               <div style={{ display: "flex", gap: 28, justifyContent: "center", marginTop: 40, flexWrap: "wrap" }}>
                 {[{ icon: <Shield size={15} />, text: "Artisans vérifiés" }, { icon: <Clock size={15} />, text: "Réponse < 1h" }, { icon: <Star size={15} />, text: `${stats.noteMoyenne > 0 ? stats.noteMoyenne : "4.8"}/5 de satisfaction` }].map((item) => (
