@@ -1,10 +1,11 @@
 import { Artisan } from "./ArtisanCard"
+import { MapPin, BadgeCheck, User, LucideIcon } from "lucide-react"
 
 interface ArtisanProfileProps {
   artisan: Artisan & {
     competences: string[]
     experience: string
-    badges: string[]
+    badges: { icon: LucideIcon; label: string }[]
   }
 }
 
@@ -22,7 +23,7 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
           background: "var(--color-primary-100)", display: "flex",
           alignItems: "center", justifyContent: "center", fontSize: "2.5rem", flexShrink: 0,
         }}>
-          {artisan.photo || "👷"}
+          {artisan.photo || <User size={36} style={{ color: "var(--color-primary-500)" }} strokeWidth={1.5} />}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
@@ -30,16 +31,16 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
               {artisan.name}
             </h1>
             {artisan.verifie && (
-              <span style={{ fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "3px 10px", borderRadius: "var(--radius-full)", fontWeight: "var(--font-semibold)" }}>
-                ✓ Vérifié
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "3px 10px", borderRadius: "var(--radius-full)", fontWeight: "var(--font-semibold)" }}>
+                <BadgeCheck size={13} strokeWidth={2} /> Vérifié
               </span>
             )}
           </div>
           <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-primary-600)", fontWeight: "var(--font-medium)" }}>
             {artisan.metier}
           </p>
-          <p style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-neutral-500)" }}>
-            📍 {artisan.ville}
+          <p style={{ display: "flex", alignItems: "center", gap: "4px", margin: "0 0 var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-neutral-500)" }}>
+            <MapPin size={14} strokeWidth={1.5} /> {artisan.ville}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             <span style={{ color: "var(--color-secondary-500)" }}>{"★".repeat(Math.round(artisan.note))}{"☆".repeat(5 - Math.round(artisan.note))}</span>
@@ -50,11 +51,14 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
 
       {artisan.badges.length > 0 && (
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "var(--space-5)" }}>
-          {artisan.badges.map((badge) => (
-            <span key={badge} style={{ fontSize: "var(--text-xs)", background: "var(--color-secondary-50)", color: "var(--color-secondary-800)", padding: "4px 12px", borderRadius: "var(--radius-full)", fontWeight: "var(--font-medium)" }}>
-              {badge}
-            </span>
-          ))}
+          {artisan.badges.map((badge) => {
+            const Icon = badge.icon
+            return (
+              <span key={badge.label} style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", background: "var(--color-secondary-50)", color: "var(--color-secondary-800)", padding: "4px 12px", borderRadius: "var(--radius-full)", fontWeight: "var(--font-medium)" }}>
+                <Icon size={13} strokeWidth={1.5} /> {badge.label}
+              </span>
+            )
+          })}
         </div>
       )}
 

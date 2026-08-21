@@ -1,3 +1,4 @@
+import { Trophy, Zap, BadgeCheck, Star, SearchX } from "lucide-react"
 import ArtisanProfile from "@/components/artisans/ArtisanProfile"
 import ArtisanGallery from "@/components/artisans/ArtisanGallery"
 import ArtisanReviews from "@/components/artisans/ArtisanReviews"
@@ -11,7 +12,11 @@ const ARTISANS_DATA: Record<string, any> = {
     categories: ["Plomberie", "Bâtiment"],
     competences: ["Plomberie sanitaire", "Chauffe-eau", "Canalisations", "Urgences", "Devis gratuit"],
     experience: "10 ans d'expérience — Ancien technicien SONEB, maintenant indépendant depuis 2015.",
-    badges: ["🏆 Top artisan", "⚡ Réponse rapide", "✓ Vérifié"],
+    badges: [
+      { icon: Trophy, label: "Top artisan" },
+      { icon: Zap, label: "Réponse rapide" },
+      { icon: BadgeCheck, label: "Vérifié" },
+    ],
     photos: ["🚿", "🔧", "🪣", "💧"],
   },
   "2": {
@@ -21,7 +26,10 @@ const ARTISANS_DATA: Record<string, any> = {
     categories: ["Électricité"],
     competences: ["Tableau électrique", "Prises & interrupteurs", "Éclairage LED", "Câblage", "Diagnostic"],
     experience: "7 ans d'expérience — Diplômée de l'EPAC, spécialisée en électricité résidentielle.",
-    badges: ["✓ Vérifié", "⭐ Très bien noté"],
+    badges: [
+      { icon: BadgeCheck, label: "Vérifié" },
+      { icon: Star, label: "Très bien noté" },
+    ],
     photos: ["💡", "🔌", "⚡", "🔦"],
   },
 }
@@ -32,7 +40,7 @@ export default function ArtisanDetailPage({ params }: { params: { id: string } }
   if (!artisan) {
     return (
       <div style={{ textAlign: "center", padding: "var(--space-16) 0" }}>
-        <p style={{ fontSize: "3rem" }}>🔍</p>
+        <SearchX size={48} style={{ margin: "0 auto", color: "var(--color-neutral-400)" }} strokeWidth={1.5} />
         <h1 style={{ color: "var(--color-neutral-700)" }}>Artisan introuvable</h1>
       </div>
     )
