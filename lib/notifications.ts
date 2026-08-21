@@ -66,11 +66,18 @@ async function loggerNotification(params: {
 }
 
 /**
- * Envoie un email via Resend
+ * Envoie un email via Resend.
+ * LIMITATION ACTUELLE : le domaine prestaconnect.bj n'est pas encore vérifié
+ * dans Resend (pas de domaine personnalisé disponible pour le moment).
+ * En mode sandbox, Resend n'autorise l'envoi que vers l'adresse email
+ * associée au compte Resend (sabirousayo@gmail.com).
+ * Tant que le domaine n'est pas vérifié, les emails vers les artisans
+ * échoueront systématiquement (sauf si leur email est exactement
+ * sabirousayo@gmail.com). L'échec est loggé dans logs_notifications.
  */
 export async function envoyerEmailNotif(payload: NotificationPayload): Promise<boolean> {
   if (!payload.email) return false;
-  
+
   if (!resend) {
     await loggerNotification({
       prestataireId: payload.prestataireId,
@@ -85,7 +92,7 @@ export async function envoyerEmailNotif(payload: NotificationPayload): Promise<b
 
   try {
     const { error } = await resend.emails.send({
-      from: 'PrestaConnect <notifications@prestaconnect.bj>',
+      from: 'PrestaConnect <onboarding@resend.dev>',
       to: [payload.email],
       subject: payload.sujetEmail || 'Notification PrestaConnect',
       html: payload.htmlEmail || `<p>${payload.messageTexte}</p>`,
