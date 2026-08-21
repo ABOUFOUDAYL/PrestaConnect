@@ -14,12 +14,14 @@ export default function AdminTopbar() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, nom, prenom")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (profile?.full_name) {
         setNomAdmin(profile.full_name);
+      } else if (profile?.prenom || profile?.nom) {
+        setNomAdmin(`${profile.prenom || ""} ${profile.nom || ""}`.trim());
       }
     }
     fetchAdmin();
