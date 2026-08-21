@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { CheckCircle2 } from "lucide-react";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,7 +70,7 @@ export default function AdminParametres() {
     if (!confirm("Promouvoir cet utilisateur en administrateur ?")) return;
     setLoading(true);
     await supabase.from("profiles").update({ role: "admin" }).eq("id", id);
-    setMessage("✅ Utilisateur promu administrateur !");
+    setMessage("Utilisateur promu administrateur !");
     fetchStats();
     fetchProfiles();
     setLoading(false);
@@ -138,8 +139,8 @@ export default function AdminParametres() {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Promouvoir un administrateur</h2>
         {message && (
-          <div className="mb-4 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm">
-            {message}
+          <div className="mb-4 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2">
+            <CheckCircle2 size={16} /> {message}
           </div>
         )}
         <input
