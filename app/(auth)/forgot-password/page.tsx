@@ -1,4 +1,4 @@
-import { Wrench } from 'lucide-react'
+import { Wrench, Mail, Lock, CheckCircle2, KeyRound } from 'lucide-react'
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
 
 export const metadata = {
@@ -32,15 +32,18 @@ export default function ForgotPasswordPage() {
 
           <ul className="space-y-4">
             {[
-              { icon: '📧', text: 'Lien envoyé instantanément par email' },
-              { icon: '🔒', text: 'Lien sécurisé valable 1 heure' },
-              { icon: '✅', text: 'Aucune donnée perdue' },
-            ].map((item) => (
-              <li key={item.text} className="flex items-center gap-3 text-sm text-primary-50">
-                <span className="text-lg">{item.icon}</span>
-                {item.text}
-              </li>
-            ))}
+              { icon: Mail, text: 'Lien envoyé instantanément par email' },
+              { icon: Lock, text: 'Lien sécurisé valable 1 heure' },
+              { icon: CheckCircle2, text: 'Aucune donnée perdue' },
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <li key={item.text} className="flex items-center gap-3 text-sm text-primary-50">
+                  <Icon className="h-5 w-5" strokeWidth={1.5} />
+                  {item.text}
+                </li>
+              )
+            })}
           </ul>
         </div>
       </div>
@@ -60,7 +63,7 @@ export default function ForgotPasswordPage() {
           {/* Icône */}
           <div className="space-y-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50">
-              <span className="text-2xl">🔑</span>
+              <KeyRound className="h-7 w-7 text-primary-600" strokeWidth={1.5} />
             </div>
             <div className="space-y-1">
               <h2 className="font-title text-2xl font-bold text-gray-900">Mot de passe oublié ?</h2>
