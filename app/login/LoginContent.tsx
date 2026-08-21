@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, Mail, Loader2, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginContent() {
@@ -121,8 +121,8 @@ export default function LoginContent() {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-              ❌ {error}
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+              <XCircle className="w-4 h-4 flex-shrink-0" /> {error}
             </div>
           )}
 
