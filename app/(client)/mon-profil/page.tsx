@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { User, Phone, MapPin, Mail, Edit2, Save, X, FileText, Heart, MessageSquare } from "lucide-react"
+import { User, Phone, MapPin, Mail, Edit2, Save, X, FileText, Heart, MessageSquare, CheckCircle2 } from "lucide-react"
 
 const VILLES_BENIN = [
   "Cotonou", "Porto-Novo", "Parakou", "Abomey-Calavi", "Bohicon",
@@ -146,8 +146,8 @@ export default function ProfilClientPage() {
       </div>
 
       {success && (
-        <div style={{ padding: "12px 16px", borderRadius: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", marginBottom: "20px", fontSize: "14px" }}>
-          ✅ Profil mis à jour avec succès
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", borderRadius: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", marginBottom: "20px", fontSize: "14px" }}>
+          <CheckCircle2 size={16} /> Profil mis à jour avec succès
         </div>
       )}
 
