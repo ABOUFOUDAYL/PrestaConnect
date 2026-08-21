@@ -1,5 +1,6 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
+import { LayoutGrid, List, Search, ChevronLeft, ChevronRight } from "lucide-react"
 import ArtisanCard, { Artisan } from "@/components/artisans/ArtisanCard"
 import ArtisanFilters, { Filters } from "@/components/artisans/ArtisanFilters"
 import { supabase } from "@/lib/supabase"
@@ -82,6 +83,9 @@ export default function ArtisansPage() {
     cursor: "pointer",
     fontSize: "var(--text-sm)",
     fontFamily: "var(--font-body)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "var(--space-2)",
   })
 
   if (isLoading) {
@@ -110,8 +114,12 @@ export default function ArtisansPage() {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "var(--space-6) 0 var(--space-4)" }}>
         <div style={{ display: "flex", gap: "var(--space-2)" }}>
-          <button onClick={() => setView("grid")} style={btnStyle(view === "grid")}>⊞ Grille</button>
-          <button onClick={() => setView("list")} style={btnStyle(view === "list")}>☰ Liste</button>
+          <button onClick={() => setView("grid")} style={btnStyle(view === "grid")}>
+            <LayoutGrid size={16} strokeWidth={2} /> Grille
+          </button>
+          <button onClick={() => setView("list")} style={btnStyle(view === "list")}>
+            <List size={16} strokeWidth={2} /> Liste
+          </button>
         </div>
         <select value={tri} onChange={(e) => setTri(e.target.value)} style={{
           padding: "var(--space-2) var(--space-3)",
@@ -129,7 +137,7 @@ export default function ArtisansPage() {
 
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
-          <p style={{ fontSize: "2rem" }}>🔍</p>
+          <Search size={32} strokeWidth={1.5} style={{ margin: "0 auto var(--space-2)" }} />
           <p>Aucun artisan disponible pour le moment</p>
         </div>
       ) : (
@@ -146,11 +154,15 @@ export default function ArtisansPage() {
 
       {totalPages > 1 && (
         <div style={{ display: "flex", justifyContent: "center", gap: "var(--space-2)" }}>
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={btnStyle(false)}>← Précédent</button>
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={btnStyle(false)}>
+            <ChevronLeft size={16} strokeWidth={2} /> Précédent
+          </button>
           {Array.from({ length: totalPages }, (_, i) => (
             <button key={i+1} onClick={() => setPage(i+1)} style={btnStyle(page === i+1)}>{i+1}</button>
           ))}
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={btnStyle(false)}>Suivant →</button>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={btnStyle(false)}>
+            Suivant <ChevronRight size={16} strokeWidth={2} />
+          </button>
         </div>
       )}
     </div>
