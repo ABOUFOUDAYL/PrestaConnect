@@ -1,7 +1,7 @@
 ﻿import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import RegisterForm from '@/components/auth/RegisterForm'
-import { Wrench } from 'lucide-react'
+import { Wrench, Gift, Zap, Lock, CheckCircle2 } from 'lucide-react'
 
 export const metadata = {
   title: 'Inscription Client — PrestaConnect',
@@ -39,13 +39,13 @@ export default async function RegisterClientPage() {
 
           <ul className="space-y-4">
             {[
-              { icon: '🆓', text: 'Inscription et devis 100% gratuits' },
-              { icon: '⚡', text: 'Réponse des artisans sous 24h' },
-              { icon: '🔒', text: 'Données sécurisées et confidentielles' },
-              { icon: '✅', text: 'Artisans vérifiés et assurés' },
+              { icon: Gift, text: 'Inscription et devis 100% gratuits' },
+              { icon: Zap, text: 'Réponse des artisans sous 24h' },
+              { icon: Lock, text: 'Données sécurisées et confidentielles' },
+              { icon: CheckCircle2, text: 'Artisans vérifiés et assurés' },
             ].map((item) => (
               <li key={item.text} className="flex items-center gap-3 text-sm text-primary-50">
-                <span className="text-lg">{item.icon}</span>
+                <item.icon className="h-5 w-5 text-primary-50" />
                 {item.text}
               </li>
             ))}
