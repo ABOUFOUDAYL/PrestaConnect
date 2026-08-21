@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import { Heart, ArrowRight } from "lucide-react"
 import FavorisGrid from "@/components/favoris/FavorisGrid"
 import { Artisan } from "@/components/artisans/ArtisanCard"
 import { supabase } from "@/lib/supabase"
@@ -101,10 +102,10 @@ export default function FavorisPage() {
 
       {favoris.length === 0 ? (
         <div style={{ textAlign: "center", padding: "var(--space-16) 0", color: "var(--color-neutral-400)" }}>
-          <p style={{ fontSize: "3rem" }}>❤️</p>
+          <Heart size={40} strokeWidth={1.5} style={{ margin: "0 auto var(--space-2)" }} />
           <p>Aucun artisan sauvegardé pour le moment</p>
-          <a href="/artisans" style={{ color: "var(--color-primary-500)", fontSize: "var(--text-sm)" }}>
-            Découvrir des artisans →
+          <a href="/artisans" style={{ display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--color-primary-500)", fontSize: "var(--text-sm)" }}>
+            Découvrir des artisans <ArrowRight size={14} strokeWidth={2} />
           </a>
         </div>
       ) : (
