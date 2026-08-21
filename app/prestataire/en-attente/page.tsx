@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock } from 'lucide-react';
 
 export default function EnAttentePage() {
   const router = useRouter();
@@ -70,9 +70,10 @@ export default function EnAttentePage() {
         Votre inscription a bien été reçue. Un administrateur va examiner
         votre profil et vous contacter sous peu.
       </p>
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 max-w-sm">
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 max-w-sm flex items-center gap-2">
+        <Clock className="w-4 h-4 text-amber-700 flex-shrink-0" />
         <p className="text-xs text-amber-700 font-medium">
-          ⏱ Cette page vérifie automatiquement votre statut toutes les 10 secondes et vous redirigera dès validation.
+          Cette page vérifie automatiquement votre statut toutes les 10 secondes et vous redirigera dès validation.
         </p>
       </div>
       <a href="/" className="mt-2 px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">
