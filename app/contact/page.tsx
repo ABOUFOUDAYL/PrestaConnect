@@ -1,19 +1,37 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Phone, MapPin, MessageCircle, Send, Clock } from "lucide-react";
+import { Mail, Phone, MapPin, MessageCircle, Send, Clock, AlertCircle } from "lucide-react";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ nom: "", contact: "", sujet: "", message: "" })
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    setSent(true)
-    setLoading(false)
+    setError("")
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Erreur lors de l'envoi")
+      }
+
+      setSent(true)
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue. Veuillez réessayer.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -64,7 +82,7 @@ export default function ContactPage() {
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: '#f0fdf4' }}>
                   <Send size={28} color="#16a34a" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Message envoyé ✅</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Message envoyé</h3>
                 <p className="text-sm text-gray-500">Nous vous répondrons dans les plus brefs délais.</p>
                 <button
                   onClick={() => { setSent(false); setForm({ nom: "", contact: "", sujet: "", message: "" }) }}
@@ -77,6 +95,13 @@ export default function ContactPage() {
             ) : (
               <>
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Envoyer un message</h2>
+
+                {error && (
+                  <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                    <AlertCircle size={16} /> {error}
+                  </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
