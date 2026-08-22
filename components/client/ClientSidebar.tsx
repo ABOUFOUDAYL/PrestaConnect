@@ -3,15 +3,19 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import {
+  LayoutDashboard, Hammer, ClipboardList, MessageCircle,
+  Heart, Bell, User, Settings, LogOut, MoreHorizontal,
+} from "lucide-react"
 
 const links = [
-  { href: "/dashboard",     label: "Tableau de bord", icon: "🏠" },
-  { href: "/artisans",      label: "Artisans",         icon: "🔨" },
-  { href: "/demandes",      label: "Mes demandes",     icon: "📋" },
-  { href: "/messages",      label: "Messages",         icon: "💬" },
-  { href: "/favoris",       label: "Favoris",          icon: "❤️" },
-  { href: "/notifications", label: "Notifications",    icon: "🔔" },
-  { href: "/mon-profil",    label: "Mon profil",       icon: "👤" },
+  { href: "/dashboard",     label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/artisans",      label: "Artisans",         icon: Hammer },
+  { href: "/demandes",      label: "Mes demandes",     icon: ClipboardList },
+  { href: "/messages",      label: "Messages",         icon: MessageCircle },
+  { href: "/favoris",       label: "Favoris",          icon: Heart },
+  { href: "/notifications", label: "Notifications",    icon: Bell },
+  { href: "/mon-profil",    label: "Mon profil",       icon: User },
 ]
 
 const mainLinks = links.slice(0, 4)
@@ -75,11 +79,11 @@ export default function ClientSidebar() {
         </div>
 
         <nav style={{ flex: 1, padding: "0 var(--space-3)" }}>
-          {links.map(({ href, label, icon }) => {
+          {links.map(({ href, label, icon: Icon }) => {
             const active = isActive(href)
             return (
               <Link key={href} href={href} style={linkStyle(active)}>
-                <span style={{ fontSize: "1.1rem" }}>{icon}</span>
+                <Icon size={18} strokeWidth={1.75} />
                 {label}
               </Link>
             )
@@ -92,7 +96,7 @@ export default function ClientSidebar() {
           marginTop: "var(--space-4)",
         }}>
           <Link href="/parametres-client" style={linkStyle(isActive("/parametres-client"))}>
-            <span style={{ fontSize: "1.1rem" }}>⚙️</span>
+            <Settings size={18} strokeWidth={1.75} />
             Paramètres
           </Link>
 
@@ -108,14 +112,14 @@ export default function ClientSidebar() {
               fontFamily: "var(--font-body)",
               fontSize: "var(--text-sm)",
               fontWeight: "var(--font-regular)",
-              color: "#e63946",
+              color: "var(--color-error-600)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
               textAlign: "left" as const,
             }}
           >
-            <span style={{ fontSize: "1.1rem" }}>🚪</span>
+            <LogOut size={18} strokeWidth={1.75} />
             Déconnexion
           </button>
         </div>
@@ -134,7 +138,7 @@ export default function ClientSidebar() {
         padding: "var(--space-2) 0",
         zIndex: 50,
       }}>
-        {mainLinks.map(({ href, label, icon }) => {
+        {mainLinks.map(({ href, label, icon: Icon }) => {
           const active = isActive(href)
           return (
             <Link key={href} href={href} onClick={() => setMoreOpen(false)} style={{
@@ -149,7 +153,7 @@ export default function ClientSidebar() {
               fontWeight: active ? "var(--font-semibold)" : "var(--font-regular)",
               color: active ? "var(--color-primary-600)" : "var(--color-neutral-600)",
             }}>
-              <span style={{ fontSize: "1.2rem" }}>{icon}</span>
+              <Icon size={20} strokeWidth={1.75} />
               {label.split(" ")[0]}
             </Link>
           )
@@ -169,7 +173,7 @@ export default function ClientSidebar() {
           color: moreActive || moreOpen ? "var(--color-primary-600)" : "var(--color-neutral-600)",
           cursor: "pointer",
         }}>
-          <span style={{ fontSize: "1.2rem" }}>⋯</span>
+          <MoreHorizontal size={20} strokeWidth={1.75} />
           Plus
         </button>
       </nav>
@@ -189,7 +193,7 @@ export default function ClientSidebar() {
           minWidth: "180px",
           zIndex: 51,
         }}>
-          {moreLinks.map(({ href, label, icon }) => {
+          {moreLinks.map(({ href, label, icon: Icon }) => {
             const active = isActive(href)
             return (
               <Link key={href} href={href} onClick={() => setMoreOpen(false)} style={{
@@ -205,7 +209,7 @@ export default function ClientSidebar() {
                 background: active ? "var(--color-primary-50)" : "transparent",
                 textDecoration: "none",
               }}>
-                <span style={{ fontSize: "1.1rem" }}>{icon}</span>
+                <Icon size={18} strokeWidth={1.75} />
                 {label}
               </Link>
             )
@@ -222,14 +226,14 @@ export default function ClientSidebar() {
               width: "100%",
               fontFamily: "var(--font-body)",
               fontSize: "var(--text-sm)",
-              color: "#e63946",
+              color: "var(--color-error-600)",
               background: "transparent",
               border: "none",
               cursor: "pointer",
               textAlign: "left" as const,
             }}
           >
-            <span style={{ fontSize: "1.1rem" }}>🚪</span>
+            <LogOut size={18} strokeWidth={1.75} />
             Déconnexion
           </button>
         </div>
