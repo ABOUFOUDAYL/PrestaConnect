@@ -12,7 +12,7 @@ export default function ArtisansPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>({
     search: "", metier: "Tous", ville: "Toutes",
-    categorie: "Toutes", noteMin: 0, verifieOnly: false,
+    noteMin: 0, verifieOnly: false,
   })
   const [view, setView] = useState<"grid" | "list">("grid")
   const [tri, setTri] = useState("note")
@@ -54,12 +54,15 @@ export default function ArtisansPage() {
   }, [])
 
   const filtered = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    const metier = filters.metier.trim().toLowerCase()
+    const ville = filters.ville.trim().toLowerCase()
+
     return artisans
       .filter((a) => {
-        if (filters.search && !a.name.toLowerCase().includes(filters.search.toLowerCase()) && !a.metier.toLowerCase().includes(filters.search.toLowerCase())) return false
-        if (filters.metier !== "Tous" && a.metier !== filters.metier) return false
-        if (filters.ville !== "Toutes" && a.ville !== filters.ville) return false
-        if (filters.categorie !== "Toutes" && !a.categories.includes(filters.categorie)) return false
+        if (search && !a.name.toLowerCase().includes(search) && !a.metier.toLowerCase().includes(search)) return false
+        if (filters.metier !== "Tous" && !a.metier.toLowerCase().includes(metier)) return false
+        if (filters.ville !== "Toutes" && !a.ville.toLowerCase().includes(ville)) return false
         if (a.note < filters.noteMin) return false
         if (filters.verifieOnly && !a.verifie) return false
         return true

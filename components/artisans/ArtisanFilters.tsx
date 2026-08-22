@@ -1,10 +1,10 @@
 "use client"
+import { Search, RotateCcw, CheckCircle2 } from "lucide-react"
 
 export interface Filters {
   search: string
   metier: string
   ville: string
-  categorie: string
   noteMin: number
   verifieOnly: boolean
 }
@@ -23,7 +23,7 @@ const METIERS_BENIN = [
   "Cuisiniste", "Installateur de panneaux solaires", "Fontainier", "Paysagiste",
   "Décorateur d'intérieur", "Réparateur d'électroménager", "Photographe",
   "Vidéaste", "Imprimeur", "Tailleur", "Coiffeur", "Esthéticienne",
-  "Tôlier", "Carreleur", "Poseur de parquet", "Installateur de portes et fenêtres",
+  "Tôlier", "Poseur de parquet", "Installateur de portes et fenêtres",
   "Technicien en alarme et sécurité", "Réparateur de téléphones",
 ]
 
@@ -33,8 +33,8 @@ const VILLES_BENIN = [
   "Malanville", "Banikoara", "Tchaourou", "Dassa-Zoumé", "Comè", "Pobè",
   "Aplahoué", "Dogbo", "Bembèrèkè", "Ndali", "Péhunco", "Kétou", "Sakété",
   "Covè", "Zagnanado", "Zogbodomey", "Adja-Ouèrè", "Ifangni", "Dangbo",
-  "Aguégués", "Sèmè-Podji", "Calavi", "Abomey-Calavi", "Toffo", "Tori-Bossito",
-  "Allada", "Kpomassè", "Ouidah", "Zè", "Mono", "Athiémé", "Bopa", "Grand-Popo",
+  "Aguégués", "Sèmè-Podji", "Toffo", "Tori-Bossito",
+  "Allada", "Kpomassè", "Zè", "Mono", "Athiémé", "Bopa", "Grand-Popo",
   "Houéyogbé", "Toviklin", "Djakotomey", "Klouékanmè", "Lalo",
 ]
 
@@ -44,7 +44,7 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
 
   const inputStyle = {
     width: "100%",
-    padding: "var(--space-2-5) var(--space-3)",
+    padding: "var(--space-2) var(--space-3)",
     border: "1px solid var(--color-neutral-300)",
     borderRadius: "var(--radius-lg)",
     fontSize: "var(--text-sm)",
@@ -74,13 +74,16 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
     }}>
 
       {/* Recherche libre */}
-      <input
-        type="text"
-        placeholder="🔍 Rechercher un artisan, un métier..."
-        value={filters.search}
-        onChange={(e) => update("search", e.target.value)}
-        style={{ ...inputStyle, fontSize: "var(--text-base)" }}
-      />
+      <div style={{ position: "relative" }}>
+        <Search size={16} style={{ position: "absolute", left: "var(--space-3)", top: "50%", transform: "translateY(-50%)", color: "var(--color-neutral-400)", pointerEvents: "none" }} />
+        <input
+          type="text"
+          placeholder="Rechercher un artisan, un métier..."
+          value={filters.search}
+          onChange={(e) => update("search", e.target.value)}
+          style={{ ...inputStyle, fontSize: "var(--text-base)", paddingLeft: "calc(var(--space-3) + 24px)" }}
+        />
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
 
@@ -135,7 +138,7 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
           <button
             onClick={() => onChange({
               search: "", metier: "Tous", ville: "Toutes",
-              categorie: "Toutes", noteMin: 0, verifieOnly: false,
+              noteMin: 0, verifieOnly: false,
             })}
             style={{
               ...inputStyle,
@@ -143,9 +146,13 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
               cursor: "pointer",
               color: "var(--color-neutral-600)",
               textAlign: "center" as const,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "var(--space-2)",
             }}
           >
-            🔄 Réinitialiser
+            <RotateCcw size={14} /> Réinitialiser
           </button>
         </div>
       </div>
@@ -164,7 +171,9 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
           checked={filters.verifieOnly}
           onChange={(e) => update("verifieOnly", e.target.checked)}
         />
-        Artisans vérifiés uniquement ✓
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          Artisans vérifiés uniquement <CheckCircle2 size={13} style={{ color: "var(--color-success-600)" }} />
+        </span>
       </label>
     </div>
   )
