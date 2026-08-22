@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox"
-import { Check, Minus } from "lucide-react"
+import { Check, Minus, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface CheckboxProps extends CheckboxPrimitive.Root.Props {
@@ -24,10 +24,10 @@ function Checkbox({ className, label, description, error, id, ...props }: Checkb
             "mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border-2",
             "transition-all duration-150 outline-none",
             "border-gray-300 bg-white",
-            "hover:border-indigo-400",
-            "data-[checked]:bg-indigo-600 data-[checked]:border-indigo-600",
-            "data-[indeterminate]:bg-indigo-600 data-[indeterminate]:border-indigo-600",
-            "focus-visible:ring-2 focus-visible:ring-indigo-500/30",
+            "hover:border-primary-400",
+            "data-[checked]:bg-primary-500 data-[checked]:border-primary-500",
+            "data-[indeterminate]:bg-primary-500 data-[indeterminate]:border-primary-500",
+            "focus-visible:ring-2 focus-visible:ring-primary-500/30",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             "aria-[invalid=true]:border-red-400",
             className
@@ -55,7 +55,9 @@ function Checkbox({ className, label, description, error, id, ...props }: Checkb
         )}
       </div>
       {error && (
-        <p className="text-xs text-red-500 flex items-center gap-1 ml-7"><span>⚠</span> {error}</p>
+        <p className="text-xs text-red-500 flex items-center gap-1 ml-7">
+          <AlertCircle size={12} /> {error}
+        </p>
       )}
     </div>
   )
