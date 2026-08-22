@@ -6,6 +6,7 @@ import { ConditionalShell } from '../components/layout/conditional-shell';
 import { Navbar } from '../components/layout/navbar';
 import { ImpersonationProvider } from '../contexts/impersonation-context';
 import { ImpersonationBar } from '../components/layout/impersonation-bar';
+import { ThemeProvider } from '../components/providers/theme-provider';
 
 const sora = Sora({
   subsets: ['latin'],
@@ -31,18 +32,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <body className={`${sora.variable} ${dmSans.variable} ${dmMono.variable} font-sans`}>
-        <ImpersonationProvider>
-          <ImpersonationBar />
-          <ConditionalShell
-            navbar={<Navbar />}
-            footer={<Footer />}
-          >
-            {children}
-          </ConditionalShell>
-          <Toaster />
-        </ImpersonationProvider>
+        <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem={false}>
+          <ImpersonationProvider>
+            <ImpersonationBar />
+            <ConditionalShell
+              navbar={<Navbar />}
+              footer={<Footer />}
+            >
+              {children}
+            </ConditionalShell>
+            <Toaster />
+          </ImpersonationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -5,8 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useImpersonation } from "@/contexts/impersonation-context";
 import { supabase } from "@/lib/supabase";
 
@@ -23,9 +21,9 @@ const marketingRoutes = [
   "/prestataires",
   "/tarifs",
   "/ressources",
-  "/explore",
   "/login",
   "/register",
+  "/artisan-register",
   "/about",
   "/contact",
 ];
@@ -34,9 +32,14 @@ export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { impersonated } = useImpersonation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -56,7 +59,6 @@ export function Navbar() {
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  // ✅ CORRIGÉ : redirige vers /recherche et non /prestataires
   function handleTrouverPrestataire() {
     if (!isLoggedIn) {
       router.push("/login?redirect=/recherche");
@@ -70,9 +72,31 @@ export function Navbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-[var(--navbar-height)] border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 md:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
+    <header
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        height: "var(--topbar-height)",
+        borderBottom: "1px solid var(--border-default)",
+        background: "var(--bg-surface)",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <div
+        style={{
+          margin: "0 auto",
+          maxWidth: "var(--container-xl)",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 var(--space-6)",
+        }}
+      >
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <img src="/logo.svg" alt="PrestaConnect" style={{ height: "40px", width: "auto" }} />
         </Link>
 
@@ -81,10 +105,12 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                pathname === link.href ? "text-primary" : "text-muted-foreground"
-              )}
+              style={{
+                fontSize: "var(--text-sm)",
+                fontWeight: pathname === link.href ? 600 : 500,
+                color: pathname === link.href ? "var(--text-brand)" : "var(--text-secondary)",
+                textDecoration: "none",
+              }}
             >
               {link.label}
             </Link>
@@ -92,79 +118,156 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
+          <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             aria-label="Changer le theme"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-default)",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+            }}
           >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
+            {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
 
-          <Button variant="ghost" onClick={handleTrouverPrestataire}>
+          <button
+            onClick={handleTrouverPrestataire}
+            style={{
+              background: "transparent",
+              border: "none",
+              fontSize: "var(--text-sm)",
+              fontWeight: 500,
+              color: "var(--text-secondary)",
+              padding: "8px 14px",
+            }}
+          >
             Trouver un prestataire
-          </Button>
+          </button>
 
           {!isLoggedIn && (
-            <Button variant="ghost" onClick={() => router.push('/login')}>
+            <button
+              onClick={() => router.push('/login')}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                color: "var(--text-secondary)",
+                padding: "8px 14px",
+              }}
+            >
               Connexion
-            </Button>
+            </button>
           )}
 
           {isLoggedIn && (
-            <Button variant="ghost" onClick={() => router.push('/dashboard')}>
+            <button
+              onClick={() => router.push('/dashboard')}
+              style={{
+                background: "transparent",
+                border: "none",
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                color: "var(--text-secondary)",
+                padding: "8px 14px",
+              }}
+            >
               Mon espace
-            </Button>
+            </button>
           )}
 
           {!isLoggedIn && (
-            <Button onClick={() => router.push('/register/provider')}>
+            <button className="btn-primary" style={{ width: "auto", padding: "10px 20px" }} onClick={() => router.push('/artisan-register')}>
               Devenir Prestataire
-            </Button>
+            </button>
           )}
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             aria-label="Changer le theme"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-default)",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+            }}
           >
-            <Sun className="h-4 w-4 dark:hidden" />
-            <Moon className="hidden h-4 w-4 dark:block" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
+            {mounted && theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Menu"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--border-default)",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+            }}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-border bg-background px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-1">
+        <div
+          style={{
+            borderTop: "1px solid var(--border-default)",
+            background: "var(--bg-surface)",
+            padding: "16px",
+          }}
+          className="md:hidden"
+        >
+          <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {marketingLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
+                style={{
+                  borderRadius: "var(--radius-md)",
+                  padding: "10px 12px",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 500,
+                  color: "var(--text-primary)",
+                  textDecoration: "none",
+                }}
               >
                 {link.label}
               </Link>
             ))}
-            <hr className="my-2 border-border" />
+            <hr className="divider" />
 
             <button
               onClick={() => { handleTrouverPrestataire(); setMobileOpen(false); }}
-              className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted text-left"
+              style={{
+                borderRadius: "var(--radius-md)",
+                padding: "10px 12px",
+                fontSize: "var(--text-sm)",
+                fontWeight: 500,
+                color: "var(--text-primary)",
+                background: "transparent",
+                border: "none",
+                textAlign: "left",
+              }}
             >
               Trouver un prestataire
             </button>
@@ -173,7 +276,14 @@ export function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
+                style={{
+                  borderRadius: "var(--radius-md)",
+                  padding: "10px 12px",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 500,
+                  color: "var(--text-primary)",
+                  textDecoration: "none",
+                }}
               >
                 Connexion
               </Link>
@@ -183,19 +293,27 @@ export function Navbar() {
               <Link
                 href="/"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted"
+                style={{
+                  borderRadius: "var(--radius-md)",
+                  padding: "10px 12px",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 500,
+                  color: "var(--text-primary)",
+                  textDecoration: "none",
+                }}
               >
                 Mon espace
               </Link>
             )}
 
             {!isLoggedIn && (
-              <Button
-                className="mt-2 w-full"
-                onClick={() => { router.push('/register/provider'); setMobileOpen(false); }}
+              <button
+                className="btn-primary"
+                style={{ marginTop: 8 }}
+                onClick={() => { router.push('/artisan-register'); setMobileOpen(false); }}
               >
                 Devenir Prestataire
-              </Button>
+              </button>
             )}
           </nav>
         </div>
@@ -207,13 +325,29 @@ export function Navbar() {
 function AppNavbar() {
   const router = useRouter();
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 flex h-[var(--navbar-height)] items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
-      <Link href="/" className="flex items-center gap-2">
+    <header
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        height: "var(--topbar-height)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        borderBottom: "1px solid var(--border-default)",
+        background: "var(--bg-surface)",
+        backdropFilter: "blur(8px)",
+        padding: "0 var(--space-6)",
+      }}
+    >
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <img src="/logo.svg" alt="PrestaConnect" style={{ height: "32px", width: "auto" }} />
       </Link>
-      <Button onClick={() => router.push('/')}>
+      <button className="btn-outline" style={{ width: "auto", padding: "8px 16px" }} onClick={() => router.push('/')}>
         Retour au site
-      </Button>
+      </button>
     </header>
   );
 }
