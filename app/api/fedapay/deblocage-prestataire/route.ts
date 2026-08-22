@@ -27,6 +27,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Déjà débloqué' }, { status: 400 })
     }
 
+    // Récupération de l'email réel du client (correction critique, même pattern que app/api/fedapay/route.ts)
+    const { data: clientProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('email')
+      .eq('id', client_id)
+      .maybeSingle()
+
+    const clientEmail = clientProfile?.email || 'client@prestaconnect.bj'
+
     const { data: transaction, error: txError } = await supabaseAdmin
       .from('transactions')
       .insert({
@@ -59,7 +68,7 @@ export async function POST(req: Request) {
           client_id,
           prestataire_id,
         },
-        customer: { email: 'client@prestaconnect.bj' },
+        customer: { email: clientEmail },
       }),
     })
 
