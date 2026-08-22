@@ -1,10 +1,10 @@
 import { Artisan } from "./ArtisanCard"
-import { MapPin, BadgeCheck, User, LucideIcon } from "lucide-react"
+import { MapPin, BadgeCheck, User, Star, LucideIcon } from "lucide-react"
 
 interface ArtisanProfileProps {
   artisan: Artisan & {
-    competences: string[]
-    experience: string
+    competences?: string[]
+    experience?: string
     badges: { icon: LucideIcon; label: string }[]
   }
 }
@@ -21,9 +21,13 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
         <div style={{
           width: "80px", height: "80px", borderRadius: "var(--radius-full)",
           background: "var(--color-primary-100)", display: "flex",
-          alignItems: "center", justifyContent: "center", fontSize: "2.5rem", flexShrink: 0,
+          alignItems: "center", justifyContent: "center", fontSize: "2.5rem", flexShrink: 0, overflow: "hidden",
         }}>
-          {artisan.photo || <User size={36} style={{ color: "var(--color-primary-500)" }} strokeWidth={1.5} />}
+          {artisan.photo ? (
+            <img src={artisan.photo} alt={artisan.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <User size={36} style={{ color: "var(--color-primary-500)" }} strokeWidth={1.5} />
+          )}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
@@ -43,7 +47,17 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
             <MapPin size={14} strokeWidth={1.5} /> {artisan.ville}
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <span style={{ color: "var(--color-secondary-500)" }}>{"★".repeat(Math.round(artisan.note))}{"☆".repeat(5 - Math.round(artisan.note))}</span>
+            <div style={{ display: "flex", gap: "1px" }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Star
+                  key={i}
+                  size={15}
+                  fill={i < Math.round(artisan.note) ? "var(--color-secondary-500)" : "none"}
+                  color="var(--color-secondary-500)"
+                  strokeWidth={1.5}
+                />
+              ))}
+            </div>
             <span style={{ fontSize: "var(--text-sm)", color: "var(--color-neutral-600)" }}>{artisan.note}/5 ({artisan.avis} avis)</span>
           </div>
         </div>
@@ -71,25 +85,29 @@ export default function ArtisanProfile({ artisan }: ArtisanProfileProps) {
         </p>
       </div>
 
-      <div style={{ marginBottom: "var(--space-5)" }}>
-        <h2 style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)", color: "var(--color-neutral-700)", margin: "0 0 var(--space-3)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)" }}>
-          Expérience
-        </h2>
-        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-neutral-600)" }}>{artisan.experience}</p>
-      </div>
-
-      <div>
-        <h2 style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)", color: "var(--color-neutral-700)", margin: "0 0 var(--space-3)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)" }}>
-          Compétences
-        </h2>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-          {artisan.competences.map((comp) => (
-            <span key={comp} style={{ fontSize: "var(--text-xs)", background: "var(--color-primary-50)", color: "var(--color-primary-700)", padding: "4px 12px", borderRadius: "var(--radius-full)" }}>
-              {comp}
-            </span>
-          ))}
+      {artisan.experience && (
+        <div style={{ marginBottom: "var(--space-5)" }}>
+          <h2 style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)", color: "var(--color-neutral-700)", margin: "0 0 var(--space-3)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)" }}>
+            Expérience
+          </h2>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-neutral-600)" }}>{artisan.experience}</p>
         </div>
-      </div>
+      )}
+
+      {artisan.competences && artisan.competences.length > 0 && (
+        <div>
+          <h2 style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-semibold)", color: "var(--color-neutral-700)", margin: "0 0 var(--space-3)", textTransform: "uppercase", letterSpacing: "var(--tracking-wide)" }}>
+            Compétences
+          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {artisan.competences.map((comp) => (
+              <span key={comp} style={{ fontSize: "var(--text-xs)", background: "var(--color-primary-50)", color: "var(--color-primary-700)", padding: "4px 12px", borderRadius: "var(--radius-full)" }}>
+                {comp}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
