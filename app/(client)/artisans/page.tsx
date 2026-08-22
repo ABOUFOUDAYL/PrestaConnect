@@ -43,7 +43,7 @@ export default function ArtisansPage() {
           verifie: p.verifie || false,
           description: p.description || "",
           categories: p.metier ? [p.metier] : [],
-          photo_url: p.image || null,
+          photo: p.image || undefined,
         }))
         setArtisans(formatted)
       }

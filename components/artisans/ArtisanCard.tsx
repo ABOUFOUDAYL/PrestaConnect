@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { User, CheckCircle2, MapPin, Star } from "lucide-react"
 
 export interface Artisan {
   id: string
@@ -18,9 +19,39 @@ interface ArtisanCardProps {
   view?: "grid" | "list"
 }
 
-export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps) {
-  const stars = "★".repeat(Math.round(artisan.note)) + "☆".repeat(5 - Math.round(artisan.note))
+function StarRating({ note, size = 13 }: { note: number; size?: number }) {
+  return (
+    <div style={{ display: "flex", gap: "1px" }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          size={size}
+          fill={i < Math.round(note) ? "var(--color-secondary-500)" : "none"}
+          color="var(--color-secondary-500)"
+          strokeWidth={1.5}
+        />
+      ))}
+    </div>
+  )
+}
 
+function Avatar({ photo, size }: { photo?: string; size: number }) {
+  return (
+    <div style={{
+      width: `${size}px`, height: `${size}px`, borderRadius: "var(--radius-full)",
+      background: "var(--color-primary-100)", display: "flex",
+      alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden",
+    }}>
+      {photo ? (
+        <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <User size={size * 0.45} style={{ color: "var(--color-primary-500)" }} strokeWidth={1.5} />
+      )}
+    </div>
+  )
+}
+
+export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps) {
   if (view === "list") {
     return (
       <Link href={`/artisans/${artisan.id}`} style={{ textDecoration: "none" }}>
@@ -35,34 +66,27 @@ export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps
           transition: "var(--transition-fast)",
           cursor: "pointer",
         }}>
-          <div style={{
-            width: "64px", height: "64px", borderRadius: "var(--radius-full)",
-            background: "var(--color-primary-100)", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            fontSize: "1.5rem", flexShrink: 0,
-          }}>
-            {artisan.photo || "👷"}
-          </div>
+          <Avatar photo={artisan.photo} size={64} />
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-1)" }}>
               <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: "var(--font-semibold)", color: "var(--color-neutral-900)" }}>
                 {artisan.name}
               </h3>
               {artisan.verifie && (
-                <span style={{ fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
-                  ✓ Vérifié
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
+                  <CheckCircle2 size={11} /> Vérifié
                 </span>
               )}
             </div>
             <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-primary-600)", fontWeight: "var(--font-medium)" }}>
               {artisan.metier}
             </p>
-            <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>
-              📍 {artisan.ville}
+            <p style={{ display: "flex", alignItems: "center", gap: "4px", margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>
+              <MapPin size={12} /> {artisan.ville}
             </p>
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ color: "var(--color-secondary-500)", fontSize: "var(--text-sm)" }}>{stars}</div>
+            <StarRating note={artisan.note} />
             <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--color-neutral-400)" }}>
               {artisan.note}/5 ({artisan.avis} avis)
             </p>
@@ -83,16 +107,10 @@ export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps
         transition: "var(--transition-fast)", cursor: "pointer", height: "100%",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-          <div style={{
-            width: "56px", height: "56px", borderRadius: "var(--radius-full)",
-            background: "var(--color-primary-100)", display: "flex",
-            alignItems: "center", justifyContent: "center", fontSize: "1.5rem",
-          }}>
-            {artisan.photo || "👷"}
-          </div>
+          <Avatar photo={artisan.photo} size={56} />
           {artisan.verifie && (
-            <span style={{ fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
-              ✓ Vérifié
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
+              <CheckCircle2 size={11} /> Vérifié
             </span>
           )}
         </div>
@@ -103,10 +121,16 @@ export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps
           <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-primary-600)", fontWeight: "var(--font-medium)" }}>
             {artisan.metier}
           </p>
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>📍 {artisan.ville}</p>
+          <p style={{ display: "flex", alignItems: "center", gap: "4px", margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>
+            <MapPin size={12} /> {artisan.ville}
+          </p>
         </div>
         <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-600)", lineHeight: "var(--leading-relaxed)", flex: 1 }}>
-          {artisan.description.slice(0, 80)}...
+          {artisan.description
+            ? artisan.description.length > 80
+              ? `${artisan.description.slice(0, 80)}...`
+              : artisan.description
+            : "Aucune description disponible."}
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
           {artisan.categories.slice(0, 2).map((cat) => (
@@ -116,7 +140,7 @@ export default function ArtisanCard({ artisan, view = "grid" }: ArtisanCardProps
           ))}
         </div>
         <div style={{ borderTop: "1px solid var(--color-neutral-100)", paddingTop: "var(--space-3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "var(--color-secondary-500)", fontSize: "var(--text-sm)" }}>{stars}</div>
+          <StarRating note={artisan.note} />
           <span style={{ fontSize: "var(--text-xs)", color: "var(--color-neutral-400)" }}>{artisan.note}/5 ({artisan.avis} avis)</span>
         </div>
       </div>
