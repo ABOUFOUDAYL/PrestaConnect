@@ -1,15 +1,30 @@
 "use client"
 import Link from "next/link"
 import { Artisan } from "@/components/artisans/ArtisanCard"
+import { User, CheckCircle2, MapPin, Star, Heart } from "lucide-react"
 
 interface FavorisCardProps {
   artisan: Artisan
   onRetirer: (id: string) => void
 }
 
-export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
-  const stars = "★".repeat(Math.round(artisan.note)) + "☆".repeat(5 - Math.round(artisan.note))
+function StarRating({ note, size = 13 }: { note: number; size?: number }) {
+  return (
+    <div style={{ display: "flex", gap: "1px" }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Star
+          key={i}
+          size={size}
+          fill={i < Math.round(note) ? "var(--color-secondary-500)" : "none"}
+          color="var(--color-secondary-500)"
+          strokeWidth={1.5}
+        />
+      ))}
+    </div>
+  )
+}
 
+export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
   return (
     <div style={{
       background: "var(--color-neutral-0)",
@@ -24,9 +39,13 @@ export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
         width: "56px", height: "56px", borderRadius: "var(--radius-full)",
         background: "var(--color-primary-100)", display: "flex",
         alignItems: "center", justifyContent: "center",
-        fontSize: "1.5rem", flexShrink: 0,
+        flexShrink: 0, overflow: "hidden",
       }}>
-        {artisan.photo || "👷"}
+        {artisan.photo ? (
+          <img src={artisan.photo} alt={artisan.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <User size={26} style={{ color: "var(--color-primary-500)" }} strokeWidth={1.5} />
+        )}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -35,8 +54,8 @@ export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
             {artisan.name}
           </h3>
           {artisan.verifie && (
-            <span style={{ fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
-              ✓ Vérifié
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "var(--text-xs)", background: "var(--color-success-50)", color: "var(--color-success-700)", padding: "2px 8px", borderRadius: "var(--radius-full)" }}>
+              <CheckCircle2 size={11} /> Vérifié
             </span>
           )}
         </div>
@@ -44,8 +63,13 @@ export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
           {artisan.metier}
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>📍 {artisan.ville}</p>
-          <span style={{ color: "var(--color-secondary-500)", fontSize: "var(--text-xs)" }}>{stars} {artisan.note}/5</span>
+          <p style={{ display: "flex", alignItems: "center", gap: "4px", margin: 0, fontSize: "var(--text-xs)", color: "var(--color-neutral-500)" }}>
+            <MapPin size={12} /> {artisan.ville}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <StarRating note={artisan.note} />
+            <span style={{ color: "var(--color-neutral-500)", fontSize: "var(--text-xs)" }}>{artisan.note}/5</span>
+          </div>
         </div>
       </div>
 
@@ -64,6 +88,10 @@ export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
           Voir profil
         </Link>
         <button onClick={() => onRetirer(artisan.id)} style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "6px",
           padding: "var(--space-2) var(--space-4)",
           borderRadius: "var(--radius-lg)",
           border: "1px solid var(--color-error-300)",
@@ -73,7 +101,7 @@ export default function FavorisCard({ artisan, onRetirer }: FavorisCardProps) {
           fontWeight: "var(--font-medium)",
           cursor: "pointer",
         }}>
-          ❤️ Retirer
+          <Heart size={13} fill="var(--color-error-700)" /> Retirer
         </button>
       </div>
     </div>
