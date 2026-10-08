@@ -128,7 +128,9 @@ export default function ArtisanFilters({ filters, onChange }: ArtisanFiltersProp
             style={inputStyle}
           >
             {[0,1,2,3,4,5].map((n) => (
-              <option key={n} value={n}>{n === 0 ? "Toutes les notes" : `${n}★ et +`}</option>
+              <option key={n} value={n}>
+                {n === 0 ? "Toutes les notes" : `${n} étoile${n > 1 ? "s" : ""} et +`}
+              </option>
             ))}
           </select>
         </div>
